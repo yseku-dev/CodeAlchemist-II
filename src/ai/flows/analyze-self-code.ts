@@ -51,11 +51,13 @@ const analyzeCodePrompt = ai.definePrompt({
   input: {schema: AnalyzeCodeInputSchema},
   output: {schema: AnalyzeCodeOutputSchema},
   prompt: `Eres un experto analista de código y arquitecto de software. Tu tarea es analizar el código fuente del proyecto proporcionado.
-{{#if (eq sourceCodeLocation "Local")}}
+{{#if isLocal}}
 Estás analizando el código fuente local de la aplicación CodeAlchemist.
-{{else if (eq sourceCodeLocation "Git")}}
+{{/if}}
+{{#if isGit}}
 Estás analizando el código fuente del repositorio Git: {{{gitRepoUrl}}}.
-{{else if (eq sourceCodeLocation "UploadedString")}}
+{{/if}}
+{{#if isUploadedString}}
 Estás analizando el contenido del proyecto proporcionado directamente.
 {{/if}}
 
@@ -107,10 +109,22 @@ const analyzeSelfCodeFlow = ai.defineFlow( // Keeping flow name for now
     outputSchema: AnalyzeCodeOutputSchema,
   },
   async input => {
-    const {output} = await analyzeCodePrompt(input);
+    const isLocal = input.sourceCodeLocation === 'Local';
+    const isGit = input.sourceCodeLocation === 'Git';
+    const isUploadedString = input.sourceCodeLocation === 'UploadedString';
+
+    const promptInput = {
+        ...input,
+        isLocal,
+        isGit,
+        isUploadedString,
+    };
+
+    const {output} = await analyzeCodePrompt(promptInput); 
     if (!output) {
       throw new Error("La IA no pudo generar el análisis del proyecto.");
     }
     return output;
   }
 );
+
