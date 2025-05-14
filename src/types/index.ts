@@ -72,17 +72,17 @@ export interface GeneratedFile {
   isFolder?: boolean; // Optional: to represent folders in a tree
 }
 
+// For "Generar Proyecto" Flow
+export interface GenerateProjectInput {
+  description: string;
+  agentSystemPrompt?: string; 
+}
+
 export interface ProjectGenerationResult {
   projectName: string;
   aiNotes: string;
   files: GeneratedFile[];
   groupLog?: string;
-}
-
-// For "Generar Proyecto" Flow
-export interface GenerateProjectInput {
-  description: string;
-  agentSystemPrompt?: string; 
 }
 
 
@@ -119,7 +119,7 @@ export interface AutoUpdateSuggestion {
   suggestion: string; // description of the suggestion
   priority: "Alta" | "Media" | "Baja";
   fullFileContentSuggested?: string; // The complete suggested content of the file
-  suggestedPromptForImplementation?: string; // NEW: AI-generated prompt to implement the suggestion
+  suggestedPromptForImplementation?: string;
   status?: 'pending' | 'applied' | 'discarded';
   isEditing?: boolean;
   userEditedContent?: string;
@@ -204,9 +204,16 @@ export interface AnalyzeCodeOutput {
     suggestion: string;
     priority: 'Alta' | 'Media' | 'Baja';
     suggestedContent?: string; 
-    suggestedPromptForImplementation?: string; // NEW: AI-generated prompt to implement the suggestion
+    suggestedPromptForImplementation?: string;
   }>;
   generalAssessment: string;
   groupLog?: string;
   overallImprovementIdeas?: string[];
+}
+
+// For a generic Note component
+export interface NoteType {
+  id: string;
+  content: string;
+  createdAt?: string; // Optional timestamp
 }
