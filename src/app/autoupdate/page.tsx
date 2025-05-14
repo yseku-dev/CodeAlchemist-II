@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Download, GitCommit, Sparkles, ClipboardList, Wand2Icon, Play, Edit3, Check, X, Save, TestTubeDiagonal } from 'lucide-react';
+import { Loader2, Download, GitCommit, Sparkles, ClipboardList, Wand2Icon, Play, TestTubeDiagonal } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import ConfirmDialog from '@/components/confirm-dialog';
@@ -19,60 +19,87 @@ import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, AutoUpdateSuggestion, AnalyzeCodeInput, AnalyzeCodeOutput } from '@/types';
-import { analyzeSelfCode as analyzeProjectFlow } from '@/ai/flows/analyze-self-code';
+import { callAnalyzeSelfCode as analyzeProjectFlow } from '@/utils/apiClient'; // Corrected import alias
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AutoUpdateSuggestionCard from '@/components/features/autoupdate/autoupdate-suggestion-card';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { AppError } from '@/utils/AppError';
 
 type AutoUpdateSourceType = "Local" | "Git";
 
+/**
+ * @fileOverview Page component for the "AutoUpdate" feature.
+ * Allows CodeAlchemist to analyze its own codebase (or a specified Git repository)
+ * for improvements, display suggestions, and manage them.
+ */
+
 export default function AutoUpdatePage() {
   const { agents, getAgentById } = useAppState();
-  
+  const { addLog } = useDebug();
+  const { toast } = useToast();
+
+  /**
+   * State for the selected LLM configuration source.
+   * Defaults to "RefactorizadorCodigoExperto" agent if available, otherwise "Ajustes Globales".
+   */
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(
     () => ({ type: 'Ajustes Globales' as const })
   );
 
   useEffect(() => {
+    // Initialize llmConfigSource after agents are loaded
     if (agents && agents.length > 0) {
-      const defaultAgentFound = agents.find(a => a.name === "RefactorizadorCodigoExperto");
-      const newConfig = defaultAgentFound
-        ? { type: 'Agente' as const, id: defaultAgentFound.id, name: defaultAgentFound.name }
+      const defaultAgent = agents.find(a => a.name === "RefactorizadorCodigoExperto");
+      const initialConfig = defaultAgent
+        ? { type: 'Agente' as const, id: defaultAgent.id, name: defaultAgent.name }
         : { type: 'Ajustes Globales' as const };
-
-      if (llmConfigSource?.type !== newConfig.type || (llmConfigSource?.type === 'Agente' && newConfig.type === 'Agente' && llmConfigSource.id !== newConfig.id)) {
-        setLlmConfigSource(newConfig);
-      }
+      setLlmConfigSource(initialConfig);
     }
-  }, [agents, llmConfigSource?.type, (llmConfigSource as any)?.id ]); 
+  }, [agents]);
 
+  /** State for the source type of the code to be analyzed (Local or Git). */
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
+  /** State for the Git repository URL if sourceType is Git. */
   const [gitRepoUrl, setGitRepoUrl] = useState('');
+  /** State for user-defined analysis preferences or focus area. */
   const [analysisPreferences, setAnalysisPreferences] = useState('');
-  // searchDepth removed as per new requirement
-
+  
+  /** State to indicate if an analysis is currently in progress. */
   const [isLoading, setIsLoading] = useState(false);
+  /** State for the progress of the analysis (0-100). */
   const [progress, setProgress] = useState(0);
+  /** State to store any error message from the analysis. */
   const [error, setError] = useState<string | null>(null);
+  /** State to store the full analysis result from the AI. */
   const [analysisResult, setAnalysisResult] = useState<AnalyzeCodeOutput | null>(null);
+  /** State to store the list of detailed suggestions for UI manipulation. */
   const [suggestions, setSuggestions] = useState<AutoUpdateSuggestion[]>([]);
 
+  /** State to control the visibility of the 'Apply Suggestion' confirmation dialog. */
   const [showConfirmApplyDialog, setShowConfirmApplyDialog] = useState(false);
+  /** State to store the suggestion currently being considered for application. */
   const [suggestionToApply, setSuggestionToApply] = useState<AutoUpdateSuggestion | null>(null);
   
+  /** State to control the visibility of the 'Test Suggestion' dialog. */
   const [showTestDialog, setShowTestDialog] = useState(false);
+  /** State to store the suggestion currently being considered for testing. */
   const [suggestionToTest, setSuggestionToTest] = useState<AutoUpdateSuggestion | null>(null);
 
+  /** State to control the visibility of the 'Test in Virtual Environment' dialog. */
   const [showTestInVenvDialog, setShowTestInVenvDialog] = useState(false);
+  /** State to store the suggestion for virtual environment testing. */
   const [suggestionToTestInVenv, setSuggestionToTestInVenv] = useState<AutoUpdateSuggestion | null>(null);
 
+  /** State to control the visibility of the Git commit dialog. */
   const [showCommitDialog, setShowCommitDialog] = useState(false);
+  /** State for the Git commit message. */
   const [commitMessage, setCommitMessage] = useState('');
 
-  const { addLog } = useDebug();
-  const { toast } = useToast();
-
+  /**
+   * Initiates the auto-analysis process.
+   * Prepares input for the AI flow, calls the flow, and processes the results.
+   */
   const handleStartAnalysis = async () => {
     setIsLoading(true);
     setError(null);
@@ -85,11 +112,11 @@ export default function AutoUpdatePage() {
       sourceCodeLocation: sourceType,
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
       analysisPreferences: analysisPreferences || undefined,
-      // searchDepth is no longer passed, implying full depth
       focusArea: analysisPreferences || undefined, 
     };
 
     try {
+      // Simulate progress bar for non-group analysis
       if (llmConfigSource?.type !== 'Grupo') {
         let currentProgress = 0;
         const intervalId = setInterval(() => {
@@ -97,37 +124,68 @@ export default function AutoUpdatePage() {
           if (currentProgress <= 100) {
             setProgress(currentProgress);
           } else {
-            clearInterval(intervalId);
+            clearInterval(intervalId); // Stop interval once 100% is reached or surpassed
           }
         }, 200);
-      }
+        // Ensure interval is cleared if an error occurs or analysis finishes early
+        const cleanupInterval = () => clearInterval(intervalId);
+        // Use a promise to manage cleanup with finally
+        await analyzeProjectFlow(input)
+          .then(aiResult => {
+            clearInterval(intervalId); // Clear interval on success
+            const mappedSuggestions: AutoUpdateSuggestion[] = aiResult.detailedSuggestions.map((s, index) => ({
+              id: `suggestion-${index}-${Date.now()}`,
+              area: s.area,
+              suggestion: s.suggestion,
+              priority: s.priority,
+              fullFileContentSuggested: s.suggestedContent,
+              suggestedPromptForImplementation: s.suggestedPromptForImplementation,
+              status: 'pending',
+              isEditing: false,
+              userEditedContent: undefined, 
+            }));
 
-      const aiResult = await analyzeProjectFlow(input);
-      const mappedSuggestions: AutoUpdateSuggestion[] = aiResult.detailedSuggestions.map((s, index) => ({
-        id: `suggestion-${index}-${Date.now()}`,
-        area: s.area,
-        suggestion: s.suggestion,
-        priority: s.priority,
-        fullFileContentSuggested: s.suggestedContent,
-        suggestedPromptForImplementation: s.suggestedPromptForImplementation, // Added this line
-        status: 'pending',
-        isEditing: false,
-        userEditedContent: undefined, 
-      }));
-
-      let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
-      if (llmConfigSource?.type === 'Grupo') {
-         finalResult.groupLog = `(Simulación de Log de Grupo para AutoUpdate)\nTurno 1: Orquestador -> AgenteAnalizadorInterno (usando '${llmConfigSource.name}'). Tarea: Analizar código de CodeAlchemist con enfoque en '${input.focusArea || 'general'}'.\nTurno 2: AgenteAnalizadorInterno -> Sugerencias generadas.`;
+            let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
+            if (llmConfigSource?.type === 'Grupo') {
+               finalResult.groupLog = `(Simulación de Log de Grupo para AutoUpdate)\nTurno 1: Orquestador -> AgenteAnalizadorInterno (usando '${llmConfigSource.name}'). Tarea: Analizar código de CodeAlchemist con enfoque en '${input.focusArea || 'general'}'.\nTurno 2: AgenteAnalizadorInterno -> Sugerencias generadas.`;
+            }
+            setAnalysisResult(finalResult);
+            setSuggestions(mappedSuggestions);
+            setProgress(100);
+            toast({ title: "Auto-Análisis Completado", description: "Se han generado sugerencias para el código." });
+            addLog("AutoUpdate analysis successful.");
+          })
+          .catch(err => {
+            cleanupInterval(); // Clear interval on error
+            throw err; // Re-throw error to be caught by outer catch
+          });
+      } else { // For group analysis, don't simulate progress bar
+        const aiResult = await analyzeProjectFlow(input);
+        const mappedSuggestions: AutoUpdateSuggestion[] = aiResult.detailedSuggestions.map((s, index) => ({
+          id: `suggestion-${index}-${Date.now()}`,
+          area: s.area,
+          suggestion: s.suggestion,
+          priority: s.priority,
+          fullFileContentSuggested: s.suggestedContent,
+          suggestedPromptForImplementation: s.suggestedPromptForImplementation,
+          status: 'pending',
+          isEditing: false,
+          userEditedContent: undefined, 
+        }));
+         let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
+        if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name) {
+           finalResult.groupLog = `(Simulación de Log de Grupo para AutoUpdate)\nTurno 1: Orquestador -> AgenteAnalizadorInterno (usando '${llmConfigSource.name}'). Tarea: Analizar código de CodeAlchemist con enfoque en '${input.focusArea || 'general'}'.\nTurno 2: AgenteAnalizadorInterno -> Sugerencias generadas.`;
+        }
+        setAnalysisResult(finalResult);
+        setSuggestions(mappedSuggestions);
+        setProgress(100); // Set to 100 as group analysis might not have granular progress
+        toast({ title: "Auto-Análisis Completado", description: "Se han generado sugerencias para el código." });
+        addLog("AutoUpdate analysis successful.");
       }
-      setAnalysisResult(finalResult);
-      setSuggestions(mappedSuggestions);
-      setProgress(100);
-      toast({ title: "Auto-Análisis Completado", description: "Se han generado sugerencias para el código." });
-      addLog("AutoUpdate analysis successful.");
     } catch (e: any) {
-      const errorMsg = e.message || "Ocurrió un error durante el auto-análisis.";
+      addLog({ message: "AutoUpdate analysis failed in UI", error: e });
+      const errorMsg = e instanceof AppError ? e.friendlyMessage : e.message || "Ocurrió un error durante el auto-análisis.";
       setError(errorMsg);
-      addLog(`AutoUpdate analysis failed: ${errorMsg}`);
       toast({ variant: "destructive", title: "Error de Auto-Análisis", description: errorMsg });
       setProgress(0);
     } finally {
@@ -135,6 +193,10 @@ export default function AutoUpdatePage() {
     }
   };
 
+  /**
+   * Handles the click on "Aplicar Sugerencia", opening a confirmation dialog.
+   * @param {AutoUpdateSuggestion} suggestion - The suggestion to be applied.
+   */
   const handleApplySuggestionClick = (suggestion: AutoUpdateSuggestion) => {
     if (!(suggestion.userEditedContent || suggestion.fullFileContentSuggested)) {
         toast({variant: "destructive", title: "Sin Contenido", description: "Esta sugerencia no tiene contenido de archivo para aplicar."});
@@ -144,6 +206,10 @@ export default function AutoUpdatePage() {
     setShowConfirmApplyDialog(true);
   };
 
+  /**
+   * Confirms the application of a suggestion.
+   * Marks the suggestion as 'applied' in the UI. Direct file modification is not performed.
+   */
   const confirmApplySuggestion = () => {
     if (!suggestionToApply) return;
     addLog(`Marking suggestion as applied for ${suggestionToApply.area}. (Direct file modification is not feasible from browser).`);
@@ -153,6 +219,10 @@ export default function AutoUpdatePage() {
     setSuggestionToApply(null);
   };
 
+  /**
+   * Handles the download of suggested code, either as JSON or a placeholder for ZIP.
+   * @param {'JSON' | 'ZIP'} format - The desired download format.
+   */
   const handleDownloadCode = (format: 'JSON' | 'ZIP') => {
     if (!suggestions || suggestions.length === 0) {
       toast({ title: "Sin Sugerencias", description: "No hay sugerencias para descargar." });
@@ -191,13 +261,16 @@ export default function AutoUpdatePage() {
     } else if (format === 'ZIP') {
       toast({ 
         title: "Descarga ZIP no Implementada", 
-        description: "La descarga de sugerencias como archivo ZIP no está implementada directamente en este entorno debido a limitaciones. Por favor, utiliza la opción 'Descargar Sugerencias (JSON)'.",
+        description: "La descarga de sugerencias como archivo ZIP no está implementada directamente en este entorno. Utiliza la opción 'Descargar Sugerencias (JSON)'.",
         duration: 5000,
       });
-      addLog("ZIP download for suggestions attempted but not implemented client-side.");
+      addLog("ZIP download for suggestions attempted but not fully implemented client-side.");
     }
   };
 
+  /**
+   * Handles the Git commit and push action (currently simulated).
+   */
   const handleGitCommitAndPush = async () => {
     if (!commitMessage.trim()) {
       toast({ variant: "destructive", title: "Mensaje de Commit Requerido" });
@@ -209,45 +282,76 @@ export default function AutoUpdatePage() {
     setCommitMessage('');
   };
 
+  /**
+   * Handles the "Auto-Fix" action for an error (currently simulated).
+   * @param {string} errorMsg - The error message to be analyzed.
+   */
   const handleAutoFixError = async (errorMsg: string) => {
     addLog(`Attempting Auto-Fix for error: ${errorMsg}`);
     toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
   };
 
+  /**
+   * Toggles the editing mode for a specific suggestion.
+   * @param {string} suggestionId - The ID of the suggestion to toggle edit mode for.
+   */
   const handleToggleEdit = (suggestionId: string) => {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
         const newIsEditing = !s.isEditing;
-        const newUserEditedContent = newIsEditing && s.userEditedContent === undefined ? s.fullFileContentSuggested || '' : s.userEditedContent;
+        // Initialize userEditedContent with fullFileContentSuggested if starting to edit and no user content exists
+        const newUserEditedContent = newIsEditing && s.userEditedContent === undefined ? (s.fullFileContentSuggested || '') : s.userEditedContent;
         return { ...s, isEditing: newIsEditing, userEditedContent: newUserEditedContent };
       }
       return s;
     }));
   };
   
+  /**
+   * Handles changes to the content of a suggestion being edited.
+   * @param {string} suggestionId - The ID of the suggestion being edited.
+   * @param {string} newContent - The new content from the textarea.
+   */
   const handleSuggestionContentChange = (suggestionId: string, newContent: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, userEditedContent: newContent } : s));
   };
 
+  /**
+   * Saves the edited content of a suggestion and exits editing mode.
+   * @param {string} suggestionId - The ID of the suggestion whose edit is to be saved.
+   */
   const handleSaveEdit = (suggestionId: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, isEditing: false } : s));
     toast({title: "Edición Guardada", description: "El contenido sugerido ha sido actualizado localmente."})
   };
 
+  /**
+   * Cancels editing for a suggestion and reverts any user-edited content.
+   * @param {string} suggestionId - The ID of the suggestion whose edit is to be cancelled.
+   */
   const handleCancelEdit = (suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
+        // Revert userEditedContent to the original fullFileContentSuggested or undefined
         return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested || undefined };
       }
       return s;
     }));
   };
 
+  /**
+   * Opens the dialog to "test" a suggestion.
+   * @param {AutoUpdateSuggestion} suggestion - The suggestion to test.
+   */
   const handleTestSuggestionClick = (suggestion: AutoUpdateSuggestion) => {
     setSuggestionToTest(suggestion);
     setShowTestDialog(true);
   };
 
+  /**
+   * Opens the dialog to "test in virtual environment" a suggestion.
+   * @param {AutoUpdateSuggestion} suggestion - The suggestion to test.
+   */
   const handleTestInVenvClick = (suggestion: AutoUpdateSuggestion) => {
     setSuggestionToTestInVenv(suggestion);
     setShowTestInVenvDialog(true);
@@ -290,7 +394,6 @@ export default function AutoUpdatePage() {
             <Label htmlFor="analysis-prefs" className="text-sm font-normal">Preferencias de Análisis / Campo de Enfoque (opcional)</Label>
             <Textarea id="analysis-prefs" value={analysisPreferences} onChange={(e) => setAnalysisPreferences(e.target.value)} placeholder="Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano." rows={3} disabled={isLoading} />
           </div>
-          {/* Search depth input removed */}
 
           <Button onClick={handleStartAnalysis} disabled={isLoading} className="w-full">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Iniciar Auto-Análisis"}
@@ -338,7 +441,7 @@ export default function AutoUpdatePage() {
               <div className="mt-4 pt-4 border-t">
                 <h4 className="font-semibold text-lg">Sugerencias Detalladas:</h4>
                 {suggestions.length === 0 && <p className="text-sm text-muted-foreground">No hay sugerencias detalladas.</p>}
-                <ScrollArea className="max-h-[calc(100vh-22rem)] md:max-h-[calc(100vh-25rem)] lg:max-h-[50vh] overflow-y-auto pr-2"> {/* Adjusted max-height */}
+                <ScrollArea className="max-h-[calc(100vh-22rem)] md:max-h-[calc(100vh-25rem)] lg:max-h-[50vh] overflow-y-auto pr-2">
                     <div className="space-y-3">
                     {suggestions.map(s => (
                         <AutoUpdateSuggestionCard
@@ -369,7 +472,7 @@ export default function AutoUpdatePage() {
         title={`Aplicar Sugerencia a ${suggestionToApply?.area}`}
         confirmText="Sí, Marcar como Aplicada"
       >
-        <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually:</p>
+        <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente:</p>
         <ScrollArea className="h-64 border rounded-md">
           <CodeBlock code={suggestionToApply?.userEditedContent || suggestionToApply?.fullFileContentSuggested || "Error: No hay contenido para mostrar."} language="typescript" maxHeight="100%" />
         </ScrollArea>
@@ -436,7 +539,7 @@ export default function AutoUpdatePage() {
       </ConfirmDialog>
 
       <div className="lg:col-span-3 mt-4">
-        <LogsDisplay title="Logs de Ejecución Detallados (AutoUpdate)" logs={analysisResult?.groupLog ? [analysisResult.groupLog] : ["Inicia un análisis para ver los logs..."]} defaultExpanded={false}/>
+        <LogsDisplay title="Logs de Ejecución Detallados (AutoUpdate)" logs={(analysisResult?.groupLog && analysisResult.groupLog.length > 0) ? [analysisResult.groupLog] : ["Inicia un análisis para ver los logs..."]} defaultExpanded={false}/>
       </div>
     </div>
   );
