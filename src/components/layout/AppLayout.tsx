@@ -1,4 +1,4 @@
-
+// src/components/layout/AppLayout.tsx
 "use client";
 
 import Link from 'next/link';
@@ -8,13 +8,12 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarFooter,
-  SidebarTrigger,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
   useSidebar,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -31,7 +30,7 @@ import {
   MessageCircle,
   Users2,
   Workflow,
-  Settings,
+  Settings as SettingsIcon, // Renamed to avoid conflict with global Settings
   ChevronsLeft,
   ChevronsRight,
   Menu as MenuIcon,
@@ -40,9 +39,10 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react'; // Added useMemo
 import { useDebug } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
+import { useToast } from '@/hooks/use-toast'; // Import useToast
 
 const navItems = [
   { href: '/', label: 'Panel de Control', icon: LayoutDashboard },
@@ -56,14 +56,25 @@ const navItems = [
   { href: '/chat-ia', label: 'Chat con IA', icon: MessageCircle },
   { href: '/agentes-ia', label: 'Agentes IA', icon: Users2 },
   { href: '/grupos-trabajo-ia', label: 'Grupos de Trabajo IA', icon: Workflow },
-  { href: '/configuracion', label: 'Configuración', icon: Settings },
+  { href: '/configuracion', label: 'Configuración', icon: SettingsIcon },
 ];
 
+/**
+ * @fileOverview Main application layout component.
+ * Includes the collapsible sidebar, header, and debug panel.
+ * Also sets up global client-side error listeners.
+ */
+
+
+/**
+ * Button to toggle the sidebar collapse state on desktop.
+ * @returns {JSX.Element | null} The button or null if on mobile.
+ */
 function CollapsibleSidebarButton() {
-  const { open, toggleSidebar, isMobile, state } = useSidebar();
+  const { open, toggleSidebar, isMobile } = useSidebar();
 
   if (isMobile) {
-    return null; 
+    return null;
   }
 
   return (
@@ -72,7 +83,6 @@ function CollapsibleSidebarButton() {
       size="icon"
       onClick={toggleSidebar}
       aria-label={open ? 'Ocultar barra lateral' : 'Mostrar barra lateral'}
-      className="group-data-[collapsible=icon]:hidden data-[state=collapsed]:group-data-[collapsible=icon]:flex data-[state=expanded]:flex"
     >
       {open ? <ChevronsLeft /> : <ChevronsRight />}
     </Button>
@@ -80,15 +90,81 @@ function CollapsibleSidebarButton() {
 }
 
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+/**
+ * AppLayout component - The main layout structure for the application.
+ * @param {object} props - The component's props.
+ * @param {React.ReactNode} props.children - The page content to be rendered within the layout.
+ * @returns {JSX.Element} The rendered application layout.
+ */
+export default function AppLayout({ children }: { children: React.ReactNode }): JSX.Element {
   const pathname = usePathname();
   const { initializeDefaultData } = useAppState();
+  const { toast } = useToast(); // Get toast function
 
   useEffect(() => {
     initializeDefaultData();
   }, [initializeDefaultData]);
 
-  const currentNavItem = navItems.find(item => item.href === pathname);
+  // Global client-side error handling
+  useEffect(() => {
+    const handleError = (event: ErrorEvent | PromiseRejectionEvent) => {
+      let error: any;
+      let message: string;
+      let source: string | undefined;
+      let lineno: number | undefined;
+      let colno: number | undefined;
+
+      if (event instanceof ErrorEvent) {
+        error = event.error;
+        message = event.message;
+        source = event.filename;
+        lineno = event.lineno;
+        colno = event.colno;
+      } else { // PromiseRejectionEvent
+        error = event.reason;
+        message = event.reason instanceof Error ? event.reason.message : String(event.reason);
+        // Source, lineno, colno are not directly available on PromiseRejectionEvent
+      }
+
+      console.error("Unhandled Client-Side Error:", {
+        message,
+        source,
+        lineno,
+        colno,
+        errorObject: error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      
+      // In a production app, send this to a logging service.
+      // Example: Sentry.captureException(error);
+
+      // Show a generic toast to the user
+      toast({
+        variant: "destructive",
+        title: "Error Inesperado",
+        description: "Ocurrió un error inesperado. Ya estamos trabajando en ello.",
+        duration: 5000,
+      });
+
+      // For 'error' events, prevent default browser error handling if you've handled it sufficiently
+      // if (event instanceof ErrorEvent) {
+      //   event.preventDefault();
+      // }
+    };
+
+    const errorHandler = (event: ErrorEvent) => handleError(event);
+    const rejectionHandler = (event: PromiseRejectionEvent) => handleError(event);
+
+    window.addEventListener('error', errorHandler);
+    window.addEventListener('unhandledrejection', rejectionHandler);
+
+    return () => {
+      window.removeEventListener('error', errorHandler);
+      window.removeEventListener('unhandledrejection', rejectionHandler);
+    };
+  }, [toast]); // Add toast to dependency array
+
+  const currentNavItem = useMemo(() => navItems.find(item => item.href === pathname), [pathname]);
   const pageTitle = currentNavItem?.label || 'Panel de Control';
   const PageIcon = currentNavItem?.icon;
   
@@ -103,7 +179,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 CodeAlchemist
               </h1>
             </Link>
-             {/* Icon-only logo when collapsed */}
              <Link href="/" className="items-center justify-center data-[state=expanded]:group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:flex hidden">
                 <FlaskConical className="h-8 w-8 text-primary" />
             </Link>
@@ -131,14 +206,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenu>
             </ScrollArea>
           </SidebarContent>
-          {/* Footer can be used for other items if needed, or removed if empty */}
-          {/* <SidebarFooter className="p-2">
-             <CollapsibleSidebarButton /> // Moved to header
-          </SidebarFooter> */}
         </Sidebar>
 
         <SidebarInset className="flex flex-col flex-1">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 lg:h-[60px] lg:px-6">
+          <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background/80 backdrop-blur-sm px-4 lg:h-[60px] lg:px-6">
             <div className="md:hidden">
                <SidebarTrigger>
                 <MenuIcon />
@@ -150,7 +221,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 {pageTitle}
               </h1>
             </div>
-             <div className="w-10 md:w-0"></div> 
+             <div className="w-10 md:w-0"></div> {/* Spacer to help center title if trigger is present */}
           </header>
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
             {children}
@@ -162,16 +233,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * DebugPanel component for displaying logs if debug mode is active.
+ * @returns {JSX.Element | null} The debug panel or null.
+ */
 function DebugPanel() {
-  const { debugMode, logs, clearLogs } = useDebug(); // Removed copyLogs as it's handled locally
+  const { debugMode, logs, clearLogs } = useDebug();
   const [isExpanded, setIsExpanded] = React.useState(true);
+  const { toast: showToast } = useToast(); // Renamed to avoid conflict
 
   if (!debugMode) return null;
 
   const handleCopyLogs = () => {
-    navigator.clipboard.writeText(logs.map(log => typeof log === 'object' ? JSON.stringify(log) : log).join('\n'));
-    // Consider adding a toast notification here if desired
-    console.log("Logs copied to clipboard.");
+    navigator.clipboard.writeText(logs.map(log => typeof log === 'object' ? JSON.stringify(log) : log).join('\\n'));
+    showToast({ title: "Logs Copiados", description: "Logs de depuración copiados al portapapeles."});
   };
 
   return (
@@ -202,4 +277,3 @@ function DebugPanel() {
     </div>
   );
 }
-
