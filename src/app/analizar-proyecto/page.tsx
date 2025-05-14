@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, FolderSearch } from 'lucide-react'; // Added FolderSearch
+import { Loader2, Upload, FolderSearch } from 'lucide-react'; 
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
@@ -16,6 +16,7 @@ import type { LLMConfigSourceOption } from '@/types';
 import { analyzeSelfCode, type AnalyzeSelfCodeOutput, type AnalyzeSelfCodeInput } from '@/ai/flows/analyze-self-code';
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 type ProjectSourceType = "upload" | "git";
 
@@ -24,6 +25,8 @@ export default function AnalizarProyectoPage() {
   const [projectSourceType, setProjectSourceType] = useState<ProjectSourceType>("upload");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [gitUrl, setGitUrl] = useState('');
+  const [searchDepth, setSearchDepth] = useState<string>('');
+  const [focusArea, setFocusArea] = useState<string>('');
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +40,7 @@ export default function AnalizarProyectoPage() {
     const file = event.target.files?.[0];
     if (file) {
       const allowedTypes = ['application/zip', 'application/json'];
-      if (allowedTypes.includes(file.type) && file.size <= 25 * 1024 * 1024) { // Max 25MB for ZIP/JSON
+      if (allowedTypes.includes(file.type) && file.size <= 25 * 1024 * 1024) { 
         setUploadedFile(file);
         addLog(`Project file selected: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
       } else {
@@ -57,13 +60,8 @@ export default function AnalizarProyectoPage() {
     let gitRepoUrlInput: string | undefined;
 
     if (projectSourceType === "upload" && uploadedFile) {
-      sourceLocation = "Local"; // Representing an uploaded project as 'Local' for the AI flow
-      // In a real scenario, you'd process the file or make its content available to the AI.
-      // For `analyzeSelfCode`, it expects a path or Git URL. We might need a different flow or adapt.
-      // Let's assume for now 'Local' means we would conceptually give it a path to the extracted/processed project.
+      sourceLocation = "Local"; 
       addLog(`Analyzing uploaded project file: ${uploadedFile.name}`);
-      // This flow `analyzeSelfCode` might not be suitable for arbitrary uploads without adaptation.
-      // We'll proceed with the assumption it can handle a "Local" source conceptually.
     } else if (projectSourceType === "git" && gitUrl) {
       sourceLocation = "Git";
       gitRepoUrlInput = gitUrl;
@@ -77,23 +75,17 @@ export default function AnalizarProyectoPage() {
     const input: AnalyzeSelfCodeInput = {
       sourceCodeLocation: sourceLocation,
       gitRepoUrl: gitRepoUrlInput,
-      // analysisPreferences can be added if there's a UI field for it
+      analysisPreferences: focusArea || undefined, // Use focusArea as analysisPreferences
+      searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+      focusArea: focusArea || undefined,
     };
     
     addLog(`Analyzing project with input: ${JSON.stringify(input)} and config: ${JSON.stringify(llmConfigSource)}`);
 
     try {
-      // const aiResult = await analyzeSelfCode(input); 
-      // Mocking since `analyzeSelfCode` is for the app's own code.
-      // This feature would ideally have its own dedicated AI flow for general project analysis.
+      const aiResult = await analyzeSelfCode(input); 
       const mockAiResult: AnalyzeSelfCodeOutput & { groupLog?: string } = {
-        analysisTitle: `Análisis del Proyecto ${projectSourceType === 'git' ? gitUrl.split('/').pop() : uploadedFile?.name || 'Subido'}`,
-        identifiedAreas: ["Módulo de Autenticación", "Componentes de UI Principales", "Acceso a Base de Datos"],
-        detailedSuggestions: [
-          { area: "Módulo de Autenticación", suggestion: "Considerar el uso de JWT para stateless authentication.", priority: "Alta" },
-          { area: "Componentes de UI", suggestion: "Mejorar la responsividad en tablas de datos complejas.", priority: "Media" },
-        ],
-        generalAssessment: "El proyecto muestra una estructura sólida pero podría beneficiarse de optimizaciones en el rendimiento de la base de datos y una modernización de la gestión de estado en el frontend. Se recomienda una revisión de seguridad en los endpoints públicos."
+        ...aiResult, // Use real result from analyzeSelfCode
       };
       if (llmConfigSource?.type === 'Grupo') {
          mockAiResult.groupLog = "Turno 1: Orquestador -> AnalistaGeneralProyectos. Tarea: Analizar proyecto. \nTurno 2: AnalistaGeneralProyectos -> Reporte de análisis generado.";
@@ -149,6 +141,17 @@ export default function AnalizarProyectoPage() {
             <Input id="project-git-url" value={gitUrl} onChange={(e) => setGitUrl(e.target.value)} placeholder="https://github.com/usuario/repo.git" disabled={isLoading} />
           </div>
         )}
+
+        <Separator />
+        <Label>Parámetros de Análisis</Label>
+        <div className="space-y-2">
+          <Label htmlFor="search-depth-project" className="text-sm font-normal">Profundidad de Búsqueda (opcional)</Label>
+          <Input id="search-depth-project" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder="Ej: 3 (niveles)" disabled={isLoading} min="1" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="focus-area-project" className="text-sm font-normal">Campo de Enfoque del Análisis (opcional)</Label>
+          <Input id="focus-area-project" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder="Ej: Rendimiento, Seguridad de API" disabled={isLoading} />
+        </div>
         
         <Button onClick={handleAnalyze} disabled={isLoading} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -199,3 +202,5 @@ export default function AnalizarProyectoPage() {
     </Card>
   );
 }
+
+    

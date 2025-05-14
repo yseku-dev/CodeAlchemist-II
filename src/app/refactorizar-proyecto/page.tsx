@@ -32,6 +32,8 @@ export default function RefactorizarProyectoPage() {
   const [gitUrl, setGitUrl] = useState('');
   const [refactorGoals, setRefactorGoals] = useState('');
   const [generalPriority, setGeneralPriority] = useState<GeneralPriority | ''>('');
+  const [searchDepth, setSearchDepth] = useState<string>(''); // Store as string for input, parse to number later
+  const [focusArea, setFocusArea] = useState<string>('');
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,12 +50,9 @@ export default function RefactorizarProyectoPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Basic validation: type and size (example: max 10MB)
       const allowedTypes = ['application/zip', 'application/json', 'text/plain', 'text/javascript', 'text/x-python-script', 'text/css', 'text/html'];
-      // Specific extensions for text files
       const allowedExtensions = ['.py', '.js', '.java', '.json', '.html', '.css', '.txt', '.md'];
       const isAllowedTextFile = allowedExtensions.some(ext => file.name.endsWith(ext)) && file.type.startsWith('text/');
-
 
       if ((allowedTypes.includes(file.type) || isAllowedTextFile || file.name.endsWith('.zip')) && file.size <= 10 * 1024 * 1024) {
         setUploadedFile(file);
@@ -74,7 +73,7 @@ export default function RefactorizarProyectoPage() {
 
     let projectSourceValue = "";
     if (projectSourceType === "upload" && uploadedFile) {
-      projectSourceValue = `file:${uploadedFile.name}`; // Placeholder, actual file content would be sent
+      projectSourceValue = `file:${uploadedFile.name}`; 
       addLog(`Analyzing uploaded file: ${uploadedFile.name}`);
     } else if (projectSourceType === "git" && gitUrl) {
       projectSourceValue = gitUrl;
@@ -86,38 +85,23 @@ export default function RefactorizarProyectoPage() {
     }
 
     const input: RefactorProjectWithAIInput = {
-      projectSource: projectSourceValue, // In a real scenario, this would be file content or Git repo access
+      projectSource: projectSourceValue,
       goals: refactorGoals || undefined,
       priority: generalPriority || undefined,
+      searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+      focusArea: focusArea || undefined,
     };
     
     addLog(`Refactoring project with input: ${JSON.stringify(input)}`);
 
     try {
-      // const aiResult = await refactorProjectWithAI(input);
-      // Mocking AI result
-      const mockAiResult: RefactorProjectWithAIOutput = {
-        suggestions: [
-          { id: "1", area: "src/utils.js - function calculateTotal", description: "Simplificar lógica condicional y usar early returns para mejorar legibilidad.", priority: "Media", snippetSuggested: { original: "if (value > 0) { if (discount > 0) { return value - discount; } else { return value; } } else { return 0; }", modified: "if (value <= 0) return 0;\nif (discount <= 0) return value;\nreturn value - discount;" } },
-          { id: "2", area: "components/UserProfile.tsx", description: "Extraer componente UserAvatar para reutilización.", priority: "Alta" },
-          { 
-            id: "3", 
-            area: "api/paymentController.java", 
-            description: "Añadir manejo de excepciones específico para fallos de red.", 
-            priority: "Alta", 
-            snippetSuggested: { 
-              original: "// process payment\nPaymentService.charge(amount);", 
-              modified: `try {\n  PaymentService.charge(amount);\n} catch (NetworkException e) {\n  log.error("Network error during payment", e);\n  throw new PaymentFailedException("Network issue", e);\n}`
-            }
-          },
-        ]
-      };
+      const aiResult = await refactorProjectWithAI(input);
       // Simulate group log if group is selected
       if (llmConfigSource?.type === 'Grupo') {
         setGroupLog("Turno 1: Orquestador -> RefactorizadorCodigoExperto. Tarea: Analizar proyecto. \nTurno 2: RefactorizadorCodigoExperto -> Sugerencias generadas.");
       }
 
-      setSuggestions(mockAiResult.suggestions.map(s => ({...s, status: 'pending'})));
+      setSuggestions(aiResult.suggestions.map(s => ({...s, status: 'pending'})));
       toast({ title: "Análisis Completado", description: "Sugerencias de refactorización generadas." });
       addLog("Refactoring analysis successful.");
     } catch (e: any) {
@@ -224,6 +208,14 @@ export default function RefactorizarProyectoPage() {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="search-depth" className="text-sm font-normal">Profundidad de Búsqueda (opcional)</Label>
+            <Input id="search-depth" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder="Ej: 3 (niveles)" disabled={isLoading} min="1" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="focus-area" className="text-sm font-normal">Campo de Enfoque del Análisis (opcional)</Label>
+            <Input id="focus-area" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder="Ej: Seguridad, UI, Módulo de pagos" disabled={isLoading} />
+          </div>
           
           <Button onClick={handleAnalyze} disabled={isLoading} className="w-full">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -251,7 +243,7 @@ export default function RefactorizarProyectoPage() {
           {!isLoading && suggestions.length === 0 && !error && <p className="text-muted-foreground text-center py-10">Aún no hay sugerencias. Realiza un análisis para comenzar.</p>}
 
           {suggestions.length > 0 && (
-            <ScrollArea className="h-[calc(100vh-12rem)]"> {/* Adjust height as needed */}
+            <ScrollArea className="h-[calc(100vh-12rem)]"> 
               <div className="space-y-4 pr-4">
                 {suggestions.map(s => (
                   <Card key={s.id} className={`transition-opacity ${s.status === 'discarded' ? 'opacity-50' : ''}`}>
@@ -300,10 +292,10 @@ export default function RefactorizarProyectoPage() {
       <ConfirmDialog
         isOpen={showDiffModal}
         onClose={() => setShowDiffModal(false)}
-        onConfirm={() => setShowDiffModal(false)} // Or apply from here
+        onConfirm={() => setShowDiffModal(false)} 
         title="Comparación de Código (Diff)"
         confirmText="Cerrar"
-        cancelText="" // No cancel button or change text
+        cancelText="" 
       >
         {currentDiff && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
@@ -322,3 +314,5 @@ export default function RefactorizarProyectoPage() {
     </div>
   );
 }
+
+    

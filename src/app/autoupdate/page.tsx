@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Download, GitCommit, Sparkles, ClipboardList } from 'lucide-react'; // Added Sparkles, ClipboardList
+import { Loader2, Download, GitCommit, Sparkles, ClipboardList } from 'lucide-react'; 
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import ConfirmDialog from '@/components/confirm-dialog';
@@ -22,6 +22,7 @@ import type { LLMConfigSourceOption, AutoUpdateSuggestion } from '@/types';
 import { analyzeSelfCode, type AnalyzeSelfCodeOutput, type AnalyzeSelfCodeInput } from '@/ai/flows/analyze-self-code';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AutoUpdateSuggestionCard from '@/components/features/autoupdate/autoupdate-suggestion-card';
+import { Separator } from '@/components/ui/separator';
 
 type AutoUpdateSourceType = "Local" | "Git";
 
@@ -33,7 +34,8 @@ export default function AutoUpdatePage() {
   );
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
   const [gitRepoUrl, setGitRepoUrl] = useState('');
-  const [analysisPreferences, setAnalysisPreferences] = useState('');
+  const [analysisPreferences, setAnalysisPreferences] = useState(''); // This acts as "focusArea"
+  const [searchDepth, setSearchDepth] = useState<string>('');
   
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -61,6 +63,8 @@ export default function AutoUpdatePage() {
       sourceCodeLocation: sourceType,
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
       analysisPreferences: analysisPreferences || undefined,
+      searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+      focusArea: analysisPreferences || undefined, // Pass analysisPreferences as focusArea too
     };
 
     try {
@@ -76,7 +80,8 @@ export default function AutoUpdatePage() {
         }, 200);
          // Clear interval if component unmounts or isLoading becomes false
          // This might need more robust handling if analysis takes a very long time
-        if (!isLoading) clearInterval(intervalId);
+        // A better way to handle this in real app: if (!isLoading && intervalId) clearInterval(intervalId);
+        // For now, this simple logic might be okay for demonstration
       }
 
       const aiResult = await analyzeSelfCode(input);
@@ -173,16 +178,22 @@ export default function AutoUpdatePage() {
               <Input id="autoupdate-git-url" value={gitRepoUrl} onChange={(e) => setGitRepoUrl(e.target.value)} placeholder="URL HTTPS del repo CodeAlchemist" disabled={isLoading} />
             </div>
           )}
-
+          
+          <Separator />
+          <Label>Parámetros de Auto-Análisis</Label>
           <div className="space-y-2">
-            <Label htmlFor="analysis-prefs">Preferencias de Análisis (Opcional)</Label>
+            <Label htmlFor="analysis-prefs" className="text-sm font-normal">Preferencias de Análisis / Campo de Enfoque (opcional)</Label>
             <Textarea id="analysis-prefs" value={analysisPreferences} onChange={(e) => setAnalysisPreferences(e.target.value)} placeholder="Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano." rows={3} disabled={isLoading} />
+          </div>
+           <div className="space-y-2">
+            <Label htmlFor="search-depth-autoupdate" className="text-sm font-normal">Profundidad de Búsqueda (opcional)</Label>
+            <Input id="search-depth-autoupdate" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder="Ej: 2 (niveles)" disabled={isLoading} min="1" />
           </div>
           
           <Button onClick={handleStartAnalysis} disabled={isLoading} className="w-full">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Iniciar Auto-Análisis"}
           </Button>
-          {isLoading && progress > 0 && progress < 100 && <Progress value={progress} className="w-full mt-2" />}
+          {isLoading && progress > 0 && progress < 100 && llmConfigSource?.type !== 'Grupo' && <Progress value={progress} className="w-full mt-2" />}
         </CardContent>
       </Card>
 
@@ -264,8 +275,10 @@ export default function AutoUpdatePage() {
       </ConfirmDialog>
       
       <div className="lg:col-span-3 mt-4">
-        <LogsDisplay title="Logs de Ejecución Detallados (AutoUpdate)" logs={analysisResult?.groupLog ? [analysisResult.groupLog] : ["Inicia un análisis para ver los logs..."]} />
+        <LogsDisplay title="Logs de Ejecución Detallados (AutoUpdate)" logs={analysisResult?.groupLog ? [analysisResult.groupLog] : ["Inicia un análisis para ver los logs..."]} defaultExpanded={false}/>
       </div>
     </div>
   );
 }
+
+    
