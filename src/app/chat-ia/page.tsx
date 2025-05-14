@@ -6,36 +6,63 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Trash2, Bot, User, Loader2, MessageCircle } from 'lucide-react'; // Added MessageCircle
+import { Send, Trash2, Bot, User, Loader2, MessageCircle } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, ChatMessage } from '@/types';
+import { useAppState } from '@/context/AppStateContext'; // Import useAppState
+import type { LLMConfigSourceOption, ChatMessage, Agent, AIAgentGroup } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-// Assuming a generic chat flow or adapting one
-// import { chatWithAIModel } from '@/ai/flows/chat'; 
 
-// Mock AI chat response
 const mockChatResponse = async (
-  prompt: string, 
+  prompt: string,
   history: ChatMessage[],
-  addLogFn: (log: string | Record<string, any>) => void // Renamed to avoid conflict
+  addLogFn: (log: string | Record<string, any>) => void,
+  configSource?: LLMConfigSourceOption,
+  allAgents?: Agent[], // Changed from getAgentFn
+  allGroups?: AIAgentGroup[] // Changed from getGroupFn
 ): Promise<string> => {
-  addLogFn(`Mocking AI response for prompt: ${prompt.substring(0, 50)}... with history length: ${history.length}`);
-  return new Promise(resolve => setTimeout(() => {
-    if (prompt.toLowerCase().includes("hola") || prompt.toLowerCase().includes("saludos")) {
-      resolve("¡Hola! ¿En qué puedo ayudarte hoy con CodeAlchemist?");
-    } else if (prompt.toLowerCase().includes("error")) {
-      resolve("Parece que mencionaste un error. ¿Podrías darme más detalles para que pueda intentar ayudarte a solucionarlo o explicarlo?");
+  addLogFn(`Mocking AI response for prompt: ${prompt.substring(0, 50)}... with history length: ${history.length}, config: ${JSON.stringify(configSource)}`);
+
+  const defaultResponsePrefix = "Como IA de CodeAlchemist,";
+  const defaultSpecificContext = `He procesado tu mensaje: "${prompt.substring(0, 30)}...". ${defaultResponsePrefix.toLowerCase()} estoy aquí para asistirte con tus tareas de desarrollo. Puedo ayudarte a generar ideas, explicar conceptos de código, o incluso debatir sobre las mejores prácticas. ¿Qué tienes en mente?`;
+
+  if (configSource?.type === 'Agente' && configSource.id && allAgents) {
+    const agent = allAgents.find(a => a.id === configSource.id);
+    if (agent) {
+      const responsePrefix = `Respuesta del agente "${agent.name}":`;
+      const specificContext = `Basado en mi prompt de sistema ("${agent.systemPrompt.substring(0, 50)}..."), he procesado tu mensaje: "${prompt.substring(0, 30)}...".`;
+      return new Promise(resolve => setTimeout(() => resolve(`${responsePrefix}\n\n${specificContext}`), 1000 + Math.random() * 1000));
     } else {
-      resolve(`He procesado tu mensaje: "${prompt.substring(0, 30)}...". Como IA de CodeAlchemist, estoy aquí para asistirte con tus tareas de desarrollo. Puedo ayudarte a generar ideas, explicar conceptos de código, o incluso debatir sobre las mejores prácticas. ¿Qué tienes en mente?`);
+      addLogFn(`Agent with ID "${configSource.id}" not found in provided agent list.`);
     }
-  }, 1000 + Math.random() * 1000));
+  } else if (configSource?.type === 'Grupo' && configSource.id && allGroups) {
+    const group = allGroups.find(g => g.id === configSource.id);
+    if (group) {
+      const responsePrefix = `Respuesta del grupo "${group.name}" (coordinado por OrquestadorFlujoAgentes):`;
+      let specificContext = `Tarea recibida: "${prompt.substring(0, 30)}...". (Simulación) El Orquestador está analizando y delegará a los agentes correspondientes. ¿En qué puedo ayudarte como grupo?`;
+      if (prompt.toLowerCase().includes("comprobacion de conexion") || prompt.toLowerCase().includes("comunicacion con todos los agentes")) {
+        specificContext = `Tarea recibida: "${prompt.substring(0, 50)}...".\n\n(Simulación) El OrquestadorFlujoAgentes ha recibido tu solicitud. El JefeDeProducto está revisando los requerimientos de comunicación. El ArquitectoSoftware está verificando la conectividad entre los módulos de agentes. El RepresentanteUsuario confirma que la comunicación debe ser clara y concisa.\n\nResultado final: Todos los agentes confirman estar listos para la comunicación y colaboración. ¿Hay alguna tarea específica que desees asignar al grupo?`;
+      }
+      return new Promise(resolve => setTimeout(() => resolve(`${responsePrefix}\n\n${specificContext}`), 1000 + Math.random() * 1000));
+    } else {
+      addLogFn(`Group with ID "${configSource.id}" not found in provided group list.`);
+    }
+  }
+
+  if (prompt.toLowerCase().includes("hola") || prompt.toLowerCase().includes("saludos")) {
+    return new Promise(resolve => setTimeout(() => resolve("¡Hola! ¿En qué puedo ayudarte hoy con CodeAlchemist?"), 1000));
+  } else if (prompt.toLowerCase().includes("error")) {
+    return new Promise(resolve => setTimeout(() => resolve("Parece que mencionaste un error. ¿Podrías darme más detalles para que pueda intentar ayudarte a solucionarlo o explicarlo?"), 1000));
+  }
+  
+  return new Promise(resolve => setTimeout(() => resolve(defaultSpecificContext), 1000 + Math.random() * 1000));
 };
 
 export default function ChatIAPage() {
-  const { addLog: addLogContext } = useDebug(); // Renamed for clarity
+  const { addLog: addLogContext } = useDebug();
+  const { agents, groups } = useAppState(); // Get agents and groups arrays directly
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -67,8 +94,14 @@ export default function ChatIAPage() {
     addLogContext(`User message to AI: ${userMessage.content.substring(0,50)}... Config: ${JSON.stringify(llmConfigSource)}`);
 
     try {
-      // const aiResponseContent = await chatWithAIModel({ prompt: userMessage.content, history: messages, config: llmConfigSource });
-      const aiResponseContent = await mockChatResponse(userMessage.content, messages, addLogContext); // Pass addLog
+      const aiResponseContent = await mockChatResponse(
+        userMessage.content,
+        messages,
+        addLogContext,
+        llmConfigSource,
+        agents, // Pass the agents array
+        groups  // Pass the groups array
+      );
       
       const assistantMessage: ChatMessage = {
         id: uuidv4(),
@@ -111,12 +144,11 @@ export default function ChatIAPage() {
   
   const handleAutoFixError = async (errorMsg: string) => {
     addLogContext(`Attempting Auto-Fix for chat error: ${errorMsg}`);
-    // Placeholder for AI-driven auto-fix logic specific to chat
     toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error del chat."});
   };
 
   return (
-    <Card className="w-full h-full flex flex-col"> {/* Adjusted width and height */}
+    <Card className="w-full h-full flex flex-col">
       <CardHeader className="border-b">
         <CardTitle className="flex items-center gap-3">
           <MessageCircle className="h-7 w-7 text-primary" />
@@ -132,7 +164,7 @@ export default function ChatIAPage() {
           <div className="space-y-4">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] p-3 rounded-lg ${ // Increased max-width for message bubbles
+                <div className={`max-w-[85%] p-3 rounded-lg ${
                   msg.role === 'user' ? 'bg-primary text-primary-foreground' : 
                   msg.role === 'assistant' ? 'bg-muted' : 'bg-destructive/20 text-destructive-foreground'
                 }`}>
@@ -148,7 +180,7 @@ export default function ChatIAPage() {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] p-3 rounded-lg bg-muted flex items-center"> {/* Increased max-width */}
+                <div className="max-w-[85%] p-3 rounded-lg bg-muted flex items-center">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   <span className="text-sm">Pensando...</span>
                 </div>
@@ -158,7 +190,7 @@ export default function ChatIAPage() {
         </ScrollArea>
       </CardContent>
       <CardFooter className="p-4 border-t">
-        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error)}/>}
+        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || "Error desconocido en chat")}/>}
         <div className="flex w-full items-center gap-2">
           <Textarea
             value={currentMessage}
@@ -182,3 +214,4 @@ export default function ChatIAPage() {
     </Card>
   );
 }
+
