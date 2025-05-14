@@ -65,14 +65,31 @@ export default function ConfiguracionPage() {
 
   const handleLLMConfigChange = (field: keyof LLMSettings, value: string) => {
     const newConfig = { ...currentLLMConfig, [field]: value };
-    setCurrentLLMConfig(newConfig);
+    
     if (field === 'provider') {
-      setAvailableModels(getModelsForProvider(value as LLMProvider));
-      // Reset model if provider changes and current model is not in new list
-      if (!getModelsForProvider(value as LLMProvider).includes(newConfig.model)) {
-        setCurrentLLMConfig(prev => ({...prev, model: ''}));
+      const newProvider = value as LLMProvider;
+      setAvailableModels(getModelsForProvider(newProvider));
+      
+      if (!getModelsForProvider(newProvider).includes(newConfig.model)) {
+        newConfig.model = ''; // Reset model
+      }
+
+      // Auto-set API URL for specific local providers
+      if (newProvider === "LM Studio") {
+        newConfig.apiUrl = "http://localhost:1234/v1";
+      } else if (newProvider === "Ollama") {
+        newConfig.apiUrl = "http://localhost:11434/v1";
+      } else {
+        // If switching *from* a local provider with a default URL to a cloud one,
+        // and the current apiUrl is one of the local defaults, clear it.
+        const localDefaultUrls = ["http://localhost:1234/v1", "http://localhost:11434/v1"];
+        if (localDefaultUrls.includes(currentLLMConfig.apiUrl)) {
+           newConfig.apiUrl = ""; 
+        }
+        // If it wasn't a default local URL, don't change it (user might have a custom proxy or specific cloud endpoint)
       }
     }
+    setCurrentLLMConfig(newConfig);
   };
 
   const handleGitConfigChange = (field: keyof GitSettings, value: string) => {
@@ -86,8 +103,8 @@ export default function ConfiguracionPage() {
   const handleSaveSettings = () => {
     updateLLMConfig(currentLLMConfig);
     updateGitConfig(currentGitConfig);
-    updateSettings({ debugMode: currentDebugMode }); // Persist debugMode through AppState
-    setContextDebugMode(currentDebugMode); // Update context immediately
+    updateSettings({ debugMode: currentDebugMode }); 
+    setContextDebugMode(currentDebugMode); 
 
     toast({ title: "Configuración Guardada", description: "Tus ajustes han sido guardados localmente." });
     addLog("Configuration saved.");
@@ -121,7 +138,7 @@ export default function ConfiguracionPage() {
     setIsTestingGit(false);
   };
   
-  useEffect(() => { // Sync local state with global context if it changes elsewhere
+  useEffect(() => { 
     setContextDebugMode(settings.debugMode);
   }, [settings.debugMode, setContextDebugMode]);
 

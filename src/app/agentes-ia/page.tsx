@@ -104,19 +104,71 @@ export default function AgentesIAPage() {
   };
 
   const handleLlmConfigChange = (field: keyof AgentLLMConfiguration, value: any) => {
-    if (field === 'customConfig' && formData.llmConfig.customConfig) {
-        const newCustomConfig = { ...formData.llmConfig.customConfig, ...value };
-        setFormData(prev => ({ ...prev, llmConfig: { ...prev.llmConfig, customConfig: newCustomConfig }}));
-        if(value.provider) { // if provider changed within customConfig
-             setAvailableModels(getModelsForProvider(value.provider as LLMProvider));
-             if (!getModelsForProvider(value.provider as LLMProvider).includes(newCustomConfig.model)) {
-                setFormData(prev => ({ ...prev, llmConfig: { ...prev.llmConfig, customConfig: {...prev.llmConfig.customConfig!, model: ''} }}));
+    if (field === 'customConfig') { // 'value' here is an object like { provider: 'LM Studio' } or { apiKey: '...' }
+        const changedCustomConfigProps = value as Partial<LLMSettings>;
+        let newCustomConfig = { ...(formData.llmConfig.customConfig || DEFAULT_LLM_SETTINGS), ...changedCustomConfigProps };
+
+        if (changedCustomConfigProps.provider) {
+            const newProvider = changedCustomConfigProps.provider as LLMProvider;
+            setAvailableModels(getModelsForProvider(newProvider));
+            if (!getModelsForProvider(newProvider).includes(newCustomConfig.model)) {
+                newCustomConfig.model = ''; // Reset model if not compatible
+            }
+
+            // Auto-set API URL for specific local providers
+            if (newProvider === "LM Studio") {
+                newCustomConfig.apiUrl = "http://localhost:1234/v1";
+            } else if (newProvider === "Ollama") {
+                newCustomConfig.apiUrl = "http://localhost:11434/v1";
+            } else {
+                // If previous apiUrl was a default local one, and it's not being explicitly changed now, clear it.
+                const localDefaultUrls = ["http://localhost:1234/v1", "http://localhost:11434/v1"];
+                if (formData.llmConfig.customConfig?.apiUrl && 
+                    localDefaultUrls.includes(formData.llmConfig.customConfig.apiUrl) &&
+                    !changedCustomConfigProps.hasOwnProperty('apiUrl')) {
+                    newCustomConfig.apiUrl = "";
+                }
+                // If apiUrl was explicitly part of changedCustomConfigProps, it's already set by the spread operator.
+                // If it wasn't a default local URL and not in changedCustomConfigProps, it remains.
             }
         }
-    } else {
-        setFormData(prev => ({ ...prev, llmConfig: { ...prev.llmConfig, [field]: value }}));
+        setFormData(prev => ({
+            ...prev,
+            llmConfig: { ...prev.llmConfig, useGlobal: false, customConfig: newCustomConfig }
+        }));
+    } else if (field === 'useGlobal') { // 'value' here is a boolean for the useGlobal switch
+        setFormData(prev => {
+            const newLlmConfig = { ...prev.llmConfig, useGlobal: value };
+            if (!value && !newLlmConfig.customConfig) { // Switched to custom, and customConfig is not yet initialized
+                const globalProvider = globalSettings.llmConfig.provider || DEFAULT_LLM_SETTINGS.provider;
+                let apiUrl = DEFAULT_LLM_SETTINGS.apiUrl;
+                if (globalProvider === "LM Studio") {
+                    apiUrl = "http://localhost:1234/v1";
+                } else if (globalProvider === "Ollama") {
+                    apiUrl = "http://localhost:11434/v1";
+                }
+                
+                newLlmConfig.customConfig = {
+                     ...DEFAULT_LLM_SETTINGS,
+                     provider: globalProvider,
+                     model: getModelsForProvider(globalProvider)[0] || '',
+                     apiUrl: apiUrl,
+                };
+                setAvailableModels(getModelsForProvider(globalProvider));
+            } else if (!value && newLlmConfig.customConfig) { // Switched to custom, and customConfig exists
+                setAvailableModels(getModelsForProvider(newLlmConfig.customConfig.provider));
+                 // Ensure apiUrl is set if it's a local provider
+                if (newLlmConfig.customConfig.provider === "LM Studio" && newLlmConfig.customConfig.apiUrl !== "http://localhost:1234/v1") {
+                    newLlmConfig.customConfig.apiUrl = "http://localhost:1234/v1";
+                } else if (newLlmConfig.customConfig.provider === "Ollama" && newLlmConfig.customConfig.apiUrl !== "http://localhost:11434/v1") {
+                    newLlmConfig.customConfig.apiUrl = "http://localhost:11434/v1";
+                }
+            }
+            return { ...prev, llmConfig: newLlmConfig };
+        });
     }
   };
+
 
   const handleSubmitForm = () => {
     if (!formData.name.trim()) {
@@ -124,7 +176,6 @@ export default function AgentesIAPage() {
       return;
     }
     
-    // Ensure customConfig is well-formed if useGlobal is false
     const finalLlmConfig = formData.llmConfig.useGlobal 
         ? { useGlobal: true } 
         : { useGlobal: false, customConfig: formData.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalSettings.llmConfig.provider } };
@@ -166,11 +217,9 @@ export default function AgentesIAPage() {
       reader.onload = (e) => {
         try {
           const importedAgents = JSON.parse(e.target?.result as string) as Agent[];
-          // Basic validation for imported agents
           if (Array.isArray(importedAgents) && importedAgents.every(ag => ag.name && ag.systemPrompt)) {
-            // Merge or replace logic. For simplicity, let's merge, avoiding ID conflicts.
-            const newAgents = importedAgents.map(ia => ({...ia, id: uuidv4(), isDefault: false })); // Assign new IDs
-            setAgents(prev => [...prev.filter(pa => !newAgents.find(na => na.name === pa.name)), ...newAgents]); // Simple merge: replace by name
+            const newAgents = importedAgents.map(ia => ({...ia, id: uuidv4(), isDefault: false })); 
+            setAgents(prev => [...prev.filter(pa => !newAgents.find(na => na.name === pa.name)), ...newAgents]); 
             toast({ title: "Agentes Importados", description: `${importedAgents.length} agentes importados.` });
             addLog(`${importedAgents.length} agents imported.`);
           } else {
@@ -182,7 +231,7 @@ export default function AgentesIAPage() {
         }
       };
       reader.readAsText(file);
-      if (event.target) event.target.value = ""; // Reset file input
+      if (event.target) event.target.value = ""; 
     }
   };
 
@@ -235,8 +284,6 @@ export default function AgentesIAPage() {
     setTestChatMessage('');
     setIsTestChatLoading(true);
 
-    // Simulate AI call using agent's config and system prompt
-    // This is a simplified mock. A real implementation would use the agent's LLM config.
     addLog(`Testing agent "${testingAgent.name}" with message: ${userMsg.content.substring(0,30)}...`);
     setTimeout(() => {
         const aiResponse: ChatMessage = {
@@ -306,7 +353,7 @@ export default function AgentesIAPage() {
                 : "Define un nuevo agente especializado para tus tareas de IA."}
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="flex-grow pr-6 -mr-6"> {/* Apply pr for scrollbar space and -mr to keep content width */}
+          <ScrollArea className="flex-grow pr-6 -mr-6"> 
             <div className="space-y-4 py-4">
               <div className="space-y-1">
                 <Label htmlFor="agent-name">Nombre</Label>
@@ -344,25 +391,43 @@ export default function AgentesIAPage() {
                     <div className="space-y-2 pl-2 border-l-2 ml-2">
                         <div className="space-y-1">
                             <Label htmlFor="custom-llm-provider" className="text-xs">Proveedor LLM</Label>
-                            <Select value={formData.llmConfig.customConfig.provider} onValueChange={(val) => handleLlmConfigChange('customConfig', { provider: val as LLMProvider })}>
+                            <Select 
+                                value={formData.llmConfig.customConfig.provider} 
+                                onValueChange={(val) => handleLlmConfigChange('customConfig', { provider: val as LLMProvider })}
+                            >
                                 <SelectTrigger id="custom-llm-provider"><SelectValue/></SelectTrigger>
                                 <SelectContent>{LLM_PROVIDERS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                          <div className="space-y-1">
                             <Label htmlFor="custom-llm-model" className="text-xs">Modelo</Label>
-                            <Select value={formData.llmConfig.customConfig.model} onValueChange={(val) => handleLlmConfigChange('customConfig', { model: val })} disabled={availableModels.length === 0}>
+                            <Select 
+                                value={formData.llmConfig.customConfig.model} 
+                                onValueChange={(val) => handleLlmConfigChange('customConfig', { model: val })} 
+                                disabled={availableModels.length === 0}
+                            >
                                 <SelectTrigger id="custom-llm-model"><SelectValue placeholder={availableModels.length === 0 ? "Selecciona proveedor" : "Selecciona modelo"} /></SelectTrigger>
                                 <SelectContent>{availableModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-1">
                             <Label htmlFor="custom-llm-apiUrl" className="text-xs">URL API (Opcional)</Label>
-                            <Input id="custom-llm-apiUrl" value={formData.llmConfig.customConfig.apiUrl} onChange={(e) => handleLlmConfigChange('customConfig', { apiUrl: e.target.value })} placeholder="Usar global si está vacío"/>
+                            <Input 
+                                id="custom-llm-apiUrl" 
+                                value={formData.llmConfig.customConfig.apiUrl} 
+                                onChange={(e) => handleLlmConfigChange('customConfig', { apiUrl: e.target.value })} 
+                                placeholder="Usar global si está vacío o predeterminado del proveedor"
+                            />
                         </div>
                          <div className="space-y-1">
                             <Label htmlFor="custom-llm-apiKey" className="text-xs">Clave API (Opcional)</Label>
-                            <Input id="custom-llm-apiKey" type="password" value={formData.llmConfig.customConfig.apiKey} onChange={(e) => handleLlmConfigChange('customConfig', { apiKey: e.target.value })} placeholder="Usar global si está vacía"/>
+                            <Input 
+                                id="custom-llm-apiKey" 
+                                type="password" 
+                                value={formData.llmConfig.customConfig.apiKey} 
+                                onChange={(e) => handleLlmConfigChange('customConfig', { apiKey: e.target.value })} 
+                                placeholder="Usar global si está vacía"
+                            />
                         </div>
                     </div>
                  )}
