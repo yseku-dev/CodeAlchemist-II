@@ -17,7 +17,11 @@ import { v4 as uuidv4 } from 'uuid';
 // import { chatWithAIModel } from '@/ai/flows/chat'; 
 
 // Mock AI chat response
-const mockChatResponse = async (prompt: string, history: ChatMessage[]): Promise<string> => {
+const mockChatResponse = async (
+  prompt: string, 
+  history: ChatMessage[],
+  addLog: (log: string | Record<string, any>) => void // Accept addLog as a parameter
+): Promise<string> => {
   addLog(`Mocking AI response for prompt: ${prompt.substring(0, 50)}... with history length: ${history.length}`);
   return new Promise(resolve => setTimeout(() => {
     if (prompt.toLowerCase().includes("hola") || prompt.toLowerCase().includes("saludos")) {
@@ -29,7 +33,6 @@ const mockChatResponse = async (prompt: string, history: ChatMessage[]): Promise
     }
   }, 1000 + Math.random() * 1000));
 };
-const { addLog } = useDebug(); // Moved outside component to be accessible by mockChatResponse
 
 export default function ChatIAPage() {
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
@@ -38,6 +41,7 @@ export default function ChatIAPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const { addLog } = useDebug(); // Call useDebug inside the component
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +68,7 @@ export default function ChatIAPage() {
 
     try {
       // const aiResponseContent = await chatWithAIModel({ prompt: userMessage.content, history: messages, config: llmConfigSource });
-      const aiResponseContent = await mockChatResponse(userMessage.content, messages); // Using mock
+      const aiResponseContent = await mockChatResponse(userMessage.content, messages, addLog); // Pass addLog
       
       const assistantMessage: ChatMessage = {
         id: uuidv4(),
