@@ -6,7 +6,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type { AutoUpdateSuggestion } from '@/types';
-import { Edit3, Check, X, Play, Wand2Icon, Save } from 'lucide-react';
+import { Edit3, Check, X, Play, Wand2Icon, Save, TestTubeDiagonal } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 interface AutoUpdateSuggestionCardProps {
   suggestion: AutoUpdateSuggestion;
@@ -16,6 +17,7 @@ interface AutoUpdateSuggestionCardProps {
   onSaveEdit: (suggestionId: string) => void;
   onCancelEdit: (suggestionId: string) => void;
   onTest: (suggestion: AutoUpdateSuggestion) => void;
+  onTestInVenv: (suggestion: AutoUpdateSuggestion) => void; // New prop
 }
 
 export default function AutoUpdateSuggestionCard({
@@ -26,8 +28,10 @@ export default function AutoUpdateSuggestionCard({
   onSaveEdit,
   onCancelEdit,
   onTest,
+  onTestInVenv, // New prop
 }: AutoUpdateSuggestionCardProps) {
   const { id, area, suggestion: descriptionText, priority, fullFileContentSuggested, status, isEditing, userEditedContent } = suggestion;
+  const hasContentToActOn = !!(fullFileContentSuggested || userEditedContent);
 
   return (
     <Card key={id} className={`shadow-md ${status === 'applied' ? 'border-green-500' : status === 'discarded' ? 'opacity-70 bg-muted/50' : 'border-border'}`}>
@@ -43,20 +47,20 @@ export default function AutoUpdateSuggestionCard({
       </CardHeader>
       <CardContent className="text-sm px-4 pb-3 space-y-2">
         <p className="text-xs">{descriptionText}</p>
-        {isEditing && fullFileContentSuggested && (
+        {isEditing && (fullFileContentSuggested || userEditedContent !== undefined) && (
           <div className="space-y-2 mt-2">
             <Label htmlFor={`edit-${id}`} className="text-xs font-medium">Editar Contenido Sugerido:</Label>
             <Textarea
               id={`edit-${id}`}
-              value={userEditedContent || ''}
+              value={userEditedContent || fullFileContentSuggested || ''}
               onChange={(e) => onContentChange(id, e.target.value)}
-              rows={6}
+              rows={8}
               className="text-xs font-mono bg-background"
             />
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex justify-end gap-2 py-3 px-4 border-t">
+      <CardFooter className="flex flex-wrap justify-end gap-2 py-3 px-4 border-t">
         {status === 'pending' && (
           <>
             {isEditing ? (
@@ -70,15 +74,18 @@ export default function AutoUpdateSuggestionCard({
               </>
             ) : (
               <>
-                {fullFileContentSuggested && (
+                {hasContentToActOn && (
                    <Button size="xs" variant="outline" onClick={() => onToggleEdit(id)}>
                     <Edit3 className="mr-1 h-3 w-3" /> Editar
                   </Button>
                 )}
-                <Button size="xs" variant="outline" onClick={() => onTest(suggestion)}>
+                <Button size="xs" variant="outline" onClick={() => onTest(suggestion)} disabled={!hasContentToActOn}>
                   <Play className="mr-1 h-3 w-3" /> Testear
                 </Button>
-                <Button size="xs" onClick={() => onApply(suggestion)} disabled={!fullFileContentSuggested && !userEditedContent}>
+                <Button size="xs" variant="outline" onClick={() => onTestInVenv(suggestion)} disabled={!hasContentToActOn}>
+                  <TestTubeDiagonal className="mr-1 h-3 w-3" /> Testear en Ent. Virtual
+                </Button>
+                <Button size="xs" onClick={() => onApply(suggestion)} disabled={!hasContentToActOn}>
                    <Wand2Icon className="mr-1 h-3 w-3" /> Aplicar
                 </Button>
               </>
@@ -94,3 +101,4 @@ export default function AutoUpdateSuggestionCard({
     </Card>
   );
 }
+

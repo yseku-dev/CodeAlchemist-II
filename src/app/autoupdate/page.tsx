@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Download, GitCommit, Sparkles, ClipboardList, Wand2, Play, Edit3, Check, X, Save } from 'lucide-react';
+import { Loader2, Download, GitCommit, Sparkles, ClipboardList, Wand2Icon, Play, Edit3, Check, X, Save, TestTubeDiagonal } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import ConfirmDialog from '@/components/confirm-dialog';
@@ -41,12 +41,11 @@ export default function AutoUpdatePage() {
         ? { type: 'Agente' as const, id: defaultAgentFound.id, name: defaultAgentFound.name }
         : { type: 'Ajustes Globales' as const };
 
-      if (llmConfigSource?.type !== newConfig.type || llmConfigSource?.id !== newConfig.id) {
+      if (llmConfigSource?.type !== newConfig.type || (llmConfigSource?.type === 'Agente' && newConfig.type === 'Agente' && llmConfigSource.id !== newConfig.id)) {
         setLlmConfigSource(newConfig);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agents]); // Only re-run if agents array changes
+  }, [agents, llmConfigSource?.type, llmConfigSource?.id ]); 
 
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
   const [gitRepoUrl, setGitRepoUrl] = useState('');
@@ -64,6 +63,9 @@ export default function AutoUpdatePage() {
   
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [suggestionToTest, setSuggestionToTest] = useState<AutoUpdateSuggestion | null>(null);
+
+  const [showTestInVenvDialog, setShowTestInVenvDialog] = useState(false);
+  const [suggestionToTestInVenv, setSuggestionToTestInVenv] = useState<AutoUpdateSuggestion | null>(null);
 
   const [showCommitDialog, setShowCommitDialog] = useState(false);
   const [commitMessage, setCommitMessage] = useState('');
@@ -84,7 +86,7 @@ export default function AutoUpdatePage() {
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
       analysisPreferences: analysisPreferences || undefined,
       searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-      focusArea: analysisPreferences || undefined, // Use analysisPreferences as focusArea
+      focusArea: analysisPreferences || undefined, 
     };
 
     try {
@@ -109,7 +111,7 @@ export default function AutoUpdatePage() {
         fullFileContentSuggested: s.suggestedContent,
         status: 'pending',
         isEditing: false,
-        userEditedContent: s.suggestedContent, 
+        userEditedContent: undefined, 
       }));
 
       let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
@@ -188,7 +190,7 @@ export default function AutoUpdatePage() {
     } else if (format === 'ZIP') {
       toast({ 
         title: "Descarga ZIP no Implementada", 
-        description: "La descarga de sugerencias como archivo ZIP no está implementada en este entorno debido a limitaciones. Por favor, utiliza la opción 'Descargar Sugerencias (JSON)'.",
+        description: "La descarga de sugerencias como archivo ZIP no está implementada directamente en este entorno debido a limitaciones. Por favor, utiliza la opción 'Descargar Sugerencias (JSON)'.",
         duration: 5000,
       });
       addLog("ZIP download for suggestions attempted but not implemented client-side.");
@@ -216,7 +218,8 @@ export default function AutoUpdatePage() {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
         const newIsEditing = !s.isEditing;
-        const newUserEditedContent = newIsEditing && !s.userEditedContent ? s.fullFileContentSuggested || '' : s.userEditedContent;
+        // Initialize userEditedContent with fullFileContentSuggested only when starting to edit and userEditedContent is not already set
+        const newUserEditedContent = newIsEditing && s.userEditedContent === undefined ? s.fullFileContentSuggested || '' : s.userEditedContent;
         return { ...s, isEditing: newIsEditing, userEditedContent: newUserEditedContent };
       }
       return s;
@@ -235,7 +238,8 @@ export default function AutoUpdatePage() {
   const handleCancelEdit = (suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
-        return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested || '' };
+        // Revert to original suggested content if user cancels edit, or clear if no original
+        return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested || undefined };
       }
       return s;
     }));
@@ -244,6 +248,11 @@ export default function AutoUpdatePage() {
   const handleTestSuggestionClick = (suggestion: AutoUpdateSuggestion) => {
     setSuggestionToTest(suggestion);
     setShowTestDialog(true);
+  };
+
+  const handleTestInVenvClick = (suggestion: AutoUpdateSuggestion) => {
+    setSuggestionToTestInVenv(suggestion);
+    setShowTestInVenvDialog(true);
   };
 
   return (
@@ -346,6 +355,7 @@ export default function AutoUpdatePage() {
                         onSaveEdit={() => handleSaveEdit(s.id)}
                         onCancelEdit={() => handleCancelEdit(s.id)}
                         onTest={() => handleTestSuggestionClick(s)}
+                        onTestInVenv={() => handleTestInVenvClick(s)}
                         />
                     ))}
                     </div>
@@ -382,6 +392,34 @@ export default function AutoUpdatePage() {
             <CodeBlock code={suggestionToTest?.userEditedContent || suggestionToTest?.fullFileContentSuggested || "No hay contenido para testear."} language="typescript" maxHeight="100%" />
           </ScrollArea>
           <DialogFooter className="mt-4">
+            <DialogClose asChild>
+              <Button variant="outline">Cerrar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showTestInVenvDialog && !!suggestionToTestInVenv} onOpenChange={setShowTestInVenvDialog}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Testear Sugerencia en Entorno Virtual: {suggestionToTestInVenv?.area}</DialogTitle>
+            <DialogDescription>
+              Esta funcionalidad simularía la ejecución del código sugerido en un entorno virtual aislado (ej. Python venv, Node.js NVM).
+              La ejecución real requiere una infraestructura local o backend.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh] mt-4 border rounded-md">
+            <CodeBlock code={suggestionToTestInVenv?.userEditedContent || suggestionToTestInVenv?.fullFileContentSuggested || "No hay contenido para testear."} language="typescript" maxHeight="100%" />
+          </ScrollArea>
+          <p className="text-xs text-muted-foreground mt-2">Acción: Se intentaría crear un entorno virtual, instalar dependencias (si se pudieran inferir) y ejecutar el código/pruebas.</p>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => {
+              toast({ title: "Simulación: Prueba en Entorno Virtual", description: `Se simula el inicio de pruebas para ${suggestionToTestInVenv?.area}.`});
+              addLog(`Simulated virtual environment test for ${suggestionToTestInVenv?.area}.`);
+              setShowTestInVenvDialog(false);
+            }}>
+              Simular Inicio de Prueba
+            </Button>
             <DialogClose asChild>
               <Button variant="outline">Cerrar</Button>
             </DialogClose>
