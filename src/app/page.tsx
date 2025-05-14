@@ -33,11 +33,11 @@ const features = [
 ];
 
 const quickStartSteps = [
-  { text: "Configura tus ajustes de proveedor LLM en la sección 'Configuración'.", href: "/configuracion", linkText: "Configura tus ajustes del proveedor LLM"},
-  { text: "Explora la generación de código con un prompt sencillo en 'Generar Código'.", href: "/generar-codigo", linkText: "Explora la generación de código"},
-  { text: "Prueba el análisis de un fragmento de código en 'Analizar Código'.", href: "/analizar-codigo", linkText: "Prueba el análisis de un fragmento de código"},
-  { text: "Interactúa con el 'Chat con IA' para consultas rápidas.", href: "/chat-ia", linkText: "Interactúa con el Chat con IA"},
-  { text: "Experimenta con 'AutoUpdate' para ver cómo CodeAlchemist se analiza a sí mismo.", href: "/autoupdate", linkText: "Experimenta con AutoUpdate"}
+  { text: " en la sección 'Configuración'.", href: "/configuracion", linkText: "Configura tus ajustes del proveedor LLM"},
+  { text: " con un prompt sencillo en 'Generar Código'.", href: "/generar-codigo", linkText: "Explora la generación de código"},
+  { text: " en 'Analizar Código'.", href: "/analizar-codigo", linkText: "Prueba el análisis de un fragmento de código"},
+  { text: " para consultas rápidas.", href: "/chat-ia", linkText: "Interactúa con el Chat con IA"},
+  { text: " para ver cómo CodeAlchemist se analiza a sí mismo.", href: "/autoupdate", linkText: "Experimenta con AutoUpdate"}
 ];
 
 export default function DashboardPage() {
@@ -83,7 +83,7 @@ export default function DashboardPage() {
                   <Link href={step.href} className="text-primary hover:underline font-medium">
                     {step.linkText}
                   </Link>
-                  {step.text.substring(step.linkText.length)}
+                  {step.text}
                 </li>
               ))}
             </ol>
