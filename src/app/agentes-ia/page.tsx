@@ -201,6 +201,21 @@ export default function AgentesIAPage() {
     addLog("All agents exported.");
   };
 
+  const handleExportSingleAgent = (agent: Agent) => {
+    const jsonString = JSON.stringify(agent, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `codealchemist_agent_${agent.name.replace(/\s+/g, '_')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Agente Exportado", description: `Agente "${agent.name}" exportado.` });
+    addLog(`Agent "${agent.name}" exported.`);
+  };
+
   const handleTestAgent = (agent: Agent) => {
     setTestingAgent(agent);
     setTestChatMessages([{
@@ -265,13 +280,13 @@ export default function AgentesIAPage() {
                   <CardContent className="text-xs space-y-1 flex-grow">
                     <p><strong>LLM:</strong> {agent.llmConfig.useGlobal ? 'Global' : `Personalizado (${agent.llmConfig.customConfig?.provider || 'N/A'})`}</p>
                     <p><strong>Capacidades:</strong> 
-                        {Object.entries(agent.capabilities).filter(([, val]) => val).map(([key]) => key).join(', ') || 'Ninguna'}
+                        {Object.entries(agent.capabilities).filter(([, val]) => val).map(([key]) => key.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase())).join(', ') || 'Ninguna'}
                     </p>
                   </CardContent>
                   <CardFooter className="flex justify-end gap-1 p-2">
                     <Button variant="ghost" size="icon" title="Probar Agente" onClick={() => handleTestAgent(agent)}><PlayCircle className="h-4 w-4"/></Button>
-                    <Button variant="ghost" size="icon" title="Exportar Agente" onClick={() => {/* TODO: Export single agent */ toast({description: "Exportar agente individual no implementado."})}}><Download className="h-4 w-4"/></Button>
-                    <Button variant="ghost" size="icon" title="Editar Agente" onClick={() => handleOpenForm(agent)} disabled={agent.isNameEditable === false && agent.isDeletable === false /* Rough check for Orquestador */}><Edit3 className="h-4 w-4"/></Button>
+                    <Button variant="ghost" size="icon" title="Exportar Agente" onClick={() => handleExportSingleAgent(agent)}><Download className="h-4 w-4"/></Button>
+                    <Button variant="ghost" size="icon" title="Editar Agente" onClick={() => handleOpenForm(agent)} disabled={agent.isNameEditable === false}><Edit3 className="h-4 w-4"/></Button>
                     <Button variant="ghost" size="icon" title="Eliminar Agente" onClick={() => handleDeleteAgent(agent)} disabled={agent.isDeletable === false}><Trash2 className="h-4 w-4 text-destructive"/></Button>
                   </CardFooter>
                 </Card>
@@ -312,7 +327,7 @@ export default function AgentesIAPage() {
                   <div key={key} className="flex items-center space-x-2">
                     <Switch id={`cap-${key}`} checked={value} onCheckedChange={(checked) => handleCapabilityChange(key as keyof AgentFormData['capabilities'], checked)} />
                     <Label htmlFor={`cap-${key}`} className="font-normal capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                      {key.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase())}
                       {(key === 'execution' || key === 'readWrite') && <span className="text-destructive text-xs ml-1">(Peligroso)</span>}
                     </Label>
                   </div>
