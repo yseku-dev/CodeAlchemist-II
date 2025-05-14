@@ -18,8 +18,9 @@ import { GENERAL_PRIORITIES, GeneralPriority } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CodeBlock from '@/components/code-block';
 import ConfirmDialog from '@/components/confirm-dialog';
-import { refactorProjectWithAI, type RefactorProjectWithAIOutput, RefactorProjectWithAIInput } from '@/ai/flows/refactor-project-with-ai';
+import { refactorProjectWithAI, type RefactorProjectWithAIOutput, type RefactorProjectWithAIInput } from '@/ai/flows/refactor-project-with-ai';
 import LogsDisplay from '@/components/logs-display';
+import { Separator } from "@/components/ui/separator";
 
 type ProjectSourceType = "upload" | "git";
 
