@@ -121,3 +121,24 @@ export interface LLMConfigSourceOption {
 // For the forms
 export type AgentFormData = Omit<Agent, 'id' | 'isDefault' | 'isDeletable' | 'isNameEditable'> & { id?: string };
 export type GroupFormData = Omit<AIAgentGroup, 'id' | 'isDefault'> & { id?: string };
+
+// For AI-assisted creation flows
+export interface SuggestAgentDefinitionInput {
+  roleDescription: string;
+}
+export type SuggestAgentDefinitionOutput = Omit<AgentFormData, 'llmConfig' | 'id'> & {
+  // llmConfig is typically set by user or defaults, AI suggests core properties
+  capabilities: AgentCapabilities; // Ensure capabilities are part of the AI suggestion
+};
+
+
+export interface AgentInfoForGroupSuggestion {
+    id: string;
+    name: string;
+    description: string;
+}
+export interface SuggestGroupDefinitionInput {
+  groupTaskDescription: string;
+  availableAgents: AgentInfoForGroupSuggestion[];
+}
+export type SuggestGroupDefinitionOutput = Omit<GroupFormData, 'id'>;

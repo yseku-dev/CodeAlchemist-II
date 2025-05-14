@@ -5,18 +5,22 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, Edit3, Trash2, Upload, Download, PlayCircle, Users2 } from 'lucide-react'; // Added Users2
+import { PlusCircle, Edit3, Trash2, Upload, Download, PlayCircle, Users2, Sparkles as SparklesIcon } from 'lucide-react';
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { useDebug } from '@/context/DebugContext';
-import type { Agent, AgentFormData, LLMSettings, LLMProvider } from '@/types';
+import type { Agent, AgentFormData, LLMSettings, LLMProvider, SuggestAgentDefinitionOutput } from '@/types';
 import { DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS } from '@/lib/constants';
 import ConfirmDialog from '@/components/confirm-dialog';
 import AgentForm from '@/components/features/agentes-ia/agent-form';
 import AgentTestChat from '@/components/features/agentes-ia/agent-test-chat';
 import { v4 as uuidv4 } from 'uuid';
+import { suggestAgentDefinition } from '@/ai/flows/suggest-agent-definition-flow';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 
-// Placeholder for actual model lists
 const getModelsForProvider = (provider: LLMProvider): string[] => {
   switch (provider) {
     case "Groq": return ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma-7b-it"];
@@ -41,24 +45,50 @@ export default function AgentesIAPage() {
   const [isTestChatOpen, setIsTestChatOpen] = useState(false);
   const [testingAgent, setTestingAgent] = useState<Agent | null>(null);
 
+  const [isSuggestAgentDialogOpen, setIsSuggestAgentDialogOpen] = useState(false);
+  const [agentRoleDescription, setAgentRoleDescription] = useState('');
+  const [isSuggestingAgent, setIsSuggestingAgent] = useState(false);
 
-  const handleOpenForm = (agent?: Agent) => {
-    setEditingAgent(agent || null);
+
+  const handleOpenForm = (agent?: Agent | SuggestAgentDefinitionOutput) => {
+    if (agent && 'id' in agent && typeof agent.id === 'string') { // It's an existing Agent
+      setEditingAgent(agent as Agent);
+    } else if (agent) { // It's a suggestion (SuggestAgentDefinitionOutput)
+      setEditingAgent(null); // Clear any previous editing agent
+       // Pre-fill form with suggestion
+      const suggestedFormData: AgentFormData = {
+        name: agent.name,
+        description: agent.description,
+        systemPrompt: agent.systemPrompt,
+        capabilities: agent.capabilities,
+        llmConfig: { useGlobal: true, customConfig: { ...DEFAULT_LLM_SETTINGS, provider: globalSettings.llmConfig.provider, apiUrl: globalSettings.llmConfig.apiUrl } },
+      };
+       // This needs to be passed to AgentForm; AgentForm needs to accept initialData
+       // For now, we will open the form and the form itself will take 'editingAgent'
+       // We need a way to pass 'initialData' to AgentForm, or setEditingAgent with a partial Agent
+       // Let's adapt by setting editingAgent to a structure AgentForm can use for pre-filling
+        setEditingAgent({ ...suggestedFormData, id: `suggested-${uuidv4()}` } as Agent); // Temporary ID for prefill
+    } else {
+      setEditingAgent(null);
+    }
     setIsFormOpen(true);
   };
 
   const handleSubmitAgentForm = (formData: AgentFormData) => {
-    if (editingAgent) {
+    if (editingAgent && editingAgent.id.startsWith('suggested-')) { // It was a suggestion being confirmed
+        addAgent(formData); // Add as new agent
+    } else if (editingAgent) { // It's an existing agent being edited
       if (editingAgent.isNameEditable === false && editingAgent.name !== formData.name) {
         toast({ variant: "destructive", title: "Error", description: `El nombre del agente "${editingAgent.name}" no puede ser editado.`});
         return;
       }
-      updateAgent({ ...editingAgent, ...formData } as Agent); // Cast as Agent assuming id is present if editing
-    } else {
+      updateAgent({ ...editingAgent, ...formData } as Agent);
+    } else { // Creating a new agent from scratch
       addAgent(formData);
     }
     setIsFormOpen(false);
-    addLog(`Agent ${editingAgent ? 'updated' : 'created'}: ${formData.name}`);
+    setEditingAgent(null); // Clear editing/suggestion state
+    addLog(`Agent ${formData.id ? 'updated/confirmed' : 'created'}: ${formData.name}`);
   };
 
   const handleDeleteAgent = (agent: Agent) => {
@@ -136,6 +166,28 @@ export default function AgentesIAPage() {
     setIsTestChatOpen(true);
   };
 
+  const handleSuggestAgent = async () => {
+    if (!agentRoleDescription.trim()) {
+      toast({ variant: 'destructive', title: 'Descripción Requerida', description: 'Por favor, describe el rol del agente.' });
+      return;
+    }
+    setIsSuggestingAgent(true);
+    addLog(`Requesting AI suggestion for agent role: ${agentRoleDescription}`);
+    try {
+      const suggestion = await suggestAgentDefinition({ roleDescription: agentRoleDescription });
+      toast({ title: 'Sugerencia Recibida', description: `La IA ha sugerido una definición para el agente ${suggestion.name}.` });
+      setIsSuggestAgentDialogOpen(false);
+      setAgentRoleDescription('');
+      handleOpenForm(suggestion); // Open form with suggestion
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error de Sugerencia', description: error.message || 'No se pudo obtener la sugerencia.' });
+      addLog(`AI agent suggestion failed: ${error.message}`);
+    } finally {
+      setIsSuggestingAgent(false);
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <Card>
@@ -148,7 +200,10 @@ export default function AgentesIAPage() {
             <CardDescription>Crea, configura, prueba y gestiona agentes IA individuales.</CardDescription>
           </div>
           <div className="flex gap-2">
-             <Input type="file" accept=".json" onChange={handleImportAgents} className="hidden" id="import-agents-input" />
+            <Button variant="outline" onClick={() => setIsSuggestAgentDialogOpen(true)}>
+              <SparklesIcon className="mr-2 h-4 w-4" /> Crear con IA
+            </Button>
+            <Input type="file" accept=".json" onChange={handleImportAgents} className="hidden" id="import-agents-input" />
             <Button variant="outline" onClick={() => document.getElementById('import-agents-input')?.click()}><Upload className="mr-2 h-4 w-4" />Importar</Button>
             <Button variant="outline" onClick={handleExportAgents} disabled={agents.length === 0}><Download className="mr-2 h-4 w-4" />Exportar Todos</Button>
             <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />Crear Agente</Button>
@@ -186,8 +241,11 @@ export default function AgentesIAPage() {
 
       <AgentForm
         isOpen={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        editingAgent={editingAgent}
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) setEditingAgent(null); // Clear editing agent when form closes
+        }}
+        editingAgent={editingAgent} // Pass the agent to be edited or the suggestion
         onSubmit={handleSubmitAgentForm}
         getModelsForProvider={getModelsForProvider}
         globalLLMConfig={globalSettings.llmConfig}
@@ -206,6 +264,38 @@ export default function AgentesIAPage() {
         onOpenChange={setIsTestChatOpen}
         testingAgent={testingAgent}
       />
+
+      {/* Dialog for AI Agent Suggestion */}
+      <Dialog open={isSuggestAgentDialogOpen} onOpenChange={setIsSuggestAgentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sugerir Definición de Agente con IA</DialogTitle>
+            <DialogDescription>
+              Describe el rol o la tarea principal del agente que necesitas, y la IA sugerirá una definición.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1">
+              <Label htmlFor="agent-role-description">Descripción del Rol del Agente</Label>
+              <Textarea
+                id="agent-role-description"
+                value={agentRoleDescription}
+                onChange={(e) => setAgentRoleDescription(e.target.value)}
+                placeholder="Ej: Un agente que resume textos largos en puntos clave."
+                rows={4}
+                disabled={isSuggestingAgent}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" disabled={isSuggestingAgent}>Cancelar</Button></DialogClose>
+            <Button onClick={handleSuggestAgent} disabled={isSuggestingAgent}>
+              {isSuggestingAgent && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Obtener Sugerencia
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

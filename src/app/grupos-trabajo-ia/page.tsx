@@ -9,15 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Edit3, Trash2, Play, Workflow } from 'lucide-react'; // Added Workflow
+import { PlusCircle, Edit3, Trash2, Play, Workflow, Sparkles as SparklesIcon, Loader2 } from 'lucide-react';
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { useDebug } from '@/context/DebugContext';
-import type { AIAgentGroup, GroupFormData, Agent } from '@/types';
+import type { AIAgentGroup, GroupFormData, Agent, AgentInfoForGroupSuggestion, SuggestGroupDefinitionOutput } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ConfirmDialog from '@/components/confirm-dialog';
 import LogsDisplay from '@/components/logs-display';
-// For mock group execution
+import { suggestGroupDefinition } from '@/ai/flows/suggest-group-definition-flow';
 import { v4 as uuidv4 } from 'uuid';
 
 const initialGroupFormData: GroupFormData = {
@@ -42,10 +42,15 @@ export default function GruposTrabajoIAPage() {
   const [executionLog, setExecutionLog] = useState<string[]>([]);
   const [isGroupExecuting, setIsGroupExecuting] = useState(false);
 
+  const [isSuggestGroupDialogOpen, setIsSuggestGroupDialogOpen] = useState(false);
+  const [groupTaskDescription, setGroupTaskDescription] = useState('');
+  const [isSuggestingGroup, setIsSuggestingGroup] = useState(false);
+
   const availableAgentsForSelection = agents.filter(agent => agent.id !== 'orquestador-flujo-agentes');
 
-  const handleOpenForm = (group?: AIAgentGroup) => {
-    if (group) {
+  const handleOpenForm = (groupOrSuggestion?: AIAgentGroup | SuggestGroupDefinitionOutput) => {
+    if (groupOrSuggestion && 'id' in groupOrSuggestion && typeof groupOrSuggestion.id === 'string') { // Existing AIAgentGroup
+      const group = groupOrSuggestion as AIAgentGroup;
       setEditingGroup(group);
       setFormData({
         id: group.id,
@@ -54,7 +59,17 @@ export default function GruposTrabajoIAPage() {
         mainTask: group.mainTask,
         agentIds: [...group.agentIds],
       });
-    } else {
+    } else if (groupOrSuggestion) { // Suggestion (SuggestGroupDefinitionOutput)
+      const suggestion = groupOrSuggestion as SuggestGroupDefinitionOutput;
+      setEditingGroup(null); // Clear previous editing group
+      setFormData({
+        name: suggestion.name,
+        description: suggestion.description,
+        mainTask: suggestion.mainTask,
+        agentIds: suggestion.agentIds,
+        id: `suggested-${uuidv4()}` // Temporary ID for prefill logic
+      });
+    } else { // New group from scratch
       setEditingGroup(null);
       setFormData(initialGroupFormData);
     }
@@ -84,13 +99,18 @@ export default function GruposTrabajoIAPage() {
         return;
     }
 
-    if (editingGroup) {
-      updateGroup({ ...editingGroup, ...formData });
-    } else {
+    if (editingGroup) { // Editing existing group
+      updateGroup({ ...editingGroup, ...formData } as AIAgentGroup);
+    } else if (formData.id && formData.id.startsWith('suggested-')) { // Confirming a suggestion
+      const { id, ...newGroupData } = formData; // remove temporary id
+      addGroup(newGroupData);
+    }
+     else { // Creating a new group from scratch
       addGroup(formData);
     }
     setIsFormOpen(false);
-    addLog(`Group ${editingGroup ? 'updated' : 'created'}: ${formData.name}`);
+    setEditingGroup(null);
+    addLog(`Group ${formData.id && !formData.id.startsWith('suggested-') ? 'updated' : 'created/confirmed'}: ${formData.name}`);
   };
 
   const handleDeleteGroup = (group: AIAgentGroup) => {
@@ -111,10 +131,9 @@ export default function GruposTrabajoIAPage() {
     setIsGroupExecuting(true);
     
     addLog(`Executing group: ${group.name}. Task: ${group.mainTask.substring(0,50)}...`);
-    // Simulate group execution
     let turn = 1;
     const interval = setInterval(() => {
-      if (turn > 5) { // Simulate 5 turns
+      if (turn > 5) { 
         setExecutionLog(prev => [...prev, "Ejecución del grupo completada (simulado)."]);
         setIsGroupExecuting(false);
         clearInterval(interval);
@@ -125,15 +144,34 @@ export default function GruposTrabajoIAPage() {
       setExecutionLog(prev => [...prev, orquestadorDecision, agentResponse]);
       turn++;
     }, 2000);
-    // Store interval to clear it if modal is closed or stopped
-    // For simplicity, not storing interval ID here. In a real app, manage this.
   };
 
   const handleStopExecution = () => {
     setIsGroupExecuting(false);
-    // Clear any running intervals/processes for this group execution
     setExecutionLog(prev => [...prev, "Ejecución detenida por el usuario."]);
     addLog(`Group execution stopped for: ${executingGroup?.name}`);
+  };
+
+  const handleSuggestGroup = async () => {
+    if (!groupTaskDescription.trim()) {
+      toast({ variant: 'destructive', title: 'Descripción Requerida', description: 'Por favor, describe la tarea del grupo.' });
+      return;
+    }
+    setIsSuggestingGroup(true);
+    addLog(`Requesting AI suggestion for group task: ${groupTaskDescription}`);
+    try {
+      const agentInfos: AgentInfoForGroupSuggestion[] = availableAgentsForSelection.map(a => ({ id: a.id, name: a.name, description: a.description }));
+      const suggestion = await suggestGroupDefinition({ groupTaskDescription, availableAgents: agentInfos });
+      toast({ title: 'Sugerencia Recibida', description: `La IA ha sugerido una definición para el grupo ${suggestion.name}.` });
+      setIsSuggestGroupDialogOpen(false);
+      setGroupTaskDescription('');
+      handleOpenForm(suggestion);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error de Sugerencia', description: error.message || 'No se pudo obtener la sugerencia.' });
+      addLog(`AI group suggestion failed: ${error.message}`);
+    } finally {
+      setIsSuggestingGroup(false);
+    }
   };
 
   return (
@@ -147,7 +185,12 @@ export default function GruposTrabajoIAPage() {
             </CardTitle>
             <CardDescription>Define y ejecuta equipos de agentes IA colaborativos.</CardDescription>
           </div>
-          <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />Crear Grupo</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsSuggestGroupDialogOpen(true)}>
+              <SparklesIcon className="mr-2 h-4 w-4" /> Crear con IA
+            </Button>
+            <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />Crear Grupo</Button>
+          </div>
         </CardHeader>
         <CardContent>
           {groups.length === 0 ? (
@@ -176,10 +219,13 @@ export default function GruposTrabajoIAPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={(open) => {
+        setIsFormOpen(open);
+        if (!open) setEditingGroup(null); // Clear editing/suggestion state
+      }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>{editingGroup ? 'Editar Grupo de Trabajo' : 'Crear Nuevo Grupo de Trabajo'}</DialogTitle>
+            <DialogTitle>{editingGroup ? 'Editar Grupo de Trabajo' : (formData.id && formData.id.startsWith('suggested-') ? 'Revisar Sugerencia de Grupo' : 'Crear Nuevo Grupo de Trabajo')}</DialogTitle>
           </DialogHeader>
           <ScrollArea className="flex-grow pr-6 -mr-6">
             <div className="space-y-4 py-4">
@@ -220,7 +266,7 @@ export default function GruposTrabajoIAPage() {
           </ScrollArea>
           <DialogFooter className="pt-4 border-t">
             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-            <Button onClick={handleSubmitForm} disabled={availableAgentsForSelection.length === 0 && formData.agentIds.length === 0}>{editingGroup ? 'Guardar Cambios' : 'Crear Grupo'}</Button>
+            <Button onClick={handleSubmitForm} disabled={availableAgentsForSelection.length === 0 && formData.agentIds.length === 0}>{editingGroup ? 'Guardar Cambios' : (formData.id && formData.id.startsWith('suggested-') ? 'Crear Grupo con Sugerencia' : 'Crear Grupo')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -233,7 +279,6 @@ export default function GruposTrabajoIAPage() {
         description="¿Estás seguro de que quieres eliminar este grupo de trabajo?"
       />
 
-      {/* Group Execution Modal */}
       <Dialog open={isExecutionModalOpen} onOpenChange={(open) => {if(!open) {setIsExecutionModalOpen(false); setIsGroupExecuting(false);}}}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
@@ -247,6 +292,39 @@ export default function GruposTrabajoIAPage() {
                 <Button variant="outline" onClick={handleStopExecution} disabled={!isGroupExecuting}>Detener Ejecución</Button>
                 <DialogClose asChild><Button>Cerrar</Button></DialogClose>
             </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for AI Group Suggestion */}
+      <Dialog open={isSuggestGroupDialogOpen} onOpenChange={setIsSuggestGroupDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sugerir Definición de Grupo con IA</DialogTitle>
+            <DialogDescription>
+              Describe la tarea o el objetivo principal del grupo, y la IA sugerirá una definición y agentes relevantes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1">
+              <Label htmlFor="group-task-description">Descripción de la Tarea del Grupo</Label>
+              <Textarea
+                id="group-task-description"
+                value={groupTaskDescription}
+                onChange={(e) => setGroupTaskDescription(e.target.value)}
+                placeholder="Ej: Desarrollar un nuevo módulo de e-commerce para la aplicación."
+                rows={4}
+                disabled={isSuggestingGroup}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" disabled={isSuggestingGroup}>Cancelar</Button></DialogClose>
+            <Button onClick={handleSuggestGroup} disabled={isSuggestingGroup || availableAgentsForSelection.length === 0}>
+              {isSuggestingGroup && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Obtener Sugerencia
+            </Button>
+          </DialogFooter>
+           {availableAgentsForSelection.length === 0 && <p className="text-xs text-destructive text-center pt-2">Crea agentes primero para poder obtener sugerencias de grupos.</p>}
         </DialogContent>
       </Dialog>
 
