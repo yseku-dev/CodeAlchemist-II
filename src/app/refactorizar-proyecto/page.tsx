@@ -23,6 +23,7 @@ import LogsDisplay from '@/components/logs-display';
 import { Separator } from "@/components/ui/separator";
 
 type ProjectSourceType = "upload" | "git";
+const NINGUNA_PRIORITY_VALUE = "__none__"; // Special value for "Ninguna" option
 
 export default function RefactorizarProyectoPage() {
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Agente', id: 'refactorizador-codigo-experto', name: 'RefactorizadorCodigoExperto' });
@@ -99,7 +100,16 @@ export default function RefactorizarProyectoPage() {
         suggestions: [
           { id: "1", area: "src/utils.js - function calculateTotal", description: "Simplificar lógica condicional y usar early returns para mejorar legibilidad.", priority: "Media", snippetSuggested: { original: "if (value > 0) { if (discount > 0) { return value - discount; } else { return value; } } else { return 0; }", modified: "if (value <= 0) return 0;\nif (discount <= 0) return value;\nreturn value - discount;" } },
           { id: "2", area: "components/UserProfile.tsx", description: "Extraer componente UserAvatar para reutilización.", priority: "Alta" },
-          { id: "3", area: "api/paymentController.java", description: "Añadir manejo de excepciones específico para fallos de red.", priority: "Alta", snippetSuggested: { original: "// process payment\nPaymentService.charge(amount);", modified: `try {\n  PaymentService.charge(amount);\n} catch (NetworkException e) {\n  log.error("Network error during payment", e);\n  throw new PaymentFailedException("Network issue", e);\n}`}},
+          { 
+            id: "3", 
+            area: "api/paymentController.java", 
+            description: "Añadir manejo de excepciones específico para fallos de red.", 
+            priority: "Alta", 
+            snippetSuggested: { 
+              original: "// process payment\nPaymentService.charge(amount);", 
+              modified: `try {\n  PaymentService.charge(amount);\n} catch (NetworkException e) {\n  log.error("Network error during payment", e);\n  throw new PaymentFailedException("Network issue", e);\n}`
+            }
+          },
         ]
       };
       // Simulate group log if group is selected
@@ -192,10 +202,21 @@ export default function RefactorizarProyectoPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="general-priority" className="text-sm font-normal">Prioridad General (opcional)</Label>
-            <Select value={generalPriority} onValueChange={(value) => setGeneralPriority(value as GeneralPriority)}>
-              <SelectTrigger id="general-priority"><SelectValue placeholder="Seleccionar prioridad..." /></SelectTrigger>
+            <Select
+              value={generalPriority}
+              onValueChange={(selectedValue) => {
+                if (selectedValue === NINGUNA_PRIORITY_VALUE) {
+                  setGeneralPriority('');
+                } else {
+                  setGeneralPriority(selectedValue as GeneralPriority);
+                }
+              }}
+            >
+              <SelectTrigger id="general-priority">
+                <SelectValue placeholder="Seleccionar prioridad..." />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Ninguna</SelectItem>
+                <SelectItem value={NINGUNA_PRIORITY_VALUE}>Ninguna</SelectItem>
                 {GENERAL_PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
