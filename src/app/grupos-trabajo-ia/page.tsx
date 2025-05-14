@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -17,8 +17,11 @@ import type { AIAgentGroup, GroupFormData, Agent, AgentInfoForGroupSuggestion, S
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ConfirmDialog from '@/components/confirm-dialog';
 import LogsDisplay from '@/components/logs-display';
-import { suggestGroupDefinition } from '@/ai/flows/suggest-group-definition-flow';
+import { callSuggestGroupDefinition } from '@/utils/apiClient';
 import { v4 as uuidv4 } from 'uuid';
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
+import AISuggestionDialog from '@/components/features/common/AISuggestionDialog';
+import { AppError } from '@/utils/AppError';
 
 const initialGroupFormData: GroupFormData = {
   name: '',
@@ -49,7 +52,7 @@ export default function GruposTrabajoIAPage() {
   const availableAgentsForSelection = agents.filter(agent => agent.id !== 'orquestador-flujo-agentes');
 
   const handleOpenForm = (groupOrSuggestion?: AIAgentGroup | SuggestGroupDefinitionOutput) => {
-    if (groupOrSuggestion && 'id' in groupOrSuggestion && typeof groupOrSuggestion.id === 'string') { // Existing AIAgentGroup
+    if (groupOrSuggestion && 'id' in groupOrSuggestion && typeof groupOrSuggestion.id === 'string' && !groupOrSuggestion.id.startsWith('suggested-')) { // Existing AIAgentGroup
       const group = groupOrSuggestion as AIAgentGroup;
       setEditingGroup(group);
       setFormData({
@@ -161,37 +164,40 @@ export default function GruposTrabajoIAPage() {
     addLog(`Requesting AI suggestion for group task: ${groupTaskDescription}`);
     try {
       const agentInfos: AgentInfoForGroupSuggestion[] = availableAgentsForSelection.map(a => ({ id: a.id, name: a.name, description: a.description }));
-      const suggestion = await suggestGroupDefinition({ groupTaskDescription, availableAgents: agentInfos });
+      const suggestion = await callSuggestGroupDefinition({ groupTaskDescription, availableAgents: agentInfos });
       toast({ title: 'Sugerencia Recibida', description: `La IA ha sugerido una definición para el grupo ${suggestion.name}.` });
       setIsSuggestGroupDialogOpen(false);
       setGroupTaskDescription('');
       handleOpenForm(suggestion);
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error de Sugerencia', description: error.message || 'No se pudo obtener la sugerencia.' });
-      addLog(`AI group suggestion failed: ${error.message}`);
+      const errorMsg = error instanceof AppError ? error.friendlyMessage : error.message || 'No se pudo obtener la sugerencia.';
+      toast({ variant: 'destructive', title: 'Error de Sugerencia', description: errorMsg });
+      addLog(`AI group suggestion failed: ${errorMsg}`);
     } finally {
       setIsSuggestingGroup(false);
     }
   };
 
+  const groupSuggestionExtraFooter = availableAgentsForSelection.length === 0 
+    ? <p className="text-xs text-destructive text-center">Crea agentes primero para poder obtener sugerencias de grupos.</p>
+    : null;
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-3">
-              <Workflow className="h-7 w-7 text-primary" />
-              <span>Gestión de Grupos de Trabajo IA</span>
-            </CardTitle>
-            <CardDescription>Define y ejecuta equipos de agentes IA colaborativos.</CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsSuggestGroupDialogOpen(true)}>
-              <SparklesIcon className="mr-2 h-4 w-4" /> Crear con IA
-            </Button>
-            <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />Crear Grupo</Button>
-          </div>
-        </CardHeader>
+        <PageSectionHeader
+          icon={Workflow}
+          title="Gestión de Grupos de Trabajo IA"
+          description="Define y ejecuta equipos de agentes IA colaborativos."
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setIsSuggestGroupDialogOpen(true)}>
+                <SparklesIcon className="mr-2 h-4 w-4" /> Crear con IA
+              </Button>
+              <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />Crear Grupo</Button>
+            </div>
+          }
+        />
         <CardContent>
           {groups.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No hay grupos de trabajo creados.</p>
@@ -295,38 +301,19 @@ export default function GruposTrabajoIAPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for AI Group Suggestion */}
-      <Dialog open={isSuggestGroupDialogOpen} onOpenChange={setIsSuggestGroupDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sugerir Definición de Grupo con IA</DialogTitle>
-            <DialogDescription>
-              Describe la tarea o el objetivo principal del grupo, y la IA sugerirá una definición y agentes relevantes.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1">
-              <Label htmlFor="group-task-description">Descripción de la Tarea del Grupo</Label>
-              <Textarea
-                id="group-task-description"
-                value={groupTaskDescription}
-                onChange={(e) => setGroupTaskDescription(e.target.value)}
-                placeholder="Ej: Desarrollar un nuevo módulo de e-commerce para la aplicación."
-                rows={4}
-                disabled={isSuggestingGroup}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline" disabled={isSuggestingGroup}>Cancelar</Button></DialogClose>
-            <Button onClick={handleSuggestGroup} disabled={isSuggestingGroup || availableAgentsForSelection.length === 0}>
-              {isSuggestingGroup && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Obtener Sugerencia
-            </Button>
-          </DialogFooter>
-           {availableAgentsForSelection.length === 0 && <p className="text-xs text-destructive text-center pt-2">Crea agentes primero para poder obtener sugerencias de grupos.</p>}
-        </DialogContent>
-      </Dialog>
+      <AISuggestionDialog
+        isOpen={isSuggestGroupDialogOpen}
+        onOpenChange={setIsSuggestGroupDialogOpen}
+        dialogTitle="Sugerir Definición de Grupo con IA"
+        dialogDescription="Describe la tarea o el objetivo principal del grupo, y la IA sugerirá una definición y agentes relevantes."
+        textareaLabel="Descripción de la Tarea del Grupo"
+        textareaPlaceholder="Ej: Desarrollar un nuevo módulo de e-commerce para la aplicación."
+        textareaValue={groupTaskDescription}
+        onTextareaChange={setGroupTaskDescription}
+        onSubmit={handleSuggestGroup}
+        isSubmitting={isSuggestingGroup}
+        extraFooterContent={groupSuggestionExtraFooter}
+      />
 
     </div>
   );

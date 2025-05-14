@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Edit3, Trash2, Upload, Download, PlayCircle, Users2, Sparkles as SparklesIcon } from 'lucide-react';
@@ -16,12 +16,10 @@ import AgentForm from '@/components/features/agentes-ia/agent-form';
 import AgentTestChat from '@/components/features/agentes-ia/agent-test-chat';
 import { v4 as uuidv4 } from 'uuid';
 import { callSuggestAgentDefinition } from '@/utils/apiClient'; 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
 import { AppError } from '@/utils/AppError';
-import { getModelsForProvider } from '@/lib/utils'; // Import shared function
+import { getModelsForProvider } from '@/lib/utils'; 
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
+import AISuggestionDialog from '@/components/features/common/AISuggestionDialog';
 
 /**
  * @fileOverview Page component for managing AI Agents.
@@ -29,7 +27,6 @@ import { getModelsForProvider } from '@/lib/utils'; // Import shared function
  * Also includes AI-assisted agent creation.
  */
 
-// Removed local getModelsForProvider
 
 /**
  * AgentesIAPage component.
@@ -61,35 +58,52 @@ export default function AgentesIAPage() {
   const [isSuggestingAgent, setIsSuggestingAgent] = useState(false);
 
   /**
-   * Opens the agent form, optionally pre-filling it for an existing agent or an AI suggestion.
-   * If an AI suggestion is provided, it configures `editingAgent` with a temporary ID
-   * to signal that the form is for confirming and potentially modifying a new, AI-suggested agent.
+   * Prepares the state for the agent form, either for a new agent, an existing agent, or an AI-suggested one.
    * @param {Agent | SuggestAgentDefinitionOutput} [agentOrSuggestion] - The existing agent to edit or the AI-generated suggestion.
    */
-  const handleOpenForm = (agentOrSuggestion?: Agent | SuggestAgentDefinitionOutput) => {
+  const _prepareEditingAgentState = (agentOrSuggestion?: Agent | SuggestAgentDefinitionOutput) => {
     if (agentOrSuggestion && 'id' in agentOrSuggestion && typeof agentOrSuggestion.id === 'string' && !agentOrSuggestion.id.startsWith('suggested-')) { 
-      setEditingAgent(agentOrSuggestion as Agent);
-    } else if (agentOrSuggestion) { // It's a suggestion or a pre-filled structure from suggestion
-      setEditingAgent(null); 
+      // It's an existing Agent
+      return agentOrSuggestion as Agent;
+    } else if (agentOrSuggestion) { 
+      // It's a suggestion (SuggestAgentDefinitionOutput) or a pre-filled structure from suggestion
       const suggestedData = agentOrSuggestion as SuggestAgentDefinitionOutput; 
+      const provider = globalSettings.llmConfig.provider || DEFAULT_LLM_SETTINGS.provider;
+      const apiUrl = globalSettings.llmConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[provider] || '';
+      
       const suggestedFormData: AgentFormData = {
         name: suggestedData.name,
         description: suggestedData.description,
         systemPrompt: suggestedData.systemPrompt,
         capabilities: suggestedData.capabilities,
-        llmConfig: { useGlobal: true, customConfig: { ...DEFAULT_LLM_SETTINGS, provider: globalSettings.llmConfig.provider, apiUrl: globalSettings.llmConfig.apiUrl, model: globalSettings.llmConfig.model } },
+        llmConfig: { 
+          useGlobal: true, 
+          customConfig: { 
+            ...DEFAULT_LLM_SETTINGS, 
+            provider,
+            apiUrl, 
+            model: globalSettings.llmConfig.model || getModelsForProvider(provider)[0] || '' 
+          } 
+        },
       };
-      setEditingAgent({ ...suggestedFormData, id: `suggested-${uuidv4()}` } as Agent); 
-    } else {
-      setEditingAgent(null);
+      return { ...suggestedFormData, id: `suggested-${uuidv4()}` } as Agent; // Temporary ID for prefill logic
     }
-    setIsFormOpen(true);
+    return null; // For creating a new agent from scratch
   };
 
   /**
-   * Handles the submission of the agent form.
-   * If `editingAgent` has a temporary ID (starts with 'suggested-'), it means a new agent based on an AI suggestion is being confirmed.
-   * Otherwise, it's either updating an existing agent or creating a new one from scratch.
+   * Opens the agent form.
+   * If an agent or suggestion is provided, the form is pre-filled.
+   * @param {Agent | SuggestAgentDefinitionOutput} [agentOrSuggestion] - The agent to edit or the AI suggestion.
+   */
+  const handleOpenForm = (agentOrSuggestion?: Agent | SuggestAgentDefinitionOutput) => {
+    setEditingAgent(_prepareEditingAgentState(agentOrSuggestion));
+    setIsFormOpen(true);
+  };
+
+
+  /**
+   * Handles the submission of the agent form (create or update).
    * @param {AgentFormData} formData - The data from the agent form.
    */
   const handleSubmitAgentForm = (formData: AgentFormData) => {
@@ -111,7 +125,6 @@ export default function AgentesIAPage() {
 
   /**
    * Sets up an agent for deletion by opening the confirmation dialog.
-   * Prevents deletion if the agent is marked as non-deletable.
    * @param {Agent} agent - The agent to be deleted.
    */
   const handleDeleteAgent = (agent: Agent) => {
@@ -124,7 +137,6 @@ export default function AgentesIAPage() {
   
   /**
    * Confirms and executes the deletion of an agent.
-   * Removes the agent from the state and logs the action.
    */
   const confirmDeleteAgent = () => {
     if (agentToDelete) {
@@ -135,7 +147,6 @@ export default function AgentesIAPage() {
 
   /**
    * Handles the import of agents from a JSON file.
-   * Parses the file, validates the structure, and adds/updates agents in the state.
    * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
    */
   const handleImportAgents = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,9 +157,7 @@ export default function AgentesIAPage() {
         try {
           const importedAgents = JSON.parse(e.target?.result as string) as Agent[];
           if (Array.isArray(importedAgents) && importedAgents.every(ag => ag.name && ag.systemPrompt)) {
-            // Ensure imported agents get new IDs and are marked as not default, and editable/deletable
             const newAgents = importedAgents.map(ia => ({...ia, id: uuidv4(), isDefault: false, isDeletable: true, isNameEditable: true })); 
-            // Merge: replace existing agents with same name, add new ones
             setAgents(prev => {
               const existingNames = new Set(newAgents.map(na => na.name));
               const filteredPrev = prev.filter(pa => !existingNames.has(pa.name));
@@ -171,7 +180,6 @@ export default function AgentesIAPage() {
 
   /**
    * Handles the export of all agents to a JSON file.
-   * Serializes the current list of agents and triggers a download.
    */
   const handleExportAgents = () => {
     const jsonString = JSON.stringify(agents, null, 2);
@@ -218,8 +226,6 @@ export default function AgentesIAPage() {
 
   /**
    * Handles the AI-assisted agent suggestion process.
-   * Calls the Genkit flow to get suggestions based on user input (agent role description).
-   * If successful, opens the agent form pre-filled with the AI's suggestions.
    */
   const handleSuggestAgent = async () => {
     if (!agentRoleDescription.trim()) {
@@ -247,24 +253,22 @@ export default function AgentesIAPage() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-3">
-              <Users2 className="h-7 w-7 text-primary" />
-              <span>Gestión de Agentes IA</span>
-            </CardTitle>
-            <CardDescription>Crea, configura, prueba y gestiona agentes IA individuales.</CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setIsSuggestAgentDialogOpen(true)}>
-              <SparklesIcon className="mr-2 h-4 w-4" /> Crear con IA
-            </Button>
-            <Input type="file" accept=".json" onChange={handleImportAgents} className="hidden" id="import-agents-input" />
-            <Button variant="outline" onClick={() => document.getElementById('import-agents-input')?.click()}><Upload className="mr-2 h-4 w-4" />Importar</Button>
-            <Button variant="outline" onClick={handleExportAgents} disabled={agents.length === 0}><Download className="mr-2 h-4 w-4" />Exportar Todos</Button>
-            <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />Crear Agente</Button>
-          </div>
-        </CardHeader>
+         <PageSectionHeader
+          icon={Users2}
+          title="Gestión de Agentes IA"
+          description="Crea, configura, prueba y gestiona agentes IA individuales."
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setIsSuggestAgentDialogOpen(true)}>
+                <SparklesIcon className="mr-2 h-4 w-4" /> Crear con IA
+              </Button>
+              <Input type="file" accept=".json" onChange={handleImportAgents} className="hidden" id="import-agents-input" />
+              <Button variant="outline" onClick={() => document.getElementById('import-agents-input')?.click()}><Upload className="mr-2 h-4 w-4" />Importar</Button>
+              <Button variant="outline" onClick={handleExportAgents} disabled={agents.length === 0}><Download className="mr-2 h-4 w-4" />Exportar Todos</Button>
+              <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />Crear Agente</Button>
+            </div>
+          }
+        />
         <CardContent>
           {agents.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No hay agentes creados. ¡Crea uno para empezar!</p>
@@ -303,7 +307,7 @@ export default function AgentesIAPage() {
         }}
         editingAgent={editingAgent} 
         onSubmit={handleSubmitAgentForm}
-        getModelsForProvider={getModelsForProvider} // Pass the imported function
+        getModelsForProvider={getModelsForProvider}
         globalLLMConfig={globalSettings.llmConfig}
       />
       
@@ -321,36 +325,18 @@ export default function AgentesIAPage() {
         testingAgent={testingAgent}
       />
 
-      <Dialog open={isSuggestAgentDialogOpen} onOpenChange={setIsSuggestAgentDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sugerir Definición de Agente con IA</DialogTitle>
-            <DialogDescription>
-              Describe el rol o la tarea principal del agente que necesitas, y la IA sugerirá una definición.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1">
-              <Label htmlFor="agent-role-description">Descripción del Rol del Agente</Label>
-              <Textarea
-                id="agent-role-description"
-                value={agentRoleDescription}
-                onChange={(e) => setAgentRoleDescription(e.target.value)}
-                placeholder="Ej: Un agente que resume textos largos en puntos clave."
-                rows={4}
-                disabled={isSuggestingAgent}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline" disabled={isSuggestingAgent}>Cancelar</Button></DialogClose>
-            <Button onClick={handleSuggestAgent} disabled={isSuggestingAgent}>
-              {isSuggestingAgent && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Obtener Sugerencia
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AISuggestionDialog
+        isOpen={isSuggestAgentDialogOpen}
+        onOpenChange={setIsSuggestAgentDialogOpen}
+        dialogTitle="Sugerir Definición de Agente con IA"
+        dialogDescription="Describe el rol o la tarea principal del agente que necesitas, y la IA sugerirá una definición."
+        textareaLabel="Descripción del Rol del Agente"
+        textareaPlaceholder="Ej: Un agente que resume textos largos en puntos clave."
+        textareaValue={agentRoleDescription}
+        onTextareaChange={setAgentRoleDescription}
+        onSubmit={handleSuggestAgent}
+        isSubmitting={isSuggestingAgent}
+      />
 
     </div>
   );
