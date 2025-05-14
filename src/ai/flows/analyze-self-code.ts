@@ -37,6 +37,7 @@ const AnalyzeCodeOutputSchema = z.object({
   })).describe('A list of detailed suggestions for improvement.'),
   generalAssessment: z.string().describe('An overall assessment of the code quality and potential issues.'),
   groupLog: z.string().optional().describe('Log from group execution if applicable.'),
+  overallImprovementIdeas: z.array(z.string()).optional().describe('High-level ideas for general project improvement based on objectives or focus area.'),
 });
 
 
@@ -91,6 +92,7 @@ Proporciona la siguiente información en tu respuesta (en castellano):
     *   priority: "Alta", "Media", o "Baja".
     *   suggestedContent (opcional): Si la sugerencia implica un cambio de código directo, proporciona el contenido completo del archivo modificado.
 *   generalAssessment: Una evaluación general del estado del código y recomendaciones de alto nivel.
+*   overallImprovementIdeas (opcional): Una lista de 2-3 ideas de alto nivel para mejoras generales del proyecto, relacionadas con los objetivos o el área de enfoque proporcionada. Por ejemplo, si el enfoque es "rendimiento UI", una idea podría ser "Explorar la carga diferida (lazy loading) de componentes pesados".
 
 Tu respuesta DEBE ser únicamente el objeto JSON que se adhiere al esquema de salida.
 {{#if projectContent}}
@@ -120,11 +122,10 @@ const analyzeSelfCodeFlow = ai.defineFlow( // Keeping flow name for now
         isUploadedString,
     };
 
-    const {output} = await analyzeCodePrompt(promptInput); 
+    const {output} = await analyzeCodePrompt(promptInput);
     if (!output) {
       throw new Error("La IA no pudo generar el análisis del proyecto.");
     }
     return output;
   }
 );
-

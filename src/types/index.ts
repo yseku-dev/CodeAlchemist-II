@@ -113,6 +113,8 @@ export interface AutoUpdateSuggestion {
   fullFileContentSuggested?: string; // The complete suggested content of the file
   id: string; // for UI key
   status?: 'pending' | 'applied' | 'discarded';
+  isEditing?: boolean;
+  userEditedContent?: string;
 }
 
 export interface ChatMessage {
@@ -198,4 +200,5 @@ export interface AnalyzeCodeOutput {
   }>;
   generalAssessment: string;
   groupLog?: string;
+  overallImprovementIdeas?: string[];
 }
