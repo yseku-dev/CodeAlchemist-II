@@ -1,0 +1,23 @@
+
+# Build output
+.next/
+out/
+build/
+
+# Dependencies
+node_modules/
+
+# Lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files by ShadCN UI
+components.json
+
+# Environment files
+.env
+.env*.local
+
+# Next.js generated
+next-env.d.ts
