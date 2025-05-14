@@ -14,8 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, ChatMessage, Agent, AIAgentGroup } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { chatWithAgentOrGlobal } from '@/ai/flows/chat-with-agent-or-global-flow';
-import { chatWithAIGroup } from '@/ai/flows/chat-with-ai-group-flow';
+import { AppError } from '@/utils/AppError';
+import { callChatWithAgentOrGlobal, callChatWithAIGroup } from '@/utils/apiClient';
+
 
 export default function ChatIAPage() {
   const { addLog: addLogContext } = useDebug();
@@ -55,33 +56,33 @@ export default function ChatIAPage() {
 
     try {
       if (llmConfigSource?.type === 'Ajustes Globales') {
-        const result = await chatWithAgentOrGlobal({ userMessage: currentInputMessage });
+        const result = await callChatWithAgentOrGlobal({ userMessage: currentInputMessage });
         aiResponseContent = result.aiResponse;
       } else if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
         const agent = getAgentById(llmConfigSource.id);
         if (agent) {
-          const result = await chatWithAgentOrGlobal({ userMessage: currentInputMessage, agentSystemPrompt: agent.systemPrompt });
+          const result = await callChatWithAgentOrGlobal({ userMessage: currentInputMessage, agentSystemPrompt: agent.systemPrompt });
           aiResponseContent = result.aiResponse;
         } else {
           throw new Error(`Agente con ID "${llmConfigSource.id}" no encontrado.`);
         }
       } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
         const group = groups.find(g => g.id === llmConfigSource.id);
-        const orchestratorAgent = agents.find(a => a.id === 'orquestador-flujo-agentes'); // Assuming fixed ID
+        const orchestratorAgent = agents.find(a => a.id === 'orquestador-flujo-agentes'); 
 
         if (group && orchestratorAgent) {
           const participatingAgentsInfo = group.agentIds
             .map(id => getAgentById(id))
-            .filter(Boolean) as Agent[]; // Filter out undefined and cast
+            .filter(Boolean) as Agent[]; 
 
-          const result = await chatWithAIGroup({
+          const result = await callChatWithAIGroup({
             userMessage: currentInputMessage,
             groupMainTask: group.mainTask,
             participatingAgents: participatingAgentsInfo.map(p => ({
                 id: p.id,
                 name: p.name,
                 description: p.description,
-                systemPrompt: p.systemPrompt, // Pass full system prompt
+                systemPrompt: p.systemPrompt, 
                 capabilities: p.capabilities,
                 llmConfig: p.llmConfig
             })),
@@ -102,17 +103,23 @@ export default function ChatIAPage() {
       setMessages(prev => [...prev, assistantMessage]);
       addLogContext(`AI response: ${aiResponseContent.substring(0,50)}...`);
     } catch (e: any) {
-      const errorMsg = e.message || "Ocurrió un error al comunicarse con la IA.";
-      setError(errorMsg);
+      addLogContext({ message: "AI chat error in UI", error: e });
       const systemErrorMessage: ChatMessage = {
         id: uuidv4(),
         role: 'system',
-        content: `Error: ${errorMsg}`,
+        content: `Error: ${e.message}`,
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, systemErrorMessage]);
-      addLogContext(`AI chat error: ${errorMsg}`);
-      toast({ variant: "destructive", title: "Error de Chat", description: errorMsg });
+      
+      if (e instanceof AppError) {
+        setError(e.friendlyMessage);
+        toast({ variant: "destructive", title: "Error de Chat", description: e.friendlyMessage });
+      } else {
+        const errorMsg = e.message || "Ocurrió un error al comunicarse con la IA.";
+        setError(errorMsg);
+        toast({ variant: "destructive", title: "Error de Chat", description: errorMsg });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -134,17 +141,17 @@ export default function ChatIAPage() {
   
   const handleAutoFixError = async (errorMsg: string) => {
     addLogContext(`Attempting Auto-Fix for chat error: ${errorMsg}`);
-    // Simulate calling an AI to fix the error or explain it
-    const userMsg: ChatMessage = {
+    const userFixRequest: ChatMessage = {
       id: uuidv4(),
       role: 'user',
       content: `Por favor, analiza este error y sugiere una solución: ${errorMsg}`,
       timestamp: new Date().toISOString(),
     };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev => [...prev, userFixRequest]);
     setIsLoading(true);
     try {
-      const result = await chatWithAgentOrGlobal({ userMessage: `Por favor, analiza este error y sugiere una solución: ${errorMsg}` });
+      // Using the global config for auto-fix for simplicity
+      const result = await callChatWithAgentOrGlobal({ userMessage: userFixRequest.content });
       const assistantMessage: ChatMessage = {
         id: uuidv4(),
         role: 'assistant',
@@ -153,7 +160,7 @@ export default function ChatIAPage() {
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (e: any) {
-        // Handle error from auto-fix attempt if necessary
+        addLogContext({ message: "Auto-fix attempt failed", error: e });
          const systemErrorMessage: ChatMessage = {
             id: uuidv4(),
             role: 'system',
@@ -161,6 +168,11 @@ export default function ChatIAPage() {
             timestamp: new Date().toISOString(),
           };
           setMessages(prev => [...prev, systemErrorMessage]);
+           if (e instanceof AppError) {
+            toast({ variant: "destructive", title: "Error en Auto-Fix", description: e.friendlyMessage });
+          } else {
+            toast({ variant: "destructive", title: "Error en Auto-Fix", description: e.message || "No se pudo completar el auto-fix." });
+          }
     } finally {
         setIsLoading(false);
     }

@@ -16,12 +16,13 @@ import type { LLMConfigSourceOption, ProjectGenerationResult, GenerateProjectInp
 import { ScrollArea } from '@/components/ui/scroll-area';
 import FileTreeDisplay from '@/components/file-tree';
 import LogsDisplay from '@/components/logs-display';
-import { generateProjectStructure } from '@/ai/flows/generate-project-structure-flow';
 import { useAppState } from '@/context/AppStateContext';
+import { AppError } from '@/utils/AppError';
+import { callGenerateProjectStructure } from '@/utils/apiClient';
 
 
 export default function GenerarProyectoPage() {
-  const { agents, getAgentById } = useAppState();
+  const { agents, groups, getAgentById } = useAppState();
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [description, setDescription] = useState('');
   const [currentPromptForDialog, setCurrentPromptForDialog] = useState('');
@@ -44,12 +45,9 @@ export default function GenerarProyectoPage() {
       const agent = getAgentById(llmConfigSource.id);
       agentSystemPrompt = agent?.systemPrompt;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
-      // For group, we could use the orchestrator's prompt or a designated project generation agent's prompt.
-      // For now, let's try passing the group's main task or orchestrator's context.
-      // Or, find the orchestrator if it's a fixed ID.
-      const orchestrator = agents.find(a => a.name === 'OrquestadorFlujoAgentes');
-      agentSystemPrompt = orchestrator?.systemPrompt || "Genera un proyecto basado en la siguiente descripción, actuando como un orquestador de un grupo de agentes especializados.";
-      addLog(`Generating project with Group: ${llmConfigSource.name}. Using orchestrator's context for generation flow.`);
+      const group = groups.find(g => g.id === llmConfigSource.id);
+      agentSystemPrompt = group?.mainTask || "Genera un proyecto basado en la siguiente descripción, actuando como un orquestador de un grupo de agentes especializados.";
+      addLog(`Generating project with Group: ${llmConfigSource.name}. Using group's task/context for generation flow.`);
     }
 
     const generationInput: GenerateProjectInput = {
@@ -60,21 +58,26 @@ export default function GenerarProyectoPage() {
     addLog(`Generating project with config: ${JSON.stringify(llmConfigSource)}, input: ${JSON.stringify(generationInput).substring(0,100)}...`);
 
     try {
-      const aiResult = await generateProjectStructure(generationInput);
+      const aiResult = await callGenerateProjectStructure(generationInput);
       
       let groupLogForDisplay: string | undefined = undefined;
-      if (llmConfigSource?.type === 'Grupo') {
+      if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name) {
         groupLogForDisplay = `(Simulación de Log de Grupo para Generación de Proyecto)\nTurno 1: Orquestador (usando contexto de '${llmConfigSource.name}') -> AgenteDiseñadorProyectos. Tarea: \"${finalPrompt.substring(0, 100)}...\".\nTurno 2: AgenteDiseñadorProyectos -> Estructura de proyecto generada.`;
       }
 
-      setResult({...aiResult, groupLog: groupLogForDisplay});
+      setResult({...aiResult, groupLog: groupLogForDisplay}); // groupLog is part of ProjectGenerationResult type
       addLog("Project generation successful.");
       toast({ title: "Proyecto Generado", description: "La estructura base del proyecto ha sido generada." });
     } catch (e: any) {
-      const errorMsg = e.message || "Ocurrió un error al generar el proyecto.";
-      setError(errorMsg);
-      addLog(`Project generation failed: ${errorMsg}`);
-      toast({ variant: "destructive", title: "Error de Generación", description: errorMsg });
+      addLog({ message: "Project generation failed in UI", error: e });
+      if (e instanceof AppError) {
+        setError(e.friendlyMessage);
+        toast({ variant: "destructive", title: "Error de Generación", description: e.friendlyMessage });
+      } else {
+        const errorMsg = e.message || "Ocurrió un error al generar el proyecto.";
+        setError(errorMsg);
+        toast({ variant: "destructive", title: "Error de Generación", description: errorMsg });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +98,7 @@ export default function GenerarProyectoPage() {
       return;
     }
     const filename = `${result.projectName || 'proyecto-generado'}.json`;
-    const jsonString = JSON.stringify(result, null, 2);
+    const jsonString = JSON.stringify(result, null, 2); // result already includes files
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -107,6 +110,11 @@ export default function GenerarProyectoPage() {
     URL.revokeObjectURL(url);
     toast({ title: "Proyecto Descargado (JSON)", description: `La estructura del proyecto "${result.projectName}" ha sido descargada como ${filename}. Puedes usar este JSON para crear los archivos y carpetas.` });
     addLog(`Project structure "${result.projectName}" downloaded as JSON.`);
+  };
+
+  const handleAutoFixError = async (errorMsg: string) => {
+    addLog(`Attempting Auto-Fix for error: ${errorMsg}`);
+    toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
   };
 
   return (
@@ -138,7 +146,7 @@ export default function GenerarProyectoPage() {
           Generar Proyecto
         </Button>
 
-        {error && <ErrorDisplay error={error} />}
+        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || "Error desconocido")} />}
 
         {result && (
           <div className="space-y-6 mt-6 p-4 border rounded-md bg-background">
@@ -159,7 +167,7 @@ export default function GenerarProyectoPage() {
             <Button onClick={handleDownloadProject} variant="outline">
               <Download className="mr-2 h-4 w-4" /> Descargar Estructura (JSON)
             </Button>
-            {result.groupLog && ( // Display group log if it exists
+            {result.groupLog && ( 
               <LogsDisplay title="Log Detallado del Grupo" logs={result.groupLog} />
             )}
           </div>

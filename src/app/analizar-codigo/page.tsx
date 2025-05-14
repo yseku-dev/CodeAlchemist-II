@@ -15,7 +15,9 @@ import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, AnalyzeCodeSnippetInput, AnalyzeCodeSnippetOutput } from '@/types';
-import { analyzeCodeSnippet } from '@/ai/flows/analyze-code-snippet';
+import { AppError } from '@/utils/AppError';
+import { callAnalyzeCodeSnippet } from '@/utils/apiClient';
+
 
 export default function AnalizarCodigoPage() {
   const { agents, groups, getAgentById } = useAppState();
@@ -64,10 +66,15 @@ export default function AnalizarCodigoPage() {
     addLog(`Fetching code from URL: ${fileUrl}`);
     try {
       // This is a placeholder. Real fetching needs a backend or CORS-enabled endpoint.
-      const mockCode = `// Contenido simulado de ${fileUrl}\nasync function fetchExample() { \n  // For demonstration, actual fetch might be blocked by CORS in browser\n  // const response = await fetch("${fileUrl}"); \n  // const text = await response.text(); \n  // return text; \n console.log("Fetched from URL (simulated)!"); \n}`;
-      setCodeToAnalyze(mockCode);
+      // For a robust solution, this would ideally be a server action that fetches the URL content.
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        throw new Error(`Error al obtener de la URL: ${response.status} ${response.statusText}`);
+      }
+      const text = await response.text();
+      setCodeToAnalyze(text);
       setUploadedFileContent(null); // Clear file upload if URL is used
-      toast({ title: "Código Obtenido", description: "Contenido de la URL cargado (simulado)." });
+      toast({ title: "Código Obtenido", description: "Contenido de la URL cargado." });
     } catch (e: any) {
       const errorMsg = e.message || "Error al obtener el código de la URL.";
       setError(errorMsg);
@@ -92,11 +99,12 @@ export default function AnalizarCodigoPage() {
       const agent = getAgentById(llmConfigSource.id);
       agentSystemPrompt = agent?.systemPrompt;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
-      // For group, we might use orchestrator's prompt or a designated analysis agent's prompt.
-      // For simplicity now, we'll use the orchestrator's prompt or a generic message.
-      const orchestrator = agents.find(a => a.id === 'orquestador-flujo-agentes');
-      agentSystemPrompt = orchestrator?.systemPrompt || "Analiza este código como parte de un grupo de trabajo.";
-      addLog(`Analyzing with Group: ${llmConfigSource.name}. Using orchestrator's context for analysis flow.`);
+      const group = groups.find(g => g.id === llmConfigSource.id);
+      // For group, use its mainTask as context or a specific agent's prompt if defined.
+      // Here, we might pass the group's main task or a generic instruction.
+      // The `analyzeCodeSnippet` flow's prompt might need to be aware of this context.
+      agentSystemPrompt = group?.mainTask || "Analiza este código en el contexto de un grupo de trabajo especializado.";
+      addLog(`Analyzing with Group: ${llmConfigSource.name}. Using group's task/context for analysis flow.`);
     }
 
     const analysisInput: AnalyzeCodeSnippetInput = {
@@ -108,15 +116,20 @@ export default function AnalizarCodigoPage() {
     addLog(`Analyzing code with config: ${JSON.stringify(llmConfigSource)}, input: ${JSON.stringify({code: codeToAnalyze.substring(0,50)+"...", userPrompt: analysisInput.userPrompt})}`);
 
     try {
-      const aiResult = await analyzeCodeSnippet(analysisInput);
+      const aiResult = await callAnalyzeCodeSnippet(analysisInput);
       setResult(aiResult);
       addLog("Code analysis successful.");
       toast({ title: "Análisis Completado", description: "El código ha sido analizado." });
     } catch (e: any) {
-      const errorMsg = e.message || "Ocurrió un error durante el análisis.";
-      setError(errorMsg);
-      addLog(`Code analysis failed: ${errorMsg}`);
-      toast({ variant: "destructive", title: "Error de Análisis", description: errorMsg });
+      addLog({ message: "Code analysis failed in UI", error: e });
+      if (e instanceof AppError) {
+        setError(e.friendlyMessage);
+        toast({ variant: "destructive", title: "Error de Análisis", description: e.friendlyMessage });
+      } else {
+        const errorMsg = e.message || "Ocurrió un error durante el análisis.";
+        setError(errorMsg);
+        toast({ variant: "destructive", title: "Error de Análisis", description: errorMsg });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -132,6 +145,14 @@ export default function AnalizarCodigoPage() {
     const name = `Código ${type} - ${new Date().toLocaleTimeString()}`;
     addSnapshot({ name, code: codeToSave, source: type });
   };
+  
+  const handleAutoFixError = async (errorMsg: string) => {
+    addLog(`Attempting Auto-Fix for error: ${errorMsg}`);
+    toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
+    // This would call another flow, perhaps a generic error analysis flow.
+    // For now, it's a placeholder for UI interaction.
+  };
+
 
   return (
     <Card className="max-w-4xl mx-auto">
@@ -192,7 +213,7 @@ export default function AnalizarCodigoPage() {
           Analizar Código
         </Button>
 
-        {error && <ErrorDisplay error={error} />}
+        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || "Error desconocido")} />}
 
         {result && (
           <div className="space-y-6 mt-6 p-4 border rounded-md bg-background">
