@@ -184,7 +184,7 @@ export default function AnalizarProyectoPage() {
                       <li key={index} className="p-2 border-b last:border-b-0">
                         <p className="font-medium text-sm">{s.area}</p>
                         <p className="text-xs text-muted-foreground">{s.suggestion}</p>
-                        <p className_priority="text-xs">Prioridad: <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></p>
+                        <p className="text-xs">Prioridad: <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></p>
                       </li>
                     ))}
                     </ul>
