@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import {
   FlaskConical,
   LayoutDashboard,
@@ -60,20 +59,20 @@ const navItems = [
   { href: '/configuracion', label: 'Configuración', icon: Settings },
 ];
 
-function CollapsibleSidebar() {
-  const { open, toggleSidebar, isMobile } = useSidebar();
+function CollapsibleSidebarButton() {
+  const { open, toggleSidebar, isMobile, state } = useSidebar();
 
   if (isMobile) {
-    return null; // Handled by Sheet in Sidebar component
+    return null; 
   }
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      className="mt-auto"
       onClick={toggleSidebar}
       aria-label={open ? 'Ocultar barra lateral' : 'Mostrar barra lateral'}
+      className="group-data-[collapsible=icon]:hidden data-[state=collapsed]:group-data-[collapsible=icon]:flex data-[state=expanded]:flex"
     >
       {open ? <ChevronsLeft /> : <ChevronsRight />}
     </Button>
@@ -97,13 +96,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen">
         <Sidebar collapsible="icon" className="border-r">
-          <SidebarHeader className="p-4">
-            <Link href="/" className="flex items-center gap-2">
+          <SidebarHeader className="p-4 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
               <FlaskConical className="h-8 w-8 text-primary" />
-              <h1 className="text-xl font-semibold group-data-[collapsible=icon]:hidden">
+              <h1 className="text-xl font-semibold">
                 CodeAlchemist
               </h1>
             </Link>
+             {/* Icon-only logo when collapsed */}
+             <Link href="/" className="items-center justify-center data-[state=expanded]:group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:flex hidden">
+                <FlaskConical className="h-8 w-8 text-primary" />
+            </Link>
+            <CollapsibleSidebarButton />
           </SidebarHeader>
           <SidebarContent asChild>
             <ScrollArea className="flex-1">
@@ -127,9 +131,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenu>
             </ScrollArea>
           </SidebarContent>
-          <SidebarFooter className="p-2">
-             <CollapsibleSidebar />
-          </SidebarFooter>
+          {/* Footer can be used for other items if needed, or removed if empty */}
+          {/* <SidebarFooter className="p-2">
+             <CollapsibleSidebarButton /> // Moved to header
+          </SidebarFooter> */}
         </Sidebar>
 
         <SidebarInset className="flex flex-col flex-1">
@@ -139,15 +144,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <MenuIcon />
               </SidebarTrigger>
             </div>
-            {/* Centered Title and Icon */}
-            <div className="flex-1 flex justify-center items-center gap-3 relative"> {/* Added relative for potential absolute positioning of mobile trigger if it were here */}
+            <div className="flex-1 flex justify-center items-center gap-3 relative">
               {PageIcon && <PageIcon className="h-6 w-6 text-primary" />}
               <h1 className="text-2xl font-semibold">
                 {pageTitle}
               </h1>
             </div>
-             {/* Placeholder for right-aligned items if any, to maintain balance, or remove flex-1 from above if only centered content */}
-             <div className="w-10 md:w-0"></div> {/* This helps keep the title centered if there was a right-aligned item, or maintains space for mobile trigger */}
+             <div className="w-10 md:w-0"></div> 
           </header>
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
             {children}
@@ -160,17 +163,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 }
 
 function DebugPanel() {
-  const { debugMode, logs, clearLogs, copyLogs } = useDebug();
+  const { debugMode, logs, clearLogs } = useDebug(); // Removed copyLogs as it's handled locally
   const [isExpanded, setIsExpanded] = React.useState(true);
 
   if (!debugMode) return null;
 
   const handleCopyLogs = () => {
     navigator.clipboard.writeText(logs.map(log => typeof log === 'object' ? JSON.stringify(log) : log).join('\n'));
-    // copyLogs(); // This could be used to show a toast "Logs copied!"
-    // Using toast directly from here if available or AppStateContext
-    // For now, console log is fine or if copyLogs from context triggers a toast
-    console.log("Logs copied to clipboard (simulated toast).");
+    // Consider adding a toast notification here if desired
+    console.log("Logs copied to clipboard.");
   };
 
   return (
@@ -201,3 +202,4 @@ function DebugPanel() {
     </div>
   );
 }
+
