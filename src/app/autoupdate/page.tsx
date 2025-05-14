@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Download, GitCommit } from 'lucide-react';
+import { Loader2, Download, GitCommit, Sparkles, ClipboardList } from 'lucide-react'; // Added Sparkles, ClipboardList
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import ConfirmDialog from '@/components/confirm-dialog';
@@ -147,7 +147,10 @@ export default function AutoUpdatePage() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
       <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle>AutoUpdate (Análisis del Propio Código)</CardTitle>
+          <CardTitle className="flex items-center gap-3">
+            <Sparkles className="h-7 w-7 text-primary" />
+            <span>AutoUpdate (Análisis del Propio Código)</span>
+          </CardTitle>
           <CardDescription>Permite que CodeAlchemist analice su propio código fuente.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -185,7 +188,10 @@ export default function AutoUpdatePage() {
 
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle>Resultados del Auto-Análisis</CardTitle>
+          <CardTitle className="flex items-center gap-3">
+            <ClipboardList className="h-7 w-7 text-primary" />
+            <span>Resultados del Auto-Análisis</span>
+          </CardTitle>
           {analysisResult && (
             <div className="flex flex-wrap gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => handleDownloadCode('ZIP')}><Download className="mr-2 h-4 w-4" /> Descargar Código (ZIP)</Button>

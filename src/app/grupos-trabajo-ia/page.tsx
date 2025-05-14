@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Edit3, Trash2, Play } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Play, Workflow } from 'lucide-react'; // Added Workflow
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { useDebug } from '@/context/DebugContext';
@@ -141,7 +141,10 @@ export default function GruposTrabajoIAPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Gestión de Grupos de Trabajo IA</CardTitle>
+            <CardTitle className="flex items-center gap-3">
+              <Workflow className="h-7 w-7 text-primary" />
+              <span>Gestión de Grupos de Trabajo IA</span>
+            </CardTitle>
             <CardDescription>Define y ejecuta equipos de agentes IA colaborativos.</CardDescription>
           </div>
           <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />Crear Grupo</Button>

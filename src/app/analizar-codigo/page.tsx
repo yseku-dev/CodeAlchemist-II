@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Upload, Save } from 'lucide-react';
+import { Loader2, Upload, Save, ScanLine } from 'lucide-react'; // Added ScanLine
 import LLMConfigSelector from '@/components/llm-config-selector';
 import CodeBlock from '@/components/code-block';
 import ErrorDisplay from '@/components/error-display';
@@ -128,7 +128,10 @@ export default function AnalizarCodigoPage() {
   return (
     <Card className="max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle>Analizar Código</CardTitle>
+        <CardTitle className="flex items-center gap-3">
+          <ScanLine className="h-7 w-7 text-primary" />
+          <span>Analizar Código</span>
+        </CardTitle>
         <CardDescription>Obtén análisis detallados y sugerencias de mejora para fragmentos o archivos de código.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -198,4 +201,3 @@ export default function AnalizarCodigoPage() {
     </Card>
   );
 }
-

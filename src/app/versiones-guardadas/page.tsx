@@ -106,7 +106,10 @@ export default function VersionesGuardadasPage() {
   return (
     <Card className="max-w-5xl mx-auto">
       <CardHeader>
-        <CardTitle>Versiones Guardadas (Snapshots)</CardTitle>
+        <CardTitle className="flex items-center gap-3">
+          <GitCompareArrows className="h-7 w-7 text-primary" />
+          <span>Versiones Guardadas (Snapshots)</span>
+        </CardTitle>
         <CardDescription>Gestiona instantáneas de código generadas o del estado de la aplicación.</CardDescription>
       </CardHeader>
       <CardContent>

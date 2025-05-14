@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Trash2, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Trash2, Bot, User, Loader2, MessageCircle } from 'lucide-react'; // Added MessageCircle
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
@@ -35,7 +35,7 @@ const mockChatResponse = async (
 };
 
 export default function ChatIAPage() {
-  const { addLog } = useDebug(); 
+  const { addLog: addLogContext } = useDebug(); // Renamed for clarity
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -64,11 +64,11 @@ export default function ChatIAPage() {
     setCurrentMessage('');
     setIsLoading(true);
     setError(null);
-    addLog(`User message to AI: ${userMessage.content.substring(0,50)}... Config: ${JSON.stringify(llmConfigSource)}`);
+    addLogContext(`User message to AI: ${userMessage.content.substring(0,50)}... Config: ${JSON.stringify(llmConfigSource)}`);
 
     try {
       // const aiResponseContent = await chatWithAIModel({ prompt: userMessage.content, history: messages, config: llmConfigSource });
-      const aiResponseContent = await mockChatResponse(userMessage.content, messages, addLog); // Pass addLog
+      const aiResponseContent = await mockChatResponse(userMessage.content, messages, addLogContext); // Pass addLog
       
       const assistantMessage: ChatMessage = {
         id: uuidv4(),
@@ -77,7 +77,7 @@ export default function ChatIAPage() {
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, assistantMessage]);
-      addLog(`AI response: ${aiResponseContent.substring(0,50)}...`);
+      addLogContext(`AI response: ${aiResponseContent.substring(0,50)}...`);
     } catch (e: any) {
       const errorMsg = e.message || "Ocurrió un error al comunicarse con la IA.";
       setError(errorMsg);
@@ -88,7 +88,7 @@ export default function ChatIAPage() {
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, systemErrorMessage]);
-      addLog(`AI chat error: ${errorMsg}`);
+      addLogContext(`AI chat error: ${errorMsg}`);
       toast({ variant: "destructive", title: "Error de Chat", description: errorMsg });
     } finally {
       setIsLoading(false);
@@ -106,11 +106,11 @@ export default function ChatIAPage() {
     setMessages([]);
     setError(null);
     toast({ title: "Chat Limpiado", description: "El historial de la conversación ha sido borrado." });
-    addLog("Chat history cleared.");
+    addLogContext("Chat history cleared.");
   };
   
   const handleAutoFixError = async (errorMsg: string) => {
-    addLog(`Attempting Auto-Fix for chat error: ${errorMsg}`);
+    addLogContext(`Attempting Auto-Fix for chat error: ${errorMsg}`);
     // Placeholder for AI-driven auto-fix logic specific to chat
     toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error del chat."});
   };
@@ -118,7 +118,10 @@ export default function ChatIAPage() {
   return (
     <Card className="w-full h-full flex flex-col"> {/* Adjusted width and height */}
       <CardHeader className="border-b">
-        <CardTitle>Chat con IA</CardTitle>
+        <CardTitle className="flex items-center gap-3">
+          <MessageCircle className="h-7 w-7 text-primary" />
+          <span>Chat con IA</span>
+        </CardTitle>
         <CardDescription>Interactúa con un asistente IA para consultas, ideas y más.</CardDescription>
         <div className="pt-2">
          <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />

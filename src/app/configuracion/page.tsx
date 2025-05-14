@@ -14,7 +14,7 @@ import { useDebug } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
 import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS, APP_NAME } from '@/lib/constants';
 import type { LLMSettings, GitSettings, LLMProvider, AppSettings } from '@/types';
-import { Upload, Download, Save } from 'lucide-react';
+import { Upload, Download, Save, Settings as SettingsIcon } from 'lucide-react'; // Added SettingsIcon
 
 // Mock function to simulate API connection tests
 const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
@@ -77,8 +77,11 @@ export default function ConfiguracionPage() {
       newConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[newProvider] || "";
       setAvailableModels(getModelsForProvider(newProvider));
       
-      if (!getModelsForProvider(newProvider).includes(newConfig.model) && newConfig.model) {
-        newConfig.model = ''; 
+      const modelsForNewProvider = getModelsForProvider(newProvider);
+      if (!modelsForNewProvider.includes(newConfig.model) && newConfig.model) {
+         newConfig.model = modelsForNewProvider.length > 0 ? modelsForNewProvider[0] : '';
+      } else if (!newConfig.model && modelsForNewProvider.length > 0) {
+         newConfig.model = modelsForNewProvider[0];
       }
     }
     setCurrentLLMConfig(newConfig);
@@ -207,7 +210,10 @@ export default function ConfiguracionPage() {
     <Card className="max-w-3xl mx-auto">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <CardTitle>Configuración General</CardTitle>
+          <CardTitle className="flex items-center gap-3">
+            <SettingsIcon className="h-7 w-7 text-primary" />
+            <span>Configuración General</span>
+          </CardTitle>
           <CardDescription>Ajusta los parámetros globales de la aplicación y gestiona tu configuración.</CardDescription>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
@@ -383,5 +389,3 @@ export default function ConfiguracionPage() {
     </Card>
   );
 }
-
-    

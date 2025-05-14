@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, Edit3, Trash2, Upload, Download, PlayCircle } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Upload, Download, PlayCircle, Users2 } from 'lucide-react'; // Added Users2
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { useDebug } from '@/context/DebugContext';
@@ -141,7 +141,10 @@ export default function AgentesIAPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Gestión de Agentes IA</CardTitle>
+            <CardTitle className="flex items-center gap-3">
+              <Users2 className="h-7 w-7 text-primary" />
+              <span>Gestión de Agentes IA</span>
+            </CardTitle>
             <CardDescription>Crea, configura, prueba y gestiona agentes IA individuales.</CardDescription>
           </div>
           <div className="flex gap-2">

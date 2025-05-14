@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, FolderSearch } from 'lucide-react'; // Added FolderSearch
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
@@ -115,7 +115,10 @@ export default function AnalizarProyectoPage() {
   return (
     <Card className="max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle>Análisis de Proyecto Completo</CardTitle>
+        <CardTitle className="flex items-center gap-3">
+          <FolderSearch className="h-7 w-7 text-primary" />
+          <span>Análisis de Proyecto Completo</span>
+        </CardTitle>
         <CardDescription>Realiza un análisis holístico de un proyecto entero, subido o desde Git.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -196,4 +199,3 @@ export default function AnalizarProyectoPage() {
     </Card>
   );
 }
-

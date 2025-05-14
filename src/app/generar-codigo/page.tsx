@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CodeXml } from 'lucide-react'; // Added CodeXml
 import LLMConfigSelector from '@/components/llm-config-selector';
 import CodeBlock from '@/components/code-block';
 import ConfirmDialog from '@/components/confirm-dialog';
@@ -72,7 +72,10 @@ export default function GenerarCodigoPage() {
   return (
     <Card className="max-w-3xl mx-auto">
       <CardHeader>
-        <CardTitle>Generar Código</CardTitle>
+        <CardTitle className="flex items-center gap-3">
+          <CodeXml className="h-7 w-7 text-primary" />
+          <span>Generar Código</span>
+        </CardTitle>
         <CardDescription>Crea fragmentos de código a partir de descripciones en lenguaje natural.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -134,4 +137,3 @@ export default function GenerarCodigoPage() {
     </Card>
   );
 }
-

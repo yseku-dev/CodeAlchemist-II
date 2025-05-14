@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2, Download, FolderPlus } from 'lucide-react'; // Added FolderPlus
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ConfirmDialog from '@/components/confirm-dialog';
 import ErrorDisplay from '@/components/error-display';
@@ -90,7 +90,10 @@ export default function GenerarProyectoPage() {
   return (
     <Card className="max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle>Generar Proyecto</CardTitle>
+        <CardTitle className="flex items-center gap-3">
+          <FolderPlus className="h-7 w-7 text-primary" />
+          <span>Generar Proyecto</span>
+        </CardTitle>
         <CardDescription>Crea una estructura base para nuevos proyectos a partir de tus especificaciones.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -170,4 +173,3 @@ export default function GenerarProyectoPage() {
     </Card>
   );
 }
-

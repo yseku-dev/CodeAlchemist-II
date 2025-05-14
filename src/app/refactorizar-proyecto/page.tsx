@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, BadgeHelp, BadgeCheck, BadgeX, GitMerge } from 'lucide-react';
+import { Loader2, Upload, BadgeHelp, BadgeCheck, BadgeX, GitMerge, GitPullRequestDraft, ListChecks } from 'lucide-react'; // Added icons
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
@@ -162,7 +162,10 @@ export default function RefactorizarProyectoPage() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
       <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle>Refactorizar Proyecto</CardTitle>
+          <CardTitle className="flex items-center gap-3">
+            <GitPullRequestDraft className="h-7 w-7 text-primary" />
+            <span>Refactorizar Proyecto</span>
+          </CardTitle>
           <CardDescription>Analiza un proyecto para obtener sugerencias de refactorización y aplícalas.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -203,7 +206,7 @@ export default function RefactorizarProyectoPage() {
           <div className="space-y-2">
             <Label htmlFor="general-priority" className="text-sm font-normal">Prioridad General (opcional)</Label>
             <Select
-              value={generalPriority}
+              value={generalPriority === '' ? NINGUNA_PRIORITY_VALUE : generalPriority}
               onValueChange={(selectedValue) => {
                 if (selectedValue === NINGUNA_PRIORITY_VALUE) {
                   setGeneralPriority('');
@@ -231,7 +234,10 @@ export default function RefactorizarProyectoPage() {
 
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle>Resultados y Sugerencias</CardTitle>
+          <CardTitle className="flex items-center gap-3">
+            <ListChecks className="h-7 w-7 text-primary" />
+           <span>Resultados y Sugerencias</span>
+          </CardTitle>
           {suggestions.length > 0 && (
             <div className="flex justify-end">
                 <Button onClick={handleApplyAll} size="sm" variant="outline" disabled={isLoading || suggestions.every(s => s.status !== 'pending')}>Aplicar Todas</Button>
@@ -316,4 +322,3 @@ export default function RefactorizarProyectoPage() {
     </div>
   );
 }
-
