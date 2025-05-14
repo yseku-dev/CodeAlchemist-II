@@ -12,25 +12,27 @@ import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption } from '@/types';
-import { analyzeSelfCode, type AnalyzeSelfCodeOutput, type AnalyzeSelfCodeInput } from '@/ai/flows/analyze-self-code';
+import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput, Agent } from '@/types'; // Updated types
+import { analyzeSelfCode as analyzeProjectFlow } from '@/ai/flows/analyze-self-code'; // Renamed import for clarity
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { useAppState } from '@/context/AppStateContext';
 
 type ProjectSourceType = "upload" | "git";
 
 export default function AnalizarProyectoPage() {
+  const { agents, getAgentById } = useAppState(); // For group logic
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [projectSourceType, setProjectSourceType] = useState<ProjectSourceType>("upload");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [gitUrl, setGitUrl] = useState('');
   const [searchDepth, setSearchDepth] = useState<string>('');
-  const [focusArea, setFocusArea] = useState<string>('');
+  const [focusArea, setFocusArea] = useState<string>(''); // This serves as 'analysisPreferences'
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<(AnalyzeSelfCodeOutput & { groupLog?: string }) | null>(null);
+  const [result, setResult] = useState<AnalyzeCodeOutput | null>(null); // Updated type
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addLog } = useDebug();
@@ -56,45 +58,100 @@ export default function AnalizarProyectoPage() {
     setError(null);
     setResult(null);
 
-    let sourceLocation: AnalyzeSelfCodeInput['sourceCodeLocation'];
-    let gitRepoUrlInput: string | undefined;
+    let analysisInput: AnalyzeCodeInput;
 
     if (projectSourceType === "upload" && uploadedFile) {
-      sourceLocation = "Local"; 
-      addLog(`Analyzing uploaded project file: ${uploadedFile.name}`);
+      // For uploaded files, we'd ideally read its content.
+      // For this version, we'll send a placeholder string or indicate it's an upload.
+      // A real implementation would require sending file content or path to a backend/flow.
+      // Let's assume the flow 'analyzeProjectFlow' can take a hint about the source.
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+          const projectContent = e.target?.result as string;
+          analysisInput = {
+            sourceCodeLocation: "UploadedString",
+            projectContent: projectContent, // Sending base64 for ZIPs might be better if flow supports it
+            analysisPreferences: focusArea || undefined,
+            searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+            focusArea: focusArea || undefined,
+          };
+          addLog(`Analyzing uploaded project: ${uploadedFile.name}`);
+          await executeAnalysis(analysisInput);
+      };
+      reader.onerror = () => {
+          toast({ variant: "destructive", title: "Error de Lectura", description: "No se pudo leer el archivo."});
+          setIsLoading(false);
+      }
+      // If it's a JSON, read as text. If ZIP, indicate it.
+      if (uploadedFile.type === 'application/json') {
+        reader.readAsText(uploadedFile);
+      } else if (uploadedFile.type === 'application/zip') {
+        // For ZIP, sending filename might be a hint to a backend. Here, we'll send a marker.
+        // Or, ideally, extract content if possible, or send base64.
+        // For now, we'll treat it like a string for the flow, with a note.
+        analysisInput = {
+            sourceCodeLocation: "UploadedString", // Or a new type like "UploadedZip" if flow handles it
+            projectContent: `Contenido del archivo ZIP: ${uploadedFile.name}. El flujo debe poder manejar esta referencia.`,
+            analysisPreferences: focusArea || undefined,
+            searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+            focusArea: focusArea || undefined,
+          };
+        addLog(`Analyzing uploaded ZIP project: ${uploadedFile.name} (content not sent, reference only)`);
+        await executeAnalysis(analysisInput);
+      } else {
+          toast({ variant: "destructive", title: "Tipo de Archivo no Soportado", description: "El análisis de este tipo de archivo no está completamente implementado para envío directo."});
+          setIsLoading(false);
+          return;
+      }
+      return; // Execution continues in FileReader onload
     } else if (projectSourceType === "git" && gitUrl) {
-      sourceLocation = "Git";
-      gitRepoUrlInput = gitUrl;
+      analysisInput = {
+        sourceCodeLocation: "Git",
+        gitRepoUrl: gitUrl,
+        analysisPreferences: focusArea || undefined,
+        searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+        focusArea: focusArea || undefined,
+      };
       addLog(`Analyzing Git project URL: ${gitUrl}`);
     } else {
       toast({ variant: "destructive", title: "Fuente del Proyecto Requerida", description: "Sube un archivo o proporciona una URL de Git." });
       setIsLoading(false);
       return;
     }
-
-    const input: AnalyzeSelfCodeInput = {
-      sourceCodeLocation: sourceLocation,
-      gitRepoUrl: gitRepoUrlInput,
-      analysisPreferences: focusArea || undefined, // Use focusArea as analysisPreferences
-      searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-      focusArea: focusArea || undefined,
-    };
     
-    addLog(`Analyzing project with input: ${JSON.stringify(input)} and config: ${JSON.stringify(llmConfigSource)}`);
+    await executeAnalysis(analysisInput);
+  };
+
+  const executeAnalysis = async (input: AnalyzeCodeInput) => {
+     addLog(`Analyzing project with input: ${JSON.stringify(input).substring(0, 200)}... and config: ${JSON.stringify(llmConfigSource)}`);
+    
+    let agentSystemPrompt: string | undefined;
+     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
+      const agent = getAgentById(llmConfigSource.id);
+      agentSystemPrompt = agent?.systemPrompt;
+      // Potentially pass this to flow if flow supports agent context for generic analysis
+    } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
+      const orchestrator = agents.find(a => a.id === 'orquestador-flujo-agentes');
+      agentSystemPrompt = orchestrator?.systemPrompt;
+      addLog(`Analyzing project with Group: ${llmConfigSource.name}. Orchestrator context might be used by flow.`);
+    }
+    // The analyzeProjectFlow (analyzeSelfCode) might need to be adapted to use agentSystemPrompt
+    // if we want specific agent's persona to drive the generic project analysis.
+    // For now, the flow's internal prompt will handle the logic.
 
     try {
-      const aiResult = await analyzeSelfCode(input); 
-      const mockAiResult: AnalyzeSelfCodeOutput & { groupLog?: string } = {
-        ...aiResult, // Use real result from analyzeSelfCode
-      };
+      const aiResult = await analyzeProjectFlow(input); 
+      let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
+
       if (llmConfigSource?.type === 'Grupo') {
-         mockAiResult.groupLog = "Turno 1: Orquestador -> AnalistaGeneralProyectos. Tarea: Analizar proyecto. \nTurno 2: AnalistaGeneralProyectos -> Reporte de análisis generado.";
+         finalResult.groupLog = `(Simulación de Log de Grupo para Análisis de Proyecto)\nTurno 1: Orquestador -> AgenteAnalizadorDeProyectos (usando '${llmConfigSource.name}'). Tarea: Analizar proyecto con enfoque en '${input.focusArea || 'general'}'.\nTurno 2: AgenteAnalizadorDeProyectos -> Reporte de análisis generado.`;
       }
 
-      setResult(mockAiResult);
+      setResult(finalResult);
       toast({ title: "Análisis Completado", description: "El proyecto ha sido analizado." });
       addLog("Project analysis successful.");
-    } catch (e: any) {
+    } catch (e: any)
+{
       const errorMsg = e.message || "Ocurrió un error durante el análisis del proyecto.";
       setError(errorMsg);
       addLog(`Project analysis failed: ${errorMsg}`);
@@ -102,7 +159,8 @@ export default function AnalizarProyectoPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
+
 
   return (
     <Card className="max-w-4xl mx-auto">
@@ -153,7 +211,7 @@ export default function AnalizarProyectoPage() {
           <Input id="focus-area-project" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder="Ej: Rendimiento, Seguridad de API" disabled={isLoading} />
         </div>
         
-        <Button onClick={handleAnalyze} disabled={isLoading} className="w-full">
+        <Button onClick={handleAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Analizar Proyecto
         </Button>
@@ -202,5 +260,3 @@ export default function AnalizarProyectoPage() {
     </Card>
   );
 }
-
-    

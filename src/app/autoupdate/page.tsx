@@ -18,8 +18,8 @@ import LogsDisplay from '@/components/logs-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/context/AppStateContext';
-import type { LLMConfigSourceOption, AutoUpdateSuggestion } from '@/types';
-import { analyzeSelfCode, type AnalyzeSelfCodeOutput, type AnalyzeSelfCodeInput } from '@/ai/flows/analyze-self-code';
+import type { LLMConfigSourceOption, AutoUpdateSuggestion, AnalyzeCodeInput, AnalyzeCodeOutput, Agent } from '@/types';
+import { analyzeSelfCode as analyzeProjectFlow } from '@/ai/flows/analyze-self-code'; // Renamed for consistency
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AutoUpdateSuggestionCard from '@/components/features/autoupdate/autoupdate-suggestion-card';
 import { Separator } from '@/components/ui/separator';
@@ -27,20 +27,20 @@ import { Separator } from '@/components/ui/separator';
 type AutoUpdateSourceType = "Local" | "Git";
 
 export default function AutoUpdatePage() {
-  const { settings } = useAppState();
-  const defaultAgent = settings.agents?.find(a => a.name === "RefactorizadorCodigoExperto");
+  const { settings: globalSettings, agents, getAgentById } = useAppState();
+  const defaultAgent = agents.find(a => a.name === "RefactorizadorCodigoExperto");
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(
     defaultAgent ? { type: 'Agente', id: defaultAgent.id, name: defaultAgent.name } : { type: 'Ajustes Globales' }
   );
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
   const [gitRepoUrl, setGitRepoUrl] = useState('');
-  const [analysisPreferences, setAnalysisPreferences] = useState(''); // This acts as "focusArea"
+  const [analysisPreferences, setAnalysisPreferences] = useState(''); 
   const [searchDepth, setSearchDepth] = useState<string>('');
   
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<(AnalyzeSelfCodeOutput & { groupLog?: string }) | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalyzeCodeOutput | null>(null);
   const [suggestions, setSuggestions] = useState<AutoUpdateSuggestion[]>([]);
 
   const [showConfirmApplyDialog, setShowConfirmApplyDialog] = useState(false);
@@ -59,16 +59,34 @@ export default function AutoUpdatePage() {
     setProgress(0);
     addLog(`Starting AutoUpdate analysis. Source: ${sourceType}, Config: ${JSON.stringify(llmConfigSource)}`);
 
-    const input: AnalyzeSelfCodeInput = {
+    const input: AnalyzeCodeInput = {
       sourceCodeLocation: sourceType,
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
-      analysisPreferences: analysisPreferences || undefined,
+      analysisPreferences: analysisPreferences || undefined, // Used as 'focusArea' in the flow now
       searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-      focusArea: analysisPreferences || undefined, // Pass analysisPreferences as focusArea too
+      focusArea: analysisPreferences || undefined,
     };
+
+    // Handle agent/group context for the flow
+    let agentSystemPrompt: string | undefined;
+    if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
+      const agent = getAgentById(llmConfigSource.id);
+      agentSystemPrompt = agent?.systemPrompt;
+      // The flow 'analyzeProjectFlow' (analyzeSelfCode) might need adaptation
+      // to directly use an agent's system prompt if provided.
+      // For now, the flow itself will determine the prompt based on its internal logic.
+    } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
+      const orchestrator = agents.find(a => a.id === 'orquestador-flujo-agentes');
+      agentSystemPrompt = orchestrator?.systemPrompt;
+      addLog(`AutoUpdate with Group: ${llmConfigSource.name}. Orchestrator context might be used by flow.`);
+    }
+    // If agentSystemPrompt is to be used, the 'input' or the flow call needs to accommodate it.
+    // The current 'AnalyzeCodeInput' does not have a field for agentSystemPrompt.
+    // For now, we rely on the flow's internal prompt logic.
 
     try {
       if (llmConfigSource?.type !== 'Grupo') {
+        // Progress simulation only for non-group analysis
         let currentProgress = 0;
         const intervalId = setInterval(() => {
           currentProgress += 10;
@@ -78,13 +96,9 @@ export default function AutoUpdatePage() {
             clearInterval(intervalId);
           }
         }, 200);
-         // Clear interval if component unmounts or isLoading becomes false
-         // This might need more robust handling if analysis takes a very long time
-        // A better way to handle this in real app: if (!isLoading && intervalId) clearInterval(intervalId);
-        // For now, this simple logic might be okay for demonstration
       }
 
-      const aiResult = await analyzeSelfCode(input);
+      const aiResult = await analyzeProjectFlow(input);
       const mappedSuggestions: AutoUpdateSuggestion[] = aiResult.detailedSuggestions.map((s, index) => ({
         id: `suggestion-${index}-${Date.now()}`,
         area: s.area,
@@ -93,7 +107,12 @@ export default function AutoUpdatePage() {
         fullFileContentSuggested: s.suggestedContent,
         status: 'pending',
       }));
-      setAnalysisResult({ ...aiResult, groupLog: llmConfigSource?.type === 'Grupo' ? "Simulated group log for AutoUpdate..." : undefined });
+      
+      let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
+      if (llmConfigSource?.type === 'Grupo') {
+         finalResult.groupLog = `(Simulación de Log de Grupo para AutoUpdate)\nTurno 1: Orquestador -> AgenteAnalizadorInterno (usando '${llmConfigSource.name}'). Tarea: Analizar código de CodeAlchemist con enfoque en '${input.focusArea || 'general'}'.\nTurno 2: AgenteAnalizadorInterno -> Sugerencias generadas.`;
+      }
+      setAnalysisResult(finalResult);
       setSuggestions(mappedSuggestions);
       setProgress(100);
       toast({ title: "Auto-Análisis Completado", description: "Se han generado sugerencias para el código." });
@@ -120,16 +139,16 @@ export default function AutoUpdatePage() {
 
   const confirmApplySuggestion = () => {
     if (!suggestionToApply) return;
-    addLog(`Applying suggestion to ${suggestionToApply.area} (Simulated).`);
+    addLog(`Marking suggestion as applied for ${suggestionToApply.area}. (Direct file modification is not feasible from browser).`);
     setSuggestions(prev => prev.map(s => s.id === suggestionToApply.id ? { ...s, status: 'applied' } : s));
-    toast({ title: "Sugerencia Aplicada (Simulado)", description: `Cambios para ${suggestionToApply.area} aplicados.` });
+    toast({ title: "Sugerencia Marcada como Aplicada", description: `Cambios para ${suggestionToApply.area} marcados. La modificación real de archivos no es posible desde el navegador.` });
     setShowConfirmApplyDialog(false);
     setSuggestionToApply(null);
   };
   
   const handleDownloadCode = (format: 'ZIP' | 'JSON') => {
-    addLog(`Downloading current CodeAlchemist code as ${format} (Simulated).`);
-    toast({ title: `Descarga ${format} (Simulada)`, description: "La descarga del código no está implementada." });
+    addLog(`Downloading current CodeAlchemist code as ${format}. (Functionality is a placeholder).`);
+    toast({ title: `Descarga ${format}`, description: "La descarga del código fuente completo no está implementada en este entorno." });
   };
 
   const handleGitCommitAndPush = async () => {
@@ -137,15 +156,16 @@ export default function AutoUpdatePage() {
       toast({ variant: "destructive", title: "Mensaje de Commit Requerido" });
       return;
     }
-    addLog(`Committing and pushing to Git with message: "${commitMessage}" (Simulated).`);
-    toast({ title: "Subida a Git (Simulada)", description: "Los cambios se están subiendo al repositorio." });
+    addLog(`Committing and pushing to Git with message: "${commitMessage}". (Functionality requires backend/Git CLI access).`);
+    toast({ title: "Subida a Git", description: "La subida a Git no está implementada en este entorno. Se requeriría acceso a Git CLI y autenticación." });
     setShowCommitDialog(false);
     setCommitMessage('');
   };
 
   const handleAutoFixError = async (errorMsg: string) => {
     addLog(`Attempting Auto-Fix for error: ${errorMsg}`);
-    toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
+    toast({ title: "Auto-Fix", description: "La IA está analizando el error para proponer una solución. (Funcionalidad no implementada)"});
+    // Placeholder for actual AI call to fix error
   };
 
   return (
@@ -253,13 +273,13 @@ export default function AutoUpdatePage() {
         onClose={() => setShowConfirmApplyDialog(false)}
         onConfirm={confirmApplySuggestion}
         title={`Aplicar Sugerencia a ${suggestionToApply?.area}`}
-        confirmText="Sí, Aplicar"
+        confirmText="Sí, Marcar como Aplicada"
       >
-        <p className="text-sm mb-2">Se modificará el archivo <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. Revisa el contenido sugerido:</p>
+        <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido y aplícalo manualmente:</p>
         <ScrollArea className="h-64 border rounded-md">
-          <CodeBlock code={suggestionToApply?.fullFileContentSuggested || "Error: No hay contenido para mostrar."} language="typescript" />
+          <CodeBlock code={suggestionToApply?.fullFileContentSuggested || "Error: No hay contenido para mostrar."} language="typescript" maxHeight="100%" />
         </ScrollArea>
-        <p className="text-xs text-destructive mt-2">Esta acción modificará el archivo directamente (simulado en esta UI).</p>
+        
       </ConfirmDialog>
 
       <ConfirmDialog
@@ -271,7 +291,7 @@ export default function AutoUpdatePage() {
       >
         <Label htmlFor="commit-message">Mensaje de Commit:</Label>
         <Input id="commit-message" value={commitMessage} onChange={(e) => setCommitMessage(e.target.value)} placeholder="Ej: Aplicadas sugerencias de AutoUpdate" className="mt-1" />
-        <p className="text-xs text-muted-foreground mt-2">Esto ejecutará \`git commit -m "{commitMessage}"\` y \`git push\` (simulado).</p>
+        <p className="text-xs text-muted-foreground mt-2">Esta acción intentaría realizar un commit y push. (Funcionalidad requiere acceso a Git CLI y autenticación no disponibles en este entorno).</p>
       </ConfirmDialog>
       
       <div className="lg:col-span-3 mt-4">
@@ -280,5 +300,3 @@ export default function AutoUpdatePage() {
     </div>
   );
 }
-
-    

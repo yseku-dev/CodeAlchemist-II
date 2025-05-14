@@ -7,37 +7,27 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Upload, Save, ScanLine } from 'lucide-react'; // Added ScanLine
+import { Loader2, Upload, Save, ScanLine } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import CodeBlock from '@/components/code-block';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/context/AppStateContext';
-import type { LLMConfigSourceOption, AnalyzeCodeResult } from '@/types';
-// Assuming a flow for code analysis, e.g., analyzeCodeSnippet from AI services
-// import { analyzeCodeSnippet } from '@/ai/flows/analyze-code-snippet';
-
-// Mock AI call for analyzeCodeSnippet
-const mockAnalyzeCode = (code: string): Promise<AnalyzeCodeResult> => {
-  return new Promise(resolve => setTimeout(() => {
-    resolve({
-      explanation: `El código proporcionado parece ser una función de ${code.toLowerCase().includes("function") ? "JavaScript" : "Python"} que ${code.length > 50 ? "realiza una tarea compleja" : "es un simple script"}. Se inicializa una variable 'x' y luego se imprime en la consola.`,
-      originalCode: code,
-      suggestedCode: `// Código original con comentarios mejorados:\n${code}\n\n// Sugerencia: Considerar añadir manejo de errores si 'x' puede ser indefinido.`
-    });
-  }, 1500));
-};
+import type { LLMConfigSourceOption, AnalyzeCodeSnippetInput, AnalyzeCodeSnippetOutput } from '@/types';
+import { analyzeCodeSnippet } from '@/ai/flows/analyze-code-snippet';
 
 export default function AnalizarCodigoPage() {
+  const { agents, groups, getAgentById } = useAppState();
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [codeToAnalyze, setCodeToAnalyze] = useState('');
   const [fileUrl, setFileUrl] = useState('');
   const [uploadedFileContent, setUploadedFileContent] = useState<string | null>(null);
+  const [userAnalysisPrompt, setUserAnalysisPrompt] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<AnalyzeCodeResult | null>(null);
+  const [result, setResult] = useState<AnalyzeCodeSnippetOutput | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addLog } = useDebug();
@@ -74,11 +64,7 @@ export default function AnalizarCodigoPage() {
     addLog(`Fetching code from URL: ${fileUrl}`);
     try {
       // This is a placeholder. Real fetching needs a backend or CORS-enabled endpoint.
-      // For demonstration, we'll simulate fetching.
-      // const response = await fetch(fileUrl); // This will likely fail due to CORS
-      // if (!response.ok) throw new Error(`Failed to fetch from URL: ${response.statusText}`);
-      // const code = await response.text();
-      const mockCode = `// Contenido simulado de ${fileUrl}\nfunction example() { console.log("Fetched from URL!"); }`;
+      const mockCode = `// Contenido simulado de ${fileUrl}\nasync function fetchExample() { \n  // For demonstration, actual fetch might be blocked by CORS in browser\n  // const response = await fetch("${fileUrl}"); \n  // const text = await response.text(); \n  // return text; \n console.log("Fetched from URL (simulated)!"); \n}`;
       setCodeToAnalyze(mockCode);
       setUploadedFileContent(null); // Clear file upload if URL is used
       toast({ title: "Código Obtenido", description: "Contenido de la URL cargado (simulado)." });
@@ -100,11 +86,29 @@ export default function AnalizarCodigoPage() {
     setIsLoading(true);
     setError(null);
     setResult(null);
-    addLog(`Analyzing code with config: ${JSON.stringify(llmConfigSource)}`);
+    
+    let agentSystemPrompt: string | undefined;
+    if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
+      const agent = getAgentById(llmConfigSource.id);
+      agentSystemPrompt = agent?.systemPrompt;
+    } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
+      // For group, we might use orchestrator's prompt or a designated analysis agent's prompt.
+      // For simplicity now, we'll use the orchestrator's prompt or a generic message.
+      const orchestrator = agents.find(a => a.id === 'orquestador-flujo-agentes');
+      agentSystemPrompt = orchestrator?.systemPrompt || "Analiza este código como parte de un grupo de trabajo.";
+      addLog(`Analyzing with Group: ${llmConfigSource.name}. Using orchestrator's context for analysis flow.`);
+    }
+
+    const analysisInput: AnalyzeCodeSnippetInput = {
+      code: codeToAnalyze,
+      userPrompt: userAnalysisPrompt || undefined,
+      agentSystemPrompt: agentSystemPrompt
+    };
+    
+    addLog(`Analyzing code with config: ${JSON.stringify(llmConfigSource)}, input: ${JSON.stringify({code: codeToAnalyze.substring(0,50)+"...", userPrompt: analysisInput.userPrompt})}`);
 
     try {
-      // const aiResult = await analyzeCodeSnippet({ code: codeToAnalyze, config: llmConfigSource });
-      const aiResult = await mockAnalyzeCode(codeToAnalyze); // Using mock
+      const aiResult = await analyzeCodeSnippet(analysisInput);
       setResult(aiResult);
       addLog("Code analysis successful.");
       toast({ title: "Análisis Completado", description: "El código ha sido analizado." });
@@ -121,6 +125,10 @@ export default function AnalizarCodigoPage() {
   const handleSaveSnapshot = (type: 'original' | 'suggested') => {
     if (!result) return;
     const codeToSave = type === 'original' ? result.originalCode : result.suggestedCode;
+    if (!codeToSave) {
+        toast({variant: "destructive", title: "Error", description: `No hay código ${type} para guardar.`});
+        return;
+    }
     const name = `Código ${type} - ${new Date().toLocaleTimeString()}`;
     addSnapshot({ name, code: codeToSave, source: type });
   };
@@ -166,6 +174,17 @@ export default function AnalizarCodigoPage() {
             className="font-mono text-sm"
             disabled={isLoading}
           />
+          <div className="space-y-2">
+            <Label htmlFor="user-analysis-prompt" className="text-sm">Instrucciones Adicionales para el Análisis (opcional)</Label>
+            <Textarea
+                id="user-analysis-prompt"
+                value={userAnalysisPrompt}
+                onChange={(e) => setUserAnalysisPrompt(e.target.value)}
+                placeholder="Ej: Enfócate en la seguridad, o sugiere alternativas más performantes."
+                rows={2}
+                disabled={isLoading}
+            />
+          </div>
         </div>
         
         <Button onClick={handleAnalyze} disabled={isLoading || !codeToAnalyze.trim()} className="w-full">

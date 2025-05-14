@@ -90,11 +90,21 @@ export interface RefactorSuggestion {
   status?: 'pending' | 'applied' | 'discarded';
 }
 
-export interface AnalyzeCodeResult {
-  explanation: string;
-  originalCode: string;
-  suggestedCode: string;
+// For "Analizar Código"
+export interface AnalyzeCodeSnippetInput {
+  code: string;
+  userPrompt?: string; // Optional user instructions for analysis focus
+  language?: string; // Optional language hint
+  agentSystemPrompt?: string; // For agent-driven analysis
 }
+
+export interface AnalyzeCodeSnippetOutput {
+  explanation: string;
+  originalCode: string; // Echo back the original code for consistency
+  suggestedCode: string;
+  // Potentially add: issuesFound: Issue[] where Issue has severity, line numbers, etc.
+}
+
 
 export interface AutoUpdateSuggestion {
   area: string; // file path
@@ -142,3 +152,50 @@ export interface SuggestGroupDefinitionInput {
   availableAgents: AgentInfoForGroupSuggestion[];
 }
 export type SuggestGroupDefinitionOutput = Omit<GroupFormData, 'id'>;
+
+
+// For RefactorProjectWithAI flow
+export interface RefactorProjectWithAIInput {
+  projectSource: string; // Can be a data URI for uploaded file or Git URL
+  goals?: string;
+  priority?: string; // e.g., 'Security', 'Readability'
+  searchDepth?: number;
+  focusArea?: string;
+}
+
+export interface RefactorProjectWithAIOutput {
+  suggestions: Array<{
+    area: string;
+    description: string;
+    priority: 'Alta' | 'Media' | 'Baja';
+    snippetSuggested?: {
+      original?: string;
+      modified?: string;
+    };
+  }>;
+  groupLog?: string;
+}
+
+
+// For AnalyzeSelfCode (which can also be used for generic project analysis)
+export interface AnalyzeCodeInput {
+  sourceCodeLocation: 'Local' | 'Git' | 'UploadedString'; // 'Local' for own code, 'Git' for URL, 'UploadedString' for direct string content
+  projectContent?: string; // For 'UploadedString' or fetched Git content
+  gitRepoUrl?: string; // If sourceCodeLocation is 'Git'
+  analysisPreferences?: string; // Specific areas or concerns
+  searchDepth?: number;
+  focusArea?: string;
+}
+
+export interface AnalyzeCodeOutput {
+  analysisTitle: string;
+  identifiedAreas: string[];
+  detailedSuggestions: Array<{
+    area: string;
+    suggestion: string;
+    priority: 'Alta' | 'Media' | 'Baja';
+    suggestedContent?: string; // Full suggested file content
+  }>;
+  generalAssessment: string;
+  groupLog?: string;
+}

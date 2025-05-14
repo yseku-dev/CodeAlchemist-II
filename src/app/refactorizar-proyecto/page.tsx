@@ -8,31 +8,36 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, BadgeHelp, BadgeCheck, BadgeX, GitMerge, GitPullRequestDraft, ListChecks } from 'lucide-react'; // Added icons
+import { Loader2, Upload, BadgeHelp, BadgeCheck, BadgeX, GitMerge, GitPullRequestDraft, ListChecks } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, RefactorSuggestion } from '@/types';
+import type { LLMConfigSourceOption, RefactorSuggestion, RefactorProjectWithAIInput, RefactorProjectWithAIOutput as AIResult, Agent } from '@/types';
 import { GENERAL_PRIORITIES, GeneralPriority } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CodeBlock from '@/components/code-block';
 import ConfirmDialog from '@/components/confirm-dialog';
-import { refactorProjectWithAI, type RefactorProjectWithAIOutput, type RefactorProjectWithAIInput } from '@/ai/flows/refactor-project-with-ai';
+import { refactorProjectWithAI } from '@/ai/flows/refactor-project-with-ai';
 import LogsDisplay from '@/components/logs-display';
 import { Separator } from "@/components/ui/separator";
+import { useAppState } from '@/context/AppStateContext';
 
 type ProjectSourceType = "upload" | "git";
-const NINGUNA_PRIORITY_VALUE = "__none__"; // Special value for "Ninguna" option
+const NINGUNA_PRIORITY_VALUE = "__none__"; 
 
 export default function RefactorizarProyectoPage() {
-  const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Agente', id: 'refactorizador-codigo-experto', name: 'RefactorizadorCodigoExperto' });
+  const { agents, getAgentById } = useAppState();
+  const defaultRefactorAgent = agents.find(a => a.name === "RefactorizadorCodigoExperto");
+  const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(
+    defaultRefactorAgent ? { type: 'Agente', id: defaultRefactorAgent.id, name: defaultRefactorAgent.name } : { type: 'Ajustes Globales' }
+  );
   const [projectSourceType, setProjectSourceType] = useState<ProjectSourceType>("upload");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [gitUrl, setGitUrl] = useState('');
   const [refactorGoals, setRefactorGoals] = useState('');
   const [generalPriority, setGeneralPriority] = useState<GeneralPriority | ''>('');
-  const [searchDepth, setSearchDepth] = useState<string>(''); // Store as string for input, parse to number later
+  const [searchDepth, setSearchDepth] = useState<string>('');
   const [focusArea, setFocusArea] = useState<string>('');
   
   const [isLoading, setIsLoading] = useState(false);
@@ -73,8 +78,11 @@ export default function RefactorizarProyectoPage() {
 
     let projectSourceValue = "";
     if (projectSourceType === "upload" && uploadedFile) {
-      projectSourceValue = `file:${uploadedFile.name}`; 
-      addLog(`Analyzing uploaded file: ${uploadedFile.name}`);
+      // For real analysis, we'd need to read the file content or send it.
+      // Here, we're just sending a reference. The Genkit flow needs to handle this.
+      // For a true implementation, this would involve FileReader to read as data URI or text.
+      projectSourceValue = `uploaded_file_reference:${uploadedFile.name}`; 
+      addLog(`Analyzing uploaded file reference: ${uploadedFile.name}`);
     } else if (projectSourceType === "git" && gitUrl) {
       projectSourceValue = gitUrl;
       addLog(`Analyzing Git URL: ${gitUrl}`);
@@ -84,6 +92,10 @@ export default function RefactorizarProyectoPage() {
       return;
     }
 
+    // TODO: Adapt input for the refactorProjectWithAI flow based on llmConfigSource.
+    // If agent/group, specific system prompts or orchestration might be needed.
+    // For now, the flow internally handles the prompt using the provided input.
+    
     const input: RefactorProjectWithAIInput = {
       projectSource: projectSourceValue,
       goals: refactorGoals || undefined,
@@ -92,20 +104,22 @@ export default function RefactorizarProyectoPage() {
       focusArea: focusArea || undefined,
     };
     
-    addLog(`Refactoring project with input: ${JSON.stringify(input)}`);
+    addLog(`Refactoring project with input: ${JSON.stringify(input)} and config: ${JSON.stringify(llmConfigSource)}`);
 
     try {
-      const aiResult = await refactorProjectWithAI(input);
-      // Simulate group log if group is selected
-      if (llmConfigSource?.type === 'Grupo') {
-        setGroupLog("Turno 1: Orquestador -> RefactorizadorCodigoExperto. Tarea: Analizar proyecto. \nTurno 2: RefactorizadorCodigoExperto -> Sugerencias generadas.");
-      }
+      const aiResult: AIResult = await refactorProjectWithAI(input);
+      
+      let finalResult: AIResult = { ...aiResult, groupLog: undefined };
 
-      setSuggestions(aiResult.suggestions.map(s => ({...s, status: 'pending'})));
+      if (llmConfigSource?.type === 'Grupo') {
+         finalResult.groupLog = `(Simulación de Log de Grupo para Refactorización)\nTurno 1: Orquestador -> AgenteRefactorizador (usando '${llmConfigSource.name}'). Tarea: Refactorizar proyecto con enfoque en '${input.focusArea || 'general'}'.\nTurno 2: AgenteRefactorizador -> Sugerencias de refactorización generadas.`;
+      }
+      setGroupLog(finalResult.groupLog);
+      setSuggestions(finalResult.suggestions.map((s,idx) => ({...s, id: `suggestion-${idx}-${Date.now()}`, status: 'pending'})));
       toast({ title: "Análisis Completado", description: "Sugerencias de refactorización generadas." });
       addLog("Refactoring analysis successful.");
     } catch (e: any) {
-      const errorMsg = e.message || "Ocurrió un error durante el análisis.";
+      const errorMsg = e.message || "Ocurrió un error durante el análisis de refactorización.";
       setError(errorMsg);
       addLog(`Refactoring analysis failed: ${errorMsg}`);
       toast({ variant: "destructive", title: "Error de Análisis", description: errorMsg });
@@ -116,8 +130,9 @@ export default function RefactorizarProyectoPage() {
 
   const handleApplySuggestion = (id: string) => {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'applied' } : s));
-    toast({ title: "Sugerencia Aplicada", description: `La sugerencia para "${suggestions.find(s=>s.id===id)?.area}" ha sido marcada como aplicada.` });
-    addLog(`Suggestion ${id} applied.`);
+    const suggestionArea = suggestions.find(s=>s.id===id)?.area || 'desconocida';
+    toast({ title: "Sugerencia Marcada como Aplicada", description: `La sugerencia para "${suggestionArea}" ha sido marcada. Recuerda aplicar los cambios manualmente en tu código si es necesario.` });
+    addLog(`Suggestion ${id} marked as applied.`);
   };
 
   const handleViewDiff = (suggestion: RefactorSuggestion) => {
@@ -137,8 +152,8 @@ export default function RefactorizarProyectoPage() {
 
   const handleApplyAll = () => {
     setSuggestions(prev => prev.map(s => s.status === 'pending' ? { ...s, status: 'applied' } : s));
-    toast({ title: "Todas las Sugerencias Aplicadas", description: "Todas las sugerencias pendientes han sido marcadas como aplicadas." });
-    addLog("All pending suggestions applied.");
+    toast({ title: "Todas Marcadas como Aplicadas", description: "Todas las sugerencias pendientes han sido marcadas. Aplica los cambios manualmente." });
+    addLog("All pending suggestions marked as applied.");
   };
 
 
@@ -217,7 +232,7 @@ export default function RefactorizarProyectoPage() {
             <Input id="focus-area" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder="Ej: Seguridad, UI, Módulo de pagos" disabled={isLoading} />
           </div>
           
-          <Button onClick={handleAnalyze} disabled={isLoading} className="w-full">
+          <Button onClick={handleAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Analizar para Refactorizar
           </Button>
@@ -232,7 +247,7 @@ export default function RefactorizarProyectoPage() {
           </CardTitle>
           {suggestions.length > 0 && (
             <div className="flex justify-end">
-                <Button onClick={handleApplyAll} size="sm" variant="outline" disabled={isLoading || suggestions.every(s => s.status !== 'pending')}>Aplicar Todas</Button>
+                <Button onClick={handleApplyAll} size="sm" variant="outline" disabled={isLoading || suggestions.every(s => s.status !== 'pending')}>Marcar Todas como Aplicadas</Button>
             </div>
           )}
         </CardHeader>
@@ -314,5 +329,3 @@ export default function RefactorizarProyectoPage() {
     </div>
   );
 }
-
-    
