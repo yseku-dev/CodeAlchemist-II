@@ -10,12 +10,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, Edit3, Trash2, Upload, Download, PlayCircle, MessageSquare } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Upload, Download, PlayCircle } from 'lucide-react';
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { useDebug } from '@/context/DebugContext';
 import type { Agent, AgentFormData, AgentLLMConfiguration, LLMSettings, LLMProvider } from '@/types';
-import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS } from '@/lib/constants';
+import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ConfirmDialog from '@/components/confirm-dialog';
 // For mock agent test chat
@@ -64,7 +64,7 @@ export default function AgentesIAPage() {
   const handleOpenForm = (agent?: Agent) => {
     if (agent) {
       setEditingAgent(agent);
-      const agentConfig = agent.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalSettings.llmConfig.provider, model: globalSettings.llmConfig.model };
+      const agentConfig = agent.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalSettings.llmConfig.provider, model: globalSettings.llmConfig.model, apiUrl: globalSettings.llmConfig.apiUrl };
       setFormData({
         id: agent.id,
         name: agent.name,
@@ -84,7 +84,12 @@ export default function AgentesIAPage() {
         ...initialAgentFormData,
         llmConfig: { 
           useGlobal: true, 
-          customConfig: { ...DEFAULT_LLM_SETTINGS, provider: defaultProvider, model: '' }
+          customConfig: { 
+            ...DEFAULT_LLM_SETTINGS, 
+            provider: defaultProvider, 
+            model: '', 
+            apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[defaultProvider] || '' 
+          }
         }
       });
       setAvailableModels(getModelsForProvider(defaultProvider));
@@ -110,26 +115,10 @@ export default function AgentesIAPage() {
 
         if (changedCustomConfigProps.provider) {
             const newProvider = changedCustomConfigProps.provider as LLMProvider;
+            newCustomConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[newProvider] || ""; // Auto-set API URL
             setAvailableModels(getModelsForProvider(newProvider));
             if (!getModelsForProvider(newProvider).includes(newCustomConfig.model)) {
                 newCustomConfig.model = ''; // Reset model if not compatible
-            }
-
-            // Auto-set API URL for specific local providers
-            if (newProvider === "LM Studio") {
-                newCustomConfig.apiUrl = "http://localhost:1234/v1";
-            } else if (newProvider === "Ollama") {
-                newCustomConfig.apiUrl = "http://localhost:11434/v1";
-            } else {
-                // If previous apiUrl was a default local one, and it's not being explicitly changed now, clear it.
-                const localDefaultUrls = ["http://localhost:1234/v1", "http://localhost:11434/v1"];
-                if (formData.llmConfig.customConfig?.apiUrl && 
-                    localDefaultUrls.includes(formData.llmConfig.customConfig.apiUrl) &&
-                    !changedCustomConfigProps.hasOwnProperty('apiUrl')) {
-                    newCustomConfig.apiUrl = "";
-                }
-                // If apiUrl was explicitly part of changedCustomConfigProps, it's already set by the spread operator.
-                // If it wasn't a default local URL and not in changedCustomConfigProps, it remains.
             }
         }
         setFormData(prev => ({
@@ -141,28 +130,24 @@ export default function AgentesIAPage() {
             const newLlmConfig = { ...prev.llmConfig, useGlobal: value };
             if (!value && !newLlmConfig.customConfig) { // Switched to custom, and customConfig is not yet initialized
                 const globalProvider = globalSettings.llmConfig.provider || DEFAULT_LLM_SETTINGS.provider;
-                let apiUrl = DEFAULT_LLM_SETTINGS.apiUrl;
-                if (globalProvider === "LM Studio") {
-                    apiUrl = "http://localhost:1234/v1";
-                } else if (globalProvider === "Ollama") {
-                    apiUrl = "http://localhost:11434/v1";
-                }
-                
                 newLlmConfig.customConfig = {
                      ...DEFAULT_LLM_SETTINGS,
                      provider: globalProvider,
                      model: getModelsForProvider(globalProvider)[0] || '',
-                     apiUrl: apiUrl,
+                     apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[globalProvider] || '',
                 };
                 setAvailableModels(getModelsForProvider(globalProvider));
             } else if (!value && newLlmConfig.customConfig) { // Switched to custom, and customConfig exists
-                setAvailableModels(getModelsForProvider(newLlmConfig.customConfig.provider));
-                 // Ensure apiUrl is set if it's a local provider
-                if (newLlmConfig.customConfig.provider === "LM Studio" && newLlmConfig.customConfig.apiUrl !== "http://localhost:1234/v1") {
-                    newLlmConfig.customConfig.apiUrl = "http://localhost:1234/v1";
-                } else if (newLlmConfig.customConfig.provider === "Ollama" && newLlmConfig.customConfig.apiUrl !== "http://localhost:11434/v1") {
-                    newLlmConfig.customConfig.apiUrl = "http://localhost:11434/v1";
+                // Ensure apiUrl is default if not manually set or if provider changed
+                if(newLlmConfig.customConfig.apiUrl === '' || (LLM_PROVIDER_DEFAULT_API_URLS[newLlmConfig.customConfig.provider] && newLlmConfig.customConfig.apiUrl !== LLM_PROVIDER_DEFAULT_API_URLS[newLlmConfig.customConfig.provider])) {
+                     // Keep user's custom URL if they've set one, otherwise apply default on provider switch (handled in customConfig block)
                 }
+                if (!LLM_PROVIDER_DEFAULT_API_URLS[newLlmConfig.customConfig.provider] && newLlmConfig.customConfig.apiUrl === LLM_PROVIDER_DEFAULT_API_URLS[newLlmConfig.customConfig.provider]) {
+                     // If provider changed and old default was there, let it be updated by new provider selection
+                } else {
+                     newLlmConfig.customConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[newLlmConfig.customConfig.provider] || newLlmConfig.customConfig.apiUrl || "";
+                }
+                setAvailableModels(getModelsForProvider(newLlmConfig.customConfig.provider));
             }
             return { ...prev, llmConfig: newLlmConfig };
         });
@@ -178,7 +163,7 @@ export default function AgentesIAPage() {
     
     const finalLlmConfig = formData.llmConfig.useGlobal 
         ? { useGlobal: true } 
-        : { useGlobal: false, customConfig: formData.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalSettings.llmConfig.provider } };
+        : { useGlobal: false, customConfig: formData.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalSettings.llmConfig.provider, apiUrl: globalSettings.llmConfig.apiUrl } };
 
     const agentData = { ...formData, llmConfig: finalLlmConfig };
 
@@ -404,11 +389,22 @@ export default function AgentesIAPage() {
                             <Select 
                                 value={formData.llmConfig.customConfig.model} 
                                 onValueChange={(val) => handleLlmConfigChange('customConfig', { model: val })} 
-                                disabled={availableModels.length === 0}
+                                disabled={availableModels.length === 0 && formData.llmConfig.customConfig.provider !== "Google Gemini"}
                             >
-                                <SelectTrigger id="custom-llm-model"><SelectValue placeholder={availableModels.length === 0 ? "Selecciona proveedor" : "Selecciona modelo"} /></SelectTrigger>
+                                <SelectTrigger id="custom-llm-model"><SelectValue placeholder={
+                                    formData.llmConfig.customConfig.provider === "Google Gemini" && availableModels.length === 0
+                                    ? "Ej: gemini-1.5-pro-latest"
+                                    : availableModels.length === 0 
+                                    ? "Selecciona proveedor" 
+                                    : "Selecciona modelo"
+                                } /></SelectTrigger>
                                 <SelectContent>{availableModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                             </Select>
+                             {formData.llmConfig.customConfig.provider === "Google Gemini" && (
+                                <p className="text-xs text-muted-foreground">
+                                    Modelos comunes listados. Puedes escribir otro si es necesario.
+                                </p>
+                            )}
                         </div>
                         <div className="space-y-1">
                             <Label htmlFor="custom-llm-apiUrl" className="text-xs">URL API (Opcional)</Label>
@@ -416,8 +412,11 @@ export default function AgentesIAPage() {
                                 id="custom-llm-apiUrl" 
                                 value={formData.llmConfig.customConfig.apiUrl} 
                                 onChange={(e) => handleLlmConfigChange('customConfig', { apiUrl: e.target.value })} 
-                                placeholder="Usar global si está vacío o predeterminado del proveedor"
+                                placeholder="Se auto-rellena al cambiar proveedor"
                             />
+                             <p className="text-xs text-muted-foreground">
+                              Modifícala si usas un proxy o un endpoint no estándar.
+                            </p>
                         </div>
                          <div className="space-y-1">
                             <Label htmlFor="custom-llm-apiKey" className="text-xs">Clave API (Opcional)</Label>

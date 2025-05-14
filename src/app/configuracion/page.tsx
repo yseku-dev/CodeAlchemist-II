@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
 import { useDebug } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
-import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS } from '@/lib/constants';
+import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS } from '@/lib/constants';
 import type { LLMSettings, GitSettings, LLMProvider } from '@/types';
 
 // Mock function to simulate API connection tests
@@ -33,7 +33,7 @@ const getModelsForProvider = (provider: LLMProvider): string[] => {
   switch (provider) {
     case "Groq": return ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma-7b-it"];
     case "OpenAI": return ["gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"];
-    case "Google Gemini": return ["gemini-1.5-pro-latest", "gemini-1.0-pro"];
+    case "Google Gemini": return ["gemini-1.5-pro-latest", "gemini-1.0-pro"]; // Models available via googleAI plugin
     case "Anthropic": return ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"];
     case "LM Studio": return ["Local Model 1", "Local Model 2"]; // User would configure these in LM Studio
     case "Ollama": return ["llama3", "mistral", "codellama"]; // User would pull these in Ollama
@@ -68,25 +68,11 @@ export default function ConfiguracionPage() {
     
     if (field === 'provider') {
       const newProvider = value as LLMProvider;
+      newConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[newProvider] || ""; // Auto-set API URL
       setAvailableModels(getModelsForProvider(newProvider));
       
       if (!getModelsForProvider(newProvider).includes(newConfig.model)) {
-        newConfig.model = ''; // Reset model
-      }
-
-      // Auto-set API URL for specific local providers
-      if (newProvider === "LM Studio") {
-        newConfig.apiUrl = "http://localhost:1234/v1";
-      } else if (newProvider === "Ollama") {
-        newConfig.apiUrl = "http://localhost:11434/v1";
-      } else {
-        // If switching *from* a local provider with a default URL to a cloud one,
-        // and the current apiUrl is one of the local defaults, clear it.
-        const localDefaultUrls = ["http://localhost:1234/v1", "http://localhost:11434/v1"];
-        if (localDefaultUrls.includes(currentLLMConfig.apiUrl)) {
-           newConfig.apiUrl = ""; 
-        }
-        // If it wasn't a default local URL, don't change it (user might have a custom proxy or specific cloud endpoint)
+        newConfig.model = ''; // Reset model if not compatible with new provider
       }
     }
     setCurrentLLMConfig(newConfig);
@@ -174,8 +160,11 @@ export default function ConfiguracionPage() {
               id="llm-api-url"
               value={currentLLMConfig.apiUrl}
               onChange={(e) => handleLLMConfigChange('apiUrl', e.target.value)}
-              placeholder="Ej: http://localhost:1234/v1 (para LM Studio)"
+              placeholder="Ej: https://api.openai.com/v1"
             />
+             <p className="text-xs text-muted-foreground">
+              Se auto-rellena al cambiar de proveedor. Modifícala si usas un proxy o un endpoint no estándar.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -194,10 +183,16 @@ export default function ConfiguracionPage() {
              <Select
               value={currentLLMConfig.model}
               onValueChange={(value) => handleLLMConfigChange('model', value)}
-              disabled={availableModels.length === 0}
+              disabled={availableModels.length === 0 && currentLLMConfig.provider !== "Google Gemini"}
             >
               <SelectTrigger id="llm-model">
-                <SelectValue placeholder={availableModels.length === 0 ? "Selecciona un proveedor primero" : "Selecciona un modelo"} />
+                <SelectValue placeholder={
+                  currentLLMConfig.provider === "Google Gemini" && availableModels.length === 0 
+                  ? "Selecciona un modelo (ej: gemini-1.5-pro-latest)" 
+                  : availableModels.length === 0 
+                  ? "Selecciona un proveedor primero" 
+                  : "Selecciona un modelo"
+                } />
               </SelectTrigger>
               <SelectContent>
                 {availableModels.map(model => (
@@ -205,6 +200,11 @@ export default function ConfiguracionPage() {
                 ))}
               </SelectContent>
             </Select>
+            {currentLLMConfig.provider === "Google Gemini" && (
+                 <p className="text-xs text-muted-foreground">
+                    Para Google Gemini, los modelos se listan aquí pero también puedes escribir uno directamente si no aparece (ej. gemini-1.5-flash-latest).
+                </p>
+            )}
           </div>
         </CardContent>
         <CardFooter>

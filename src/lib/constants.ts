@@ -1,15 +1,25 @@
 
-import type { Agent, AIAgentGroup, LLMSettings } from '@/types';
+import type { Agent, AIAgentGroup, LLMSettings, LLMProvider } from '@/types';
 import { v4 as uuidv4 } from 'uuid'; // Ensure uuid is imported if used for IDs here
 
 export const APP_NAME = "CodeAlchemist";
 
 export const LLM_PROVIDERS = ["Groq", "Google Gemini", "OpenAI", "Anthropic", "LM Studio", "Ollama"] as const;
-export type LLMProvider = typeof LLM_PROVIDERS[number];
+export type LLMProviderTuple = typeof LLM_PROVIDERS; // For stricter typing if needed elsewhere
+// export type LLMProvider = typeof LLM_PROVIDERS[number]; // Already in types/index.ts
+
+export const LLM_PROVIDER_DEFAULT_API_URLS: Record<LLMProvider, string> = {
+  "Groq": "https://api.groq.com/openai/v1",
+  "Google Gemini": "", // Typically handled by the Genkit googleAI plugin, no explicit base URL needed by user
+  "OpenAI": "https://api.openai.com/v1",
+  "Anthropic": "https://api.anthropic.com/v1", // Common base, specific paths might be added by SDK
+  "LM Studio": "http://localhost:1234/v1",
+  "Ollama": "http://localhost:11434/v1", // Common for OpenAI compatible endpoints
+};
 
 export const DEFAULT_LLM_SETTINGS: LLMSettings = {
-  provider: "Groq", // Default to Groq as per various examples
-  apiUrl: "",
+  provider: "Groq", // Default to Groq
+  apiUrl: LLM_PROVIDER_DEFAULT_API_URLS["Groq"], // Set default apiUrl based on default provider
   apiKey: "",
   model: "", // Model should be selected by user or based on provider
 };

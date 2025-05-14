@@ -1,5 +1,9 @@
 
-import type { LLMProvider } from '@/lib/constants';
+// import type { LLM_PROVIDERS } from '@/lib/constants'; // Not needed if LLMProvider is defined below
+
+export const LLM_PROVIDERS_CONST = ["Groq", "Google Gemini", "OpenAI", "Anthropic", "LM Studio", "Ollama"] as const;
+export type LLMProvider = typeof LLM_PROVIDERS_CONST[number];
+
 
 export interface LLMSettings {
   provider: LLMProvider;
