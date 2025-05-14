@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState }_ from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, AutoUpdateSuggestion } from '@/types';
 import { analyzeSelfCode, type AnalyzeSelfCodeOutput, type AnalyzeSelfCodeInput } from '@/ai/flows/analyze-self-code';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type AutoUpdateSourceType = "Local" | "Git";
 
@@ -264,7 +265,7 @@ export default function AutoUpdatePage() {
       >
         <Label htmlFor="commit-message">Mensaje de Commit:</Label>
         <Input id="commit-message" value={commitMessage} onChange={(e) => setCommitMessage(e.target.value)} placeholder="Ej: Aplicadas sugerencias de AutoUpdate" className="mt-1" />
-        <p className="text-xs text-muted-foreground mt-2">Esto ejecutará `git commit -m "{commitMessage}"` y `git push` (simulado).</p>
+        <p className="text-xs text-muted-foreground mt-2">Esto ejecutará \`git commit -m "{commitMessage}"\` y \`git push\` (simulado).</p>
       </ConfirmDialog>
       
       {/* Placeholder for Auto-Fix Modal if error occurs */}
@@ -275,3 +276,4 @@ export default function AutoUpdatePage() {
     </div>
   );
 }
+
