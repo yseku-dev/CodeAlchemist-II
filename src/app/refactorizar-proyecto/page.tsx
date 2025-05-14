@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -28,10 +28,26 @@ const NINGUNA_PRIORITY_VALUE = "__none__";
 
 export default function RefactorizarProyectoPage() {
   const { agents, getAgentById } = useAppState();
-  const defaultRefactorAgent = agents.find(a => a.name === "RefactorizadorCodigoExperto");
+  
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(
-    defaultRefactorAgent ? { type: 'Agente', id: defaultRefactorAgent.id, name: defaultRefactorAgent.name } : { type: 'Ajustes Globales' }
+    () => ({ type: 'Ajustes Globales' as const })
   );
+
+  useEffect(() => {
+    if (agents && agents.length > 0) {
+      const defaultAgentFound = agents.find(a => a.name === "RefactorizadorCodigoExperto");
+      const newConfig = defaultAgentFound
+        ? { type: 'Agente' as const, id: defaultAgentFound.id, name: defaultAgentFound.name }
+        : { type: 'Ajustes Globales' as const };
+      
+      if (llmConfigSource?.type !== newConfig.type || llmConfigSource?.id !== newConfig.id) {
+        setLlmConfigSource(newConfig);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agents]);
+
+
   const [projectSourceType, setProjectSourceType] = useState<ProjectSourceType>("upload");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [gitUrl, setGitUrl] = useState('');
@@ -91,10 +107,6 @@ export default function RefactorizarProyectoPage() {
       setIsLoading(false);
       return;
     }
-
-    // TODO: Adapt input for the refactorProjectWithAI flow based on llmConfigSource.
-    // If agent/group, specific system prompts or orchestration might be needed.
-    // For now, the flow internally handles the prompt using the provided input.
     
     const input: RefactorProjectWithAIInput = {
       projectSource: projectSourceValue,
@@ -288,7 +300,7 @@ export default function RefactorizarProyectoPage() {
                         <>
                           <Button size="sm" variant="outline" onClick={() => handleViewDiff(s)} disabled={!s.snippetSuggested}>Ver Diff</Button>
                           <Button size="sm" variant="outline" onClick={() => handleDiscardSuggestion(s.id)}>Descartar</Button>
-                          <Button size="sm" onClick={() => handleApplySuggestion(s.id)}>Aplicar</Button>
+                          <Button size="sm" onClick={() => handleApplySuggestion(s.id)}>Marcar como Aplicada</Button>
                         </>
                       )}
                        {s.status !== 'pending' && (
@@ -329,3 +341,5 @@ export default function RefactorizarProyectoPage() {
     </div>
   );
 }
+
+    

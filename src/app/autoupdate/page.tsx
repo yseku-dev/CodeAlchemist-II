@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Download, GitCommit, Sparkles, ClipboardList, Wand2, Play } from 'lucide-react';
+import { Loader2, Download, GitCommit, Sparkles, ClipboardList, Wand2, Play, Edit3, Check, X, Save } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import ConfirmDialog from '@/components/confirm-dialog';
@@ -29,10 +29,25 @@ type AutoUpdateSourceType = "Local" | "Git";
 
 export default function AutoUpdatePage() {
   const { agents, getAgentById } = useAppState();
-  const defaultAgent = agents.find(a => a.name === "RefactorizadorCodigoExperto");
+  
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(
-    defaultAgent ? { type: 'Agente', id: defaultAgent.id, name: defaultAgent.name } : { type: 'Ajustes Globales' }
+    () => ({ type: 'Ajustes Globales' as const })
   );
+
+  useEffect(() => {
+    if (agents && agents.length > 0) {
+      const defaultAgentFound = agents.find(a => a.name === "RefactorizadorCodigoExperto");
+      const newConfig = defaultAgentFound
+        ? { type: 'Agente' as const, id: defaultAgentFound.id, name: defaultAgentFound.name }
+        : { type: 'Ajustes Globales' as const };
+
+      if (llmConfigSource?.type !== newConfig.type || llmConfigSource?.id !== newConfig.id) {
+        setLlmConfigSource(newConfig);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agents]); // Only re-run if agents array changes
+
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
   const [gitRepoUrl, setGitRepoUrl] = useState('');
   const [analysisPreferences, setAnalysisPreferences] = useState('');
@@ -135,7 +150,7 @@ export default function AutoUpdatePage() {
     setSuggestionToApply(null);
   };
 
-  const handleDownloadCode = (format: 'ZIP' | 'JSON') => {
+  const handleDownloadCode = (format: 'JSON' | 'ZIP') => {
     if (!suggestions || suggestions.length === 0) {
       toast({ title: "Sin Sugerencias", description: "No hay sugerencias para descargar." });
       return;
@@ -173,10 +188,10 @@ export default function AutoUpdatePage() {
     } else if (format === 'ZIP') {
       toast({ 
         title: "Descarga ZIP no Implementada", 
-        description: "La descarga de sugerencias como archivo ZIP no está implementada en este entorno debido a limitaciones del navegador. Por favor, utiliza la opción 'Descargar Código (JSON)'.",
+        description: "La descarga de sugerencias como archivo ZIP no está implementada en este entorno debido a limitaciones. Por favor, utiliza la opción 'Descargar Sugerencias (JSON)'.",
         duration: 5000,
       });
-      addLog("ZIP download for suggestions attempted but not implemented client-side without external libraries.");
+      addLog("ZIP download for suggestions attempted but not implemented client-side.");
     }
   };
 
@@ -349,7 +364,7 @@ export default function AutoUpdatePage() {
         title={`Aplicar Sugerencia a ${suggestionToApply?.area}`}
         confirmText="Sí, Marcar como Aplicada"
       >
-        <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually:</p>
+        <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente:</p>
         <ScrollArea className="h-64 border rounded-md">
           <CodeBlock code={suggestionToApply?.userEditedContent || suggestionToApply?.fullFileContentSuggested || "Error: No hay contenido para mostrar."} language="typescript" maxHeight="100%" />
         </ScrollArea>
@@ -392,3 +407,5 @@ export default function AutoUpdatePage() {
     </div>
   );
 }
+
+    
