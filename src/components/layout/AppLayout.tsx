@@ -88,6 +88,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     initializeDefaultData();
   }, [initializeDefaultData]);
+
+  const currentNavItem = navItems.find(item => item.href === pathname);
+  const pageTitle = currentNavItem?.label || 'Panel de Control';
+  const PageIcon = currentNavItem?.icon;
   
   return (
     <SidebarProvider defaultOpen={true}>
@@ -135,9 +139,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <MenuIcon />
               </SidebarTrigger>
             </div>
-            <div className="flex-1">
-              <h1 className="text-lg font-semibold">
-                {navItems.find(item => item.href === pathname)?.label || 'Panel de Control'}
+            <div className="flex-1 flex items-center gap-2">
+              {PageIcon && <PageIcon className="h-5 w-5 text-primary" />}
+              <h1 className="text-xl font-semibold">
+                {pageTitle}
               </h1>
             </div>
           </header>
@@ -158,8 +163,11 @@ function DebugPanel() {
   if (!debugMode) return null;
 
   const handleCopyLogs = () => {
-    navigator.clipboard.writeText(logs.join('\n'));
-    copyLogs(); // This could be used to show a toast "Logs copied!"
+    navigator.clipboard.writeText(logs.map(log => typeof log === 'object' ? JSON.stringify(log) : log).join('\n'));
+    // copyLogs(); // This could be used to show a toast "Logs copied!"
+    // Using toast directly from here if available or AppStateContext
+    // For now, console log is fine or if copyLogs from context triggers a toast
+    console.log("Logs copied to clipboard (simulated toast).");
   };
 
   return (
@@ -190,3 +198,4 @@ function DebugPanel() {
     </div>
   );
 }
+
