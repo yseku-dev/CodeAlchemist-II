@@ -36,40 +36,43 @@ export async function generateProjectStructure(
   return generateProjectStructureFlow(input);
 }
 
+const promptLines = [
+  '{{#if agentSystemPrompt}}',
+  '{{{agentSystemPrompt}}}',
+  '',
+  'Considerando tu rol y especialización, y basado en la siguiente descripción del usuario, genera una estructura de proyecto completa.',
+  '{{else}}',
+  'Eres un arquitecto de software experto y un asistente de generación de proyectos. Tu tarea es generar una estructura de archivos y carpetas para un nuevo proyecto, basándote en la descripción proporcionada por el usuario.',
+  '{{/if}}',
+  '',
+  'Descripción del proyecto del usuario:',
+  '"{{{description}}}"',
+  '',
+  'Debes proveer:',
+  '1.  **projectName**: Un nombre adecuado y descriptivo para el proyecto (ej. "mi-proyecto-web", "APIUsuarios"). Intenta usar kebab-case o PascalCase.',
+  '2.  **aiNotes**: Notas relevantes sobre la estructura generada, como por ejemplo:',
+  '    *   Tecnologías principales implicadas.',
+  '    *   Siguientes pasos recomendados (ej. "ejecuta npm install", "configura la base de datos").',
+  '    *   Cualquier consideración importante sobre la estructura.',
+  '3.  **files**: Un array de objetos, donde cada objeto representa un archivo o carpeta.',
+  '    *   Cada objeto debe tener:',
+  '        *   \\\`path\\\`: Una cadena con la ruta relativa del archivo o carpeta (ej. "src/components/Button.tsx", "README.md", "public/"). Las carpetas deben terminar con una barra inclinada (\\\`/\`\\\`).',
+  '        *   \\\`content\\\`: Una cadena con el contenido del archivo. Para carpetas, el contenido puede ser una cadena vacía o un comentario como "/* Carpeta para... */".',
+  '        *   \\\`isFolder\\\`: (opcional, booleano) Indica explícitamente si es una carpeta. Si \\\`path\\\` termina en \\\`/\`\\\`, se asume que es una carpeta.',
+  '    *   Incluye archivos comunes como \\\`README.md\\\`, \\\`.gitignore\\\` (si aplica), un archivo de configuración de empaquetador (ej. \\\`package.json\\\` si es Node.js, \\\`pom.xml\\\` si es Maven, etc.), y algunos archivos de código fuente iniciales basados en la descripción.',
+  '    *   Asegúrate de que las rutas de los archivos sean coherentes y representen una estructura de proyecto lógica.',
+  '',
+  'Toda la salida, incluyendo nombres de archivo, contenido y notas, debe estar en castellano.',
+  'La respuesta DEBE ser un único objeto JSON que se adhiera estrictamente al esquema de salida especificado. No incluyas ningún texto explicativo fuera del objeto JSON.',
+  'Ejemplo de un objeto \'file\' para una carpeta: \\\`{ "path": "src/", "content": "", "isFolder": true }\\\`',
+  'Ejemplo de un objeto \'file\' para un archivo: \\\`{ "path": "src/index.js", "content": "console.log(\\"Hola Mundo\\");" }\\\`'
+];
+
 const prompt = ai.definePrompt({
   name: 'generateProjectStructurePrompt',
   input: { schema: GenerateProjectInputSchema },
   output: { schema: ProjectGenerationResultSchema },
-  prompt: `{{#if agentSystemPrompt}}
-{{{agentSystemPrompt}}}
-
-Considerando tu rol y especialización, y basado en la siguiente descripción del usuario, genera una estructura de proyecto completa.
-{{else}}
-Eres un arquitecto de software experto y un asistente de generación de proyectos. Tu tarea es generar una estructura de archivos y carpetas para un nuevo proyecto, basándote en la descripción proporcionada por el usuario.
-{{/if}}
-
-Descripción del proyecto del usuario:
-"{{{description}}}"
-
-Debes proveer:
-1.  **projectName**: Un nombre adecuado y descriptivo para el proyecto (ej. "mi-proyecto-web", "APIUsuarios"). Intenta usar kebab-case o PascalCase.
-2.  **aiNotes**: Notas relevantes sobre la estructura generada, como por ejemplo:
-    *   Tecnologías principales implicadas.
-    *   Siguientes pasos recomendados (ej. "ejecuta npm install", "configura la base de datos").
-    *   Cualquier consideración importante sobre la estructura.
-3.  **files**: Un array de objetos, donde cada objeto representa un archivo o carpeta.
-    *   Cada objeto debe tener:
-        *   `path`: Una cadena con la ruta relativa del archivo o carpeta (ej. "src/components/Button.tsx", "README.md", "public/"). Las carpetas deben terminar con una barra inclinada (`/`).
-        *   `content`: Una cadena con el contenido del archivo. Para carpetas, el contenido puede ser una cadena vacía o un comentario como "/* Carpeta para... */".
-        *   `isFolder`: (opcional, booleano) Indica explícitamente si es una carpeta. Si `path` termina en `/`, se asume que es una carpeta.
-    *   Incluye archivos comunes como `README.md`, `.gitignore` (si aplica), un archivo de configuración de empaquetador (ej. `package.json` si es Node.js, `pom.xml` si es Maven, etc.), y algunos archivos de código fuente iniciales basados en la descripción.
-    *   Asegúrate de que las rutas de los archivos sean coherentes y representen una estructura de proyecto lógica.
-
-Toda la salida, incluyendo nombres de archivo, contenido y notas, debe estar en castellano.
-La respuesta DEBE ser un único objeto JSON que se adhiera estrictamente al esquema de salida especificado. No incluyas ningún texto explicativo fuera del objeto JSON.
-Ejemplo de un objeto 'file' para una carpeta: \`{ "path": "src/", "content": "", "isFolder": true }\`
-Ejemplo de un objeto 'file' para un archivo: \`{ "path": "src/index.js", "content": "console.log(\\"Hola Mundo\\");" }\`
-`,
+  prompt: promptLines.join('\\n'),
 });
 
 const generateProjectStructureFlow = ai.defineFlow(
