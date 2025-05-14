@@ -20,9 +20,9 @@ import { v4 as uuidv4 } from 'uuid';
 const mockChatResponse = async (
   prompt: string, 
   history: ChatMessage[],
-  addLog: (log: string | Record<string, any>) => void // Accept addLog as a parameter
+  addLogFn: (log: string | Record<string, any>) => void // Renamed to avoid conflict
 ): Promise<string> => {
-  addLog(`Mocking AI response for prompt: ${prompt.substring(0, 50)}... with history length: ${history.length}`);
+  addLogFn(`Mocking AI response for prompt: ${prompt.substring(0, 50)}... with history length: ${history.length}`);
   return new Promise(resolve => setTimeout(() => {
     if (prompt.toLowerCase().includes("hola") || prompt.toLowerCase().includes("saludos")) {
       resolve("¡Hola! ¿En qué puedo ayudarte hoy con CodeAlchemist?");
@@ -35,13 +35,13 @@ const mockChatResponse = async (
 };
 
 export default function ChatIAPage() {
+  const { addLog } = useDebug(); 
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { addLog } = useDebug(); // Call useDebug inside the component
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -116,7 +116,7 @@ export default function ChatIAPage() {
   };
 
   return (
-    <Card className="max-w-3xl mx-auto h-[calc(100vh-8rem)] flex flex-col"> {/* Adjust height */}
+    <Card className="w-full h-full flex flex-col"> {/* Adjusted width and height */}
       <CardHeader className="border-b">
         <CardTitle>Chat con IA</CardTitle>
         <CardDescription>Interactúa con un asistente IA para consultas, ideas y más.</CardDescription>
@@ -129,7 +129,7 @@ export default function ChatIAPage() {
           <div className="space-y-4">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[75%] p-3 rounded-lg ${
+                <div className={`max-w-[85%] p-3 rounded-lg ${ // Increased max-width for message bubbles
                   msg.role === 'user' ? 'bg-primary text-primary-foreground' : 
                   msg.role === 'assistant' ? 'bg-muted' : 'bg-destructive/20 text-destructive-foreground'
                 }`}>
@@ -145,7 +145,7 @@ export default function ChatIAPage() {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-[75%] p-3 rounded-lg bg-muted flex items-center">
+                <div className="max-w-[85%] p-3 rounded-lg bg-muted flex items-center"> {/* Increased max-width */}
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   <span className="text-sm">Pensando...</span>
                 </div>
