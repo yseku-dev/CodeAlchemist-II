@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { LLMConfigSourceOption } from '@/types';
 import { generateCodeFromDescription, type GenerateCodeFromDescriptionOutput } from '@/ai/flows/generate-code-from-description';
 import LogsDisplay from '@/components/logs-display';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function GenerarCodigoPage() {
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
@@ -133,3 +134,4 @@ export default function GenerarCodigoPage() {
     </Card>
   );
 }
+
