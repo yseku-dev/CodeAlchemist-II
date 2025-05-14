@@ -2,12 +2,24 @@
 import type { Agent, AIAgentGroup, LLMSettings, LLMProvider } from '@/types';
 import { v4 as uuidv4 } from 'uuid'; // Ensure uuid is imported if used for IDs here
 
+/**
+ * The name of the application.
+ * @constant {string}
+ */
 export const APP_NAME = "CodeAlchemist";
 
+/**
+ * A tuple of available LLM providers.
+ * @constant {readonly ["Groq", "Google Gemini", "OpenAI", "Anthropic", "LM Studio", "Ollama"]}
+ */
 export const LLM_PROVIDERS = ["Groq", "Google Gemini", "OpenAI", "Anthropic", "LM Studio", "Ollama"] as const;
 export type LLMProviderTuple = typeof LLM_PROVIDERS; // For stricter typing if needed elsewhere
 // export type LLMProvider = typeof LLM_PROVIDERS[number]; // Already in types/index.ts
 
+/**
+ * Default API URLs for each LLM provider.
+ * @constant {Record<LLMProvider, string>}
+ */
 export const LLM_PROVIDER_DEFAULT_API_URLS: Record<LLMProvider, string> = {
   "Groq": "https://api.groq.com/openai/v1",
   "Google Gemini": "", // Typically handled by the Genkit googleAI plugin, no explicit base URL needed by user
@@ -17,6 +29,10 @@ export const LLM_PROVIDER_DEFAULT_API_URLS: Record<LLMProvider, string> = {
   "Ollama": "http://localhost:11434/v1", // Common for OpenAI compatible endpoints
 };
 
+/**
+ * Default LLM settings for the application.
+ * @constant {LLMSettings}
+ */
 export const DEFAULT_LLM_SETTINGS: LLMSettings = {
   provider: "Groq", // Default to Groq
   apiUrl: LLM_PROVIDER_DEFAULT_API_URLS["Groq"], // Set default apiUrl based on default provider
@@ -24,7 +40,10 @@ export const DEFAULT_LLM_SETTINGS: LLMSettings = {
   model: "", // Model should be selected by user or based on provider
 };
 
-// Default Agents
+/**
+ * Default agents to be initialized in the application.
+ * @constant {Agent[]}
+ */
 export const DEFAULT_AGENTS: Agent[] = [
   {
     id: "orquestador-flujo-agentes",
@@ -140,7 +159,10 @@ Todas tus sugerencias y explicaciones deben estar en castellano. Tu respuesta DE
   }
 ];
 
-// Default Group
+/**
+ * Default AI agent groups to be initialized in the application.
+ * @constant {AIAgentGroup[]}
+ */
 export const DEFAULT_GROUPS: AIAgentGroup[] = [
   {
     id: "equipo-desarrollo-software",
@@ -175,9 +197,21 @@ El OrquestadorFlujoAgentes coordinará las tareas entre los miembros del equipo.
   },
 ];
 
+/**
+ * A tuple of available Git providers.
+ * @constant {readonly ["GitHub", "GitLab", "Bitbucket", "Otro"]}
+ */
 export const GIT_PROVIDERS = ["GitHub", "GitLab", "Bitbucket", "Otro"] as const;
+/**
+ * Represents a specific Git provider.
+ * @typedef {typeof GIT_PROVIDERS[number]} GitProvider
+ */
 export type GitProvider = typeof GIT_PROVIDERS[number];
 
+/**
+ * A tuple of general priorities for refactoring tasks.
+ * @constant {readonly ["Priorizar Seguridad", "Priorizar Legibilidad", "Priorizar Rendimiento", "Estandarizar Código", "Reducir Complejidad"]}
+ */
 export const GENERAL_PRIORITIES = [
   "Priorizar Seguridad",
   "Priorizar Legibilidad",
@@ -185,7 +219,19 @@ export const GENERAL_PRIORITIES = [
   "Estandarizar Código",
   "Reducir Complejidad",
 ] as const;
+/**
+ * Represents a general priority for a refactoring task.
+ * @typedef {typeof GENERAL_PRIORITIES[number]} GeneralPriority
+ */
 export type GeneralPriority = typeof GENERAL_PRIORITIES[number];
 
+/**
+ * A tuple of sources for LLM configuration.
+ * @constant {readonly ["Ajustes Globales", "Agente", "Grupo"]}
+ */
 export const LLM_CONFIG_SOURCES = ["Ajustes Globales", "Agente", "Grupo"] as const;
+/**
+ * Represents the source of LLM configuration.
+ * @typedef {typeof LLM_CONFIG_SOURCES[number]} LLMConfigSource
+ */
 export type LLMConfigSource = typeof LLM_CONFIG_SOURCES[number];

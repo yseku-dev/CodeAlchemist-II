@@ -13,17 +13,35 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+/**
+ * Props for the ConfirmDialog component.
+ */
 interface ConfirmDialogProps {
+  /** Whether the dialog is open. */
   isOpen: boolean;
+  /** Callback fired when the dialog is requested to be closed (e.g., by clicking outside or pressing Esc). */
   onClose: () => void;
+  /** Callback fired when the confirm action is triggered. */
   onConfirm: () => void;
+  /** The title of the dialog. */
   title: string;
+  /** Optional description or main content of the dialog. Can be a string or ReactNode. */
   description?: string | React.ReactNode;
+  /** Text for the confirm button. Defaults to "Confirmar". */
   confirmText?: string;
+  /** Text for the cancel button. Defaults to "Cancelar". */
   cancelText?: string;
-  children?: React.ReactNode; // For custom content within the dialog
+  /** Optional children to render inside the dialog's content area, above the footer. */
+  children?: React.ReactNode;
 }
 
+/**
+ * A reusable confirmation dialog component.
+ * Uses ShadCN's AlertDialog component.
+ *
+ * @param {ConfirmDialogProps} props - The props for the component.
+ * @returns {JSX.Element | null} The rendered dialog or null if not open.
+ */
 export default function ConfirmDialog({
   isOpen,
   onClose,
@@ -45,7 +63,7 @@ export default function ConfirmDialog({
         </AlertDialogHeader>
         {children && <div className="py-4">{children}</div>}
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>{cancelText}</AlertDialogCancel>
+          {cancelText && <AlertDialogCancel onClick={onClose}>{cancelText}</AlertDialogCancel>}
           <AlertDialogAction onClick={onConfirm}>{confirmText}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

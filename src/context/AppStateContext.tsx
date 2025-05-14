@@ -8,44 +8,85 @@ import { DEFAULT_LLM_SETTINGS, DEFAULT_AGENTS, DEFAULT_GROUPS, APP_NAME } from '
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * @fileOverview Provides the main application state using React Context.
+ * Manages settings, agents, groups, and code snapshots, persisting them to localStorage.
+ */
+
+/**
+ * Defines the shape of the application state context.
+ */
 interface AppStateContextType {
+  /** Current application settings. */
   settings: AppSettings;
+  /** Function to update partial application settings. */
   updateSettings: (newSettings: Partial<AppSettings>) => void;
+  /** Function to update partial LLM configuration settings. */
   updateLLMConfig: (newConfig: Partial<LLMSettings>) => void;
+  /** Function to update partial Git configuration settings. */
   updateGitConfig: (newConfig: Partial<GitSettings>) => void;
   
+  /** Array of all configured AI agents. */
   agents: Agent[];
+  /** Setter function for the agents array. */
   setAgents: React.Dispatch<React.SetStateAction<Agent[]>>;
+  /** Adds a new AI agent to the application state. */
   addAgent: (agent: Omit<Agent, 'id'>) => void;
+  /** Updates an existing AI agent in the application state. */
   updateAgent: (agent: Agent) => void;
+  /** Deletes an AI agent from the application state by its ID. */
   deleteAgent: (agentId: string) => boolean;
+  /** Retrieves an AI agent by its ID. */
   getAgentById: (agentId: string) => Agent | undefined;
 
+  /** Array of all configured AI agent groups. */
   groups: AIAgentGroup[];
+  /** Setter function for the AI agent groups array. */
   setGroups: React.Dispatch<React.SetStateAction<AIAgentGroup[]>>;
+  /** Adds a new AI agent group to the application state. */
   addGroup: (group: Omit<AIAgentGroup, 'id'>) => void;
+  /** Updates an existing AI agent group in the application state. */
   updateGroup: (group: AIAgentGroup) => void;
+  /** Deletes an AI agent group from the application state by its ID. */
   deleteGroup: (groupId: string) => void;
+  /** Retrieves an AI agent group by its ID. */
   getGroupById: (groupId: string) => AIAgentGroup | undefined;
 
+  /** Array of all saved code snapshots. */
   snapshots: CodeSnapshot[];
+  /** Setter function for the code snapshots array. */
   setSnapshots: React.Dispatch<React.SetStateAction<CodeSnapshot[]>>;
+  /** Adds a new code snapshot to the application state. */
   addSnapshot: (snapshot: Omit<CodeSnapshot, 'id' | 'createdAt'>) => void;
+  /** Deletes a code snapshot from the application state by its ID. */
   deleteSnapshot: (snapshotId: string) => void;
+  /** Deletes all code snapshots from the application state. */
   deleteAllSnapshots: () => void;
+  /** Retrieves a code snapshot by its ID. */
   getSnapshotById: (snapshotId: string) => CodeSnapshot | undefined;
 
+  /** Initializes default agents and groups if they don't exist in localStorage. */
   initializeDefaultData: () => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
 
+/**
+ * Initial default settings for the application.
+ */
 const initialSettings: AppSettings = {
   llmConfig: DEFAULT_LLM_SETTINGS,
   gitConfig: { repoUrl: '', username: '', email: '', pat: '' },
   debugMode: false,
 };
 
+/**
+ * Provides the application state to its children components.
+ * It manages settings, agents, groups, and snapshots, persisting them to localStorage.
+ * @param {object} props - The component's props.
+ * @param {ReactNode} props.children - The child components to be wrapped by the provider.
+ * @returns {JSX.Element} The AppStateProvider component.
+ */
 export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [settings, setSettings] = useLocalStorage<AppSettings>(`${APP_NAME}-settings`, initialSettings);
@@ -178,6 +219,12 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+/**
+ * Custom hook to access the application state.
+ * Must be used within an `AppStateProvider`.
+ * @returns {AppStateContextType} The application state and updater functions.
+ * @throws {Error} If used outside of an `AppStateProvider`.
+ */
 export const useAppState = (): AppStateContextType => {
   const context = useContext(AppStateContext);
   if (context === undefined) {
