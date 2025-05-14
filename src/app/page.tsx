@@ -15,10 +15,35 @@ import {
   MessageCircle,
   Users2,
   Workflow,
-  LayoutDashboard
+  LayoutDashboard // Assuming LayoutDashboard is for "Panel de Control"
 } from 'lucide-react';
 
-const features = [
+/**
+ * @fileOverview DashboardPage component.
+ * This is the main landing page (Panel de Control) for the CodeAlchemist application.
+ * It provides an overview of the platform's capabilities and quick access to its features.
+ */
+
+/**
+ * Represents a feature available in CodeAlchemist.
+ * Used to generate interactive cards on the dashboard.
+ */
+interface FeatureInfo {
+  /** The title of the feature. */
+  title: string;
+  /** A brief description of what the feature does. */
+  description: string;
+  /** The URL path to navigate to the feature's page. */
+  href: string;
+  /** The Lucide icon component representing the feature. */
+  icon: React.ElementType;
+}
+
+/**
+ * Array of feature objects used to populate the "Características Principales" section.
+ * Each object defines a key feature of CodeAlchemist.
+ */
+const features: FeatureInfo[] = [
   { title: 'Generar Código', description: 'Crea fragmentos de código desde descripciones en lenguaje natural.', href: '/generar-codigo', icon: CodeXml },
   { title: 'Generar Proyecto', description: 'Inicia estructuras de proyecto completas a partir de especificaciones.', href: '/generar-proyecto', icon: FolderPlus },
   { title: 'Refactorizar Proyecto', description: 'Analiza y refactoriza proyectos existentes con sugerencias de IA.', href: '/refactorizar-proyecto', icon: GitPullRequestDraft },
@@ -32,7 +57,23 @@ const features = [
   { title: 'Configuración', description: 'Ajusta proveedores LLM, Git y otras opciones de la aplicación.', href: '/configuracion', icon: SettingsIcon },
 ];
 
-const quickStartSteps = [
+/**
+ * Represents a step in the "Guía Rápida de Inicio".
+ * Used to guide new users through initial setup and feature exploration.
+ */
+interface QuickStartStep {
+  /** The main text for the step. */
+  text: string;
+  /** The URL path for the link within the step. */
+  href: string;
+  /** The text for the hyperlink. */
+  linkText: string;
+}
+
+/**
+ * Array of quick start steps for new users.
+ */
+const quickStartSteps: QuickStartStep[] = [
   { text: " en la sección 'Configuración'.", href: "/configuracion", linkText: "Configura tus ajustes del proveedor LLM"},
   { text: " con un prompt sencillo en 'Generar Código'.", href: "/generar-codigo", linkText: "Explora la generación de código"},
   { text: " en 'Analizar Código'.", href: "/analizar-codigo", linkText: "Prueba el análisis de un fragmento de código"},
@@ -40,10 +81,24 @@ const quickStartSteps = [
   { text: " para ver cómo CodeAlchemist se analiza a sí mismo.", href: "/autoupdate", linkText: "Experimenta con AutoUpdate"}
 ];
 
-export default function DashboardPage() {
+/**
+ * DashboardPage - The main landing page (Panel de Control) of CodeAlchemist.
+ * 
+ * This component serves as the central hub, providing:
+ * - A welcoming message and a brief description of the application.
+ * - A grid of interactive cards linking to the main features ("Características Principales").
+ * - A "Guía Rápida de Inicio" to help new users get started.
+ * 
+ * It uses `Link` components for navigation and `Card` components for structuring content.
+ * Icons are from `lucide-react` to visually represent features.
+ * 
+ * @returns {JSX.Element} The rendered dashboard page.
+ */
+export default function DashboardPage(): JSX.Element {
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8">
       <header className="text-center mb-12">
+        {/* Application Logo and Main Title */}
         <FlaskConical data-ai-hint="alchemy magic" className="h-24 w-24 mx-auto text-primary mb-4" />
         <h1 className="text-4xl md:text-5xl font-bold mb-3">Bienvenido a CodeAlchemist</h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -51,14 +106,19 @@ export default function DashboardPage() {
         </p>
       </header>
 
+      {/* Section for Main Features */}
       <section className="mb-12">
         <h2 className="text-3xl font-semibold mb-8 text-center">Características Principales</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {features.map((feature) => (
-            <Link href={feature.href} key={feature.title} passHref>
-              <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer h-full flex flex-col transform hover:-translate-y-1">
+            <Link href={feature.href} key={feature.title} passHref legacyBehavior>
+              <Card 
+                as="a" // Render Card as an anchor tag for semantic linking
+                className="hover:shadow-lg transition-shadow duration-300 cursor-pointer h-full flex flex-col transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                aria-label={`Ir a ${feature.title}`}
+              >
                 <CardHeader className="flex flex-row items-center gap-4 pb-3">
-                  <feature.icon className="h-10 w-10 text-accent flex-shrink-0" />
+                  <feature.icon className="h-10 w-10 text-accent flex-shrink-0" aria-hidden="true" />
                   <CardTitle className="text-xl md:text-2xl">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-grow">
@@ -70,6 +130,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      {/* Section for Quick Start Guide */}
       <section>
         <Card className="shadow-md">
           <CardHeader>
@@ -88,9 +149,10 @@ export default function DashboardPage() {
               ))}
             </ol>
             <div className="mt-8 text-center">
-              <Link href="/configuracion" passHref>
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <SettingsIcon className="mr-2 h-5 w-5" /> Ir a Configuración
+              {/* Call to Action Button */}
+              <Link href="/configuracion" passHref legacyBehavior>
+                <Button as="a" size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <SettingsIcon className="mr-2 h-5 w-5" aria-hidden="true" /> Ir a Configuración
                 </Button>
               </Link>
             </div>
