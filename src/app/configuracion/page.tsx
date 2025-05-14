@@ -15,11 +15,13 @@ import { useAppState } from '@/context/AppStateContext';
 import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS, APP_NAME } from '@/lib/constants';
 import type { LLMSettings, GitSettings, LLMProvider, AppSettings } from '@/types';
 import { Upload, Download, Save, Settings as SettingsIcon, Loader2 } from 'lucide-react';
+import { getModelsForProvider } from '@/lib/utils'; // Import shared function
 
 /**
  * @fileOverview Page component for application configuration.
  * Allows users to configure LLM providers, Git settings, and debug mode.
  * Settings are persisted to localStorage.
+ * Provides functionality to import and export application settings.
  */
 
 /**
@@ -46,24 +48,13 @@ const testGitConnection = async (config: GitSettings): Promise<boolean> => {
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
 };
 
-/**
- * Retrieves a list of common model names for a given LLM provider.
- * This list might not be exhaustive and users can often type custom model names.
- * @param {LLMProvider} provider - The LLM provider.
- * @returns {string[]} An array of model names.
- */
-const getModelsForProvider = (provider: LLMProvider): string[] => {
-  switch (provider) {
-    case "Groq": return ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma-7b-it"];
-    case "OpenAI": return ["gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"];
-    case "Google Gemini": return ["gemini-1.5-pro-latest", "gemini-1.0-pro", "gemini-1.5-flash-latest"]; // Added flash
-    case "Anthropic": return ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"];
-    case "LM Studio": return ["Local Model LM Studio (escribir nombre)", "Llama3-LMStudio", "Mistral-LMStudio"]; // Examples
-    case "Ollama": return ["llama3", "mistral", "codellama", "phi3"]; // Examples
-    default: return [];
-  }
-};
+// Removed local getModelsForProvider, will use imported one.
 
+/**
+ * ConfigurationPage component.
+ * Handles display and modification of global application settings.
+ * @returns {JSX.Element} The rendered configuration page.
+ */
 export default function ConfiguracionPage() {
   const { toast } = useToast();
   const { setDebugMode: setContextDebugMode, addLog } = useDebug();
@@ -100,6 +91,8 @@ export default function ConfiguracionPage() {
 
   /**
    * Handles changes to the LLM configuration form fields.
+   * Updates the local state for LLM settings and dynamically adjusts API URL and available models
+   * based on the selected provider.
    * @param {keyof LLMSettings} field - The LLM setting field being changed.
    * @param {string | LLMProvider} value - The new value for the field.
    */
@@ -112,7 +105,6 @@ export default function ConfiguracionPage() {
       const modelsForNewProvider = getModelsForProvider(newProvider);
       setAvailableModels(modelsForNewProvider);
       
-      // If current model is not in the new provider's list, or no model is set, select the first available or empty.
       if (!modelsForNewProvider.includes(newConfig.model) || !newConfig.model) {
          newConfig.model = modelsForNewProvider.length > 0 ? modelsForNewProvider[0] : '';
       }
@@ -139,6 +131,7 @@ export default function ConfiguracionPage() {
 
   /**
    * Saves all current configuration settings to AppState and localStorage.
+   * Also updates the DebugContext.
    */
   const handleSaveSettings = () => {
     updateLLMConfig(currentLLMConfig);
@@ -152,6 +145,7 @@ export default function ConfiguracionPage() {
 
   /**
    * Tests the connection to the configured LLM provider.
+   * Displays a toast message indicating success or failure.
    */
   const handleTestLLM = async () => {
     setIsTestingLLM(true);
@@ -169,6 +163,7 @@ export default function ConfiguracionPage() {
 
   /**
    * Tests the connection to the configured Git repository.
+   * Displays a toast message indicating success or failure.
    */
   const handleTestGit = async () => {
     setIsTestingGit(true);
@@ -184,13 +179,14 @@ export default function ConfiguracionPage() {
     setIsTestingGit(false);
   };
   
-  /** Effect to ensure DebugContext is updated if global debugMode changes. */
+  /** Effect to ensure DebugContext is updated if global debugMode changes from AppState. */
   useEffect(() => { 
     setContextDebugMode(settings.debugMode);
   }, [settings.debugMode, setContextDebugMode]);
 
   /**
    * Handles the export of the current application configuration to a JSON file.
+   * The exported configuration includes LLM settings, Git settings, and debug mode status.
    */
   const handleExportConfig = () => {
     try {
@@ -212,13 +208,15 @@ export default function ConfiguracionPage() {
       toast({ title: "Configuración Exportada", description: "La configuración actual ha sido exportada." });
       addLog("Configuration exported.");
     } catch (error) {
-      toast({ variant: "destructive", title: "Error de Exportación", description: "No se pudo exportar la configuración." });
-      addLog(`Configuration export failed: ${error}`);
+      const typedError = error as Error;
+      toast({ variant: "destructive", title: "Error de Exportación", description: `No se pudo exportar la configuración: ${typedError.message}` });
+      addLog(`Configuration export failed: ${typedError.message}`);
     }
   };
 
   /**
    * Handles the import of application configuration from a JSON file.
+   * Validates the imported file structure and updates the application state if valid.
    * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
    */
   const handleImportConfig = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -230,7 +228,6 @@ export default function ConfiguracionPage() {
           const importedContent = e.target?.result as string;
           const parsedConfig = JSON.parse(importedContent);
 
-          // Basic validation for the structure of AppSettings
           if (
             parsedConfig &&
             typeof parsedConfig === 'object' &&
@@ -240,13 +237,11 @@ export default function ConfiguracionPage() {
           ) {
             const importedSettings = parsedConfig as AppSettings;
             
-            // Update AppState directly, which also persists to localStorage via useLocalStorage
             updateLLMConfig(importedSettings.llmConfig);
             updateGitConfig(importedSettings.gitConfig);
             updateSettings({ debugMode: importedSettings.debugMode }); 
-            setContextDebugMode(importedSettings.debugMode); // Update DebugContext directly
+            setContextDebugMode(importedSettings.debugMode); 
 
-            // Local form states will be updated by the useEffect watching `settings`
             toast({ title: "Configuración Importada", description: "La configuración ha sido importada y aplicada." });
             addLog("Configuration imported and applied.");
           } else {
@@ -257,7 +252,7 @@ export default function ConfiguracionPage() {
           addLog(`Configuration import failed: ${err.message}`);
         } finally {
           if (importConfigInputRef.current) {
-            importConfigInputRef.current.value = ""; // Reset file input to allow re-importing the same file
+            importConfigInputRef.current.value = ""; 
           }
         }
       };
@@ -341,11 +336,12 @@ export default function ConfiguracionPage() {
               <Select
                 value={currentLLMConfig.model || ''}
                 onValueChange={(value) => handleLLMConfigChange('model', value)}
+                // Allow manual input for Google Gemini, LM Studio, Ollama by not disabling if models list is empty
                 disabled={availableModels.length === 0 && !["Google Gemini", "LM Studio", "Ollama"].includes(currentLLMConfig.provider)}
               >
                 <SelectTrigger id="llm-model">
                   <SelectValue placeholder={
-                    ["Google Gemini", "LM Studio", "Ollama"].includes(currentLLMConfig.provider) && availableModels.length === 0 
+                    (["Google Gemini", "LM Studio", "Ollama"].includes(currentLLMConfig.provider))
                     ? `Selecciona o escribe un modelo (ej: ${currentLLMConfig.provider === "Google Gemini" ? "gemini-1.5-pro-latest" : "nombre-modelo-local"})`
                     : availableModels.length === 0 
                     ? "Selecciona un proveedor primero" 
@@ -367,7 +363,7 @@ export default function ConfiguracionPage() {
           </CardContent>
           <CardFooter>
             <Button onClick={handleTestLLM} disabled={isTestingLLM}>
-              {isTestingLLM ? <Loader2 className="animate-spin" /> : null}
+              {isTestingLLM ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isTestingLLM ? "Probando..." : "Probar Conexión LLM"}
             </Button>
           </CardFooter>
@@ -422,7 +418,7 @@ export default function ConfiguracionPage() {
           </CardContent>
           <CardFooter>
             <Button onClick={handleTestGit} disabled={isTestingGit}>
-              {isTestingGit ? <Loader2 className="animate-spin" /> : null}
+              {isTestingGit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isTestingGit ? "Probando..." : "Probar Conexión Git"}
             </Button>
           </CardFooter>

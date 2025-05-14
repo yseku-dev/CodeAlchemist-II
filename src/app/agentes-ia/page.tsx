@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,12 +15,13 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import AgentForm from '@/components/features/agentes-ia/agent-form';
 import AgentTestChat from '@/components/features/agentes-ia/agent-test-chat';
 import { v4 as uuidv4 } from 'uuid';
-import { callSuggestAgentDefinition as suggestAgentDefinitionFlow } from '@/utils/apiClient'; // Updated import
+import { callSuggestAgentDefinition } from '@/utils/apiClient'; 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { AppError } from '@/utils/AppError';
+import { getModelsForProvider } from '@/lib/utils'; // Import shared function
 
 /**
  * @fileOverview Page component for managing AI Agents.
@@ -28,23 +29,13 @@ import { AppError } from '@/utils/AppError';
  * Also includes AI-assisted agent creation.
  */
 
-/**
- * Retrieves a list of model names for a given LLM provider.
- * @param {LLMProvider} provider - The LLM provider.
- * @returns {string[]} An array of model names.
- */
-const getModelsForProvider = (provider: LLMProvider): string[] => {
-  switch (provider) {
-    case "Groq": return ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma-7b-it"];
-    case "OpenAI": return ["gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"];
-    case "Google Gemini": return ["gemini-1.5-pro-latest", "gemini-1.0-pro"]; // Should also allow manual entry
-    case "Anthropic": return ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"];
-    case "LM Studio": return ["Local Model 1", "Local Model 2"]; // Placeholders, user usually specifies
-    case "Ollama": return ["llama3", "mistral", "codellama"]; // Common models, user can add more
-    default: return [];
-  }
-};
+// Removed local getModelsForProvider
 
+/**
+ * AgentesIAPage component.
+ * Main UI for AI Agent management.
+ * @returns {JSX.Element} The rendered agent management page.
+ */
 export default function AgentesIAPage() {
   const { agents, addAgent, updateAgent, deleteAgent, settings: globalSettings, setAgents } = useAppState();
   const { toast } = useToast();
@@ -71,14 +62,16 @@ export default function AgentesIAPage() {
 
   /**
    * Opens the agent form, optionally pre-filling it for an existing agent or an AI suggestion.
-   * @param {Agent | SuggestAgentDefinitionOutput} [agentOrSuggestion] - The existing agent to edit or the AI-generated suggestion to pre-fill.
+   * If an AI suggestion is provided, it configures `editingAgent` with a temporary ID
+   * to signal that the form is for confirming and potentially modifying a new, AI-suggested agent.
+   * @param {Agent | SuggestAgentDefinitionOutput} [agentOrSuggestion] - The existing agent to edit or the AI-generated suggestion.
    */
   const handleOpenForm = (agentOrSuggestion?: Agent | SuggestAgentDefinitionOutput) => {
     if (agentOrSuggestion && 'id' in agentOrSuggestion && typeof agentOrSuggestion.id === 'string' && !agentOrSuggestion.id.startsWith('suggested-')) { 
       setEditingAgent(agentOrSuggestion as Agent);
     } else if (agentOrSuggestion) { // It's a suggestion or a pre-filled structure from suggestion
       setEditingAgent(null); 
-      const suggestedData = agentOrSuggestion as SuggestAgentDefinitionOutput; // Assume it's a suggestion if no real ID
+      const suggestedData = agentOrSuggestion as SuggestAgentDefinitionOutput; 
       const suggestedFormData: AgentFormData = {
         name: suggestedData.name,
         description: suggestedData.description,
@@ -86,7 +79,7 @@ export default function AgentesIAPage() {
         capabilities: suggestedData.capabilities,
         llmConfig: { useGlobal: true, customConfig: { ...DEFAULT_LLM_SETTINGS, provider: globalSettings.llmConfig.provider, apiUrl: globalSettings.llmConfig.apiUrl, model: globalSettings.llmConfig.model } },
       };
-      setEditingAgent({ ...suggestedFormData, id: `suggested-${uuidv4()}` } as Agent); // Use temporary ID for form prefill logic
+      setEditingAgent({ ...suggestedFormData, id: `suggested-${uuidv4()}` } as Agent); 
     } else {
       setEditingAgent(null);
     }
@@ -94,7 +87,9 @@ export default function AgentesIAPage() {
   };
 
   /**
-   * Handles the submission of the agent form (creation or update).
+   * Handles the submission of the agent form.
+   * If `editingAgent` has a temporary ID (starts with 'suggested-'), it means a new agent based on an AI suggestion is being confirmed.
+   * Otherwise, it's either updating an existing agent or creating a new one from scratch.
    * @param {AgentFormData} formData - The data from the agent form.
    */
   const handleSubmitAgentForm = (formData: AgentFormData) => {
@@ -111,11 +106,12 @@ export default function AgentesIAPage() {
     }
     setIsFormOpen(false);
     setEditingAgent(null); 
-    addLog(`Agent ${formData.id && !formData.id.startsWith('suggested-') ? 'updated' : 'created/confirmed'}: ${formData.name}`);
+    addLog(`Agent ${formData.id && !formData.id.startsWith('suggested-') ? 'updated/confirmed' : 'created'}: ${formData.name}`);
   };
 
   /**
    * Sets up an agent for deletion by opening the confirmation dialog.
+   * Prevents deletion if the agent is marked as non-deletable.
    * @param {Agent} agent - The agent to be deleted.
    */
   const handleDeleteAgent = (agent: Agent) => {
@@ -128,6 +124,7 @@ export default function AgentesIAPage() {
   
   /**
    * Confirms and executes the deletion of an agent.
+   * Removes the agent from the state and logs the action.
    */
   const confirmDeleteAgent = () => {
     if (agentToDelete) {
@@ -138,6 +135,7 @@ export default function AgentesIAPage() {
 
   /**
    * Handles the import of agents from a JSON file.
+   * Parses the file, validates the structure, and adds/updates agents in the state.
    * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
    */
   const handleImportAgents = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,10 +146,16 @@ export default function AgentesIAPage() {
         try {
           const importedAgents = JSON.parse(e.target?.result as string) as Agent[];
           if (Array.isArray(importedAgents) && importedAgents.every(ag => ag.name && ag.systemPrompt)) {
+            // Ensure imported agents get new IDs and are marked as not default, and editable/deletable
             const newAgents = importedAgents.map(ia => ({...ia, id: uuidv4(), isDefault: false, isDeletable: true, isNameEditable: true })); 
-            setAgents(prev => [...prev.filter(pa => !newAgents.find(na => na.name === pa.name)), ...newAgents]); 
-            toast({ title: "Agentes Importados", description: `${importedAgents.length} agentes importados.` });
-            addLog(`${importedAgents.length} agents imported.`);
+            // Merge: replace existing agents with same name, add new ones
+            setAgents(prev => {
+              const existingNames = new Set(newAgents.map(na => na.name));
+              const filteredPrev = prev.filter(pa => !existingNames.has(pa.name));
+              return [...filteredPrev, ...newAgents];
+            }); 
+            toast({ title: "Agentes Importados", description: `${importedAgents.length} agentes importados y/o actualizados.` });
+            addLog(`${importedAgents.length} agents imported/updated.`);
           } else {
             throw new Error("Formato JSON inválido para agentes.");
           }
@@ -167,6 +171,7 @@ export default function AgentesIAPage() {
 
   /**
    * Handles the export of all agents to a JSON file.
+   * Serializes the current list of agents and triggers a download.
    */
   const handleExportAgents = () => {
     const jsonString = JSON.stringify(agents, null, 2);
@@ -213,7 +218,8 @@ export default function AgentesIAPage() {
 
   /**
    * Handles the AI-assisted agent suggestion process.
-   * Calls the Genkit flow to get suggestions based on user input.
+   * Calls the Genkit flow to get suggestions based on user input (agent role description).
+   * If successful, opens the agent form pre-filled with the AI's suggestions.
    */
   const handleSuggestAgent = async () => {
     if (!agentRoleDescription.trim()) {
@@ -223,7 +229,7 @@ export default function AgentesIAPage() {
     setIsSuggestingAgent(true);
     addLog(`Requesting AI suggestion for agent role: ${agentRoleDescription}`);
     try {
-      const suggestion = await suggestAgentDefinitionFlow({ roleDescription: agentRoleDescription });
+      const suggestion = await callSuggestAgentDefinition({ roleDescription: agentRoleDescription });
       toast({ title: 'Sugerencia Recibida', description: `La IA ha sugerido una definición para el agente ${suggestion.name}.` });
       setIsSuggestAgentDialogOpen(false);
       setAgentRoleDescription('');
@@ -297,7 +303,7 @@ export default function AgentesIAPage() {
         }}
         editingAgent={editingAgent} 
         onSubmit={handleSubmitAgentForm}
-        getModelsForProvider={getModelsForProvider}
+        getModelsForProvider={getModelsForProvider} // Pass the imported function
         globalLLMConfig={globalSettings.llmConfig}
       />
       
