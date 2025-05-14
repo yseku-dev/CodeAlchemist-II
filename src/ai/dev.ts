@@ -9,4 +9,5 @@ import '@/ai/flows/chat-with-agent-or-global-flow.ts';
 import '@/ai/flows/chat-with-ai-group-flow.ts';
 import '@/ai/flows/suggest-agent-definition-flow.ts';
 import '@/ai/flows/suggest-group-definition-flow.ts';
-import '@/ai/flows/analyze-code-snippet.ts'; // Added new flow
+import '@/ai/flows/analyze-code-snippet.ts'; 
+import '@/ai/flows/generate-project-structure-flow.ts';

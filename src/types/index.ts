@@ -76,7 +76,16 @@ export interface ProjectGenerationResult {
   projectName: string;
   aiNotes: string;
   files: GeneratedFile[];
+  groupLog?: string; // Added for consistency, can be populated if group interaction becomes real
 }
+
+// For "Generar Proyecto" Flow
+export interface GenerateProjectInput {
+  description: string;
+  // Potentially add llmConfigSource if the flow needs to be aware of it for specific agent context
+  // agentSystemPrompt?: string; // If a specific agent's context from a group should be used
+}
+
 
 export interface RefactorSuggestion {
   area: string;
@@ -107,11 +116,11 @@ export interface AnalyzeCodeSnippetOutput {
 
 
 export interface AutoUpdateSuggestion {
+  id: string; // for UI key
   area: string; // file path
   suggestion: string; // description of the suggestion
   priority: "Alta" | "Media" | "Baja";
   fullFileContentSuggested?: string; // The complete suggested content of the file
-  id: string; // for UI key
   status?: 'pending' | 'applied' | 'discarded';
   isEditing?: boolean;
   userEditedContent?: string;

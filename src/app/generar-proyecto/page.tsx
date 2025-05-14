@@ -6,43 +6,28 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Download, FolderPlus } from 'lucide-react'; // Added FolderPlus
+import { Loader2, Download, FolderPlus } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ConfirmDialog from '@/components/confirm-dialog';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, ProjectGenerationResult } from '@/types';
+import type { LLMConfigSourceOption, ProjectGenerationResult, GenerateProjectInput, Agent } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import FileTreeDisplay from '@/components/file-tree';
 import LogsDisplay from '@/components/logs-display';
-// import { generateProjectFromDescription } from '@/ai/flows/generate-project'; // Assuming this flow exists
-
-// Mock AI call
-const mockGenerateProject = (description: string): Promise<ProjectGenerationResult & { groupLog?: string }> => {
-  return new Promise(resolve => setTimeout(() => {
-    resolve({
-      projectName: "ProyectoIncreible",
-      aiNotes: "Este es un proyecto base generado por IA. Asegúrate de instalar las dependencias necesarias (ej: npm install) y revisar la configuración.",
-      files: [
-        { path: "README.md", content: `# ProyectoIncreible\n\nDescripción: ${description.substring(0, 50)}...` },
-        { path: "src/", content: "", isFolder: true },
-        { path: "src/index.js", content: `// Punto de entrada principal\nconsole.log("Hola, ${description.substring(0,20)}!");` },
-        { path: "package.json", content: JSON.stringify({ name: "proyecto-increible", version: "0.1.0", main: "src/index.js" }, null, 2) },
-      ],
-      groupLog: "Turno 1: Orquestador -> AgenteDiseñadorProyectos. Prompt: " + description + "\nTurno 2: AgenteDiseñadorProyectos -> Estructura de proyecto generada."
-    });
-  }, 2000));
-};
+import { generateProjectStructure } from '@/ai/flows/generate-project-structure-flow';
+import { useAppState } from '@/context/AppStateContext';
 
 
 export default function GenerarProyectoPage() {
+  const { agents, getAgentById } = useAppState();
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [description, setDescription] = useState('');
   const [currentPromptForDialog, setCurrentPromptForDialog] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<(ProjectGenerationResult & {groupLog?: string}) | null>(null);
+  const [result, setResult] = useState<ProjectGenerationResult | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   const { addLog } = useDebug();
@@ -53,12 +38,36 @@ export default function GenerarProyectoPage() {
     setIsLoading(true);
     setError(null);
     setResult(null);
-    addLog(`Generating project with config: ${JSON.stringify(llmConfigSource)}, prompt: ${finalPrompt.substring(0,50)}...`);
+    
+    let agentSystemPrompt: string | undefined;
+    if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
+      const agent = getAgentById(llmConfigSource.id);
+      agentSystemPrompt = agent?.systemPrompt;
+    } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
+      // For group, we could use the orchestrator's prompt or a designated project generation agent's prompt.
+      // For now, let's try passing the group's main task or orchestrator's context.
+      // Or, find the orchestrator if it's a fixed ID.
+      const orchestrator = agents.find(a => a.name === 'OrquestadorFlujoAgentes');
+      agentSystemPrompt = orchestrator?.systemPrompt || "Genera un proyecto basado en la siguiente descripción, actuando como un orquestador de un grupo de agentes especializados.";
+      addLog(`Generating project with Group: ${llmConfigSource.name}. Using orchestrator's context for generation flow.`);
+    }
+
+    const generationInput: GenerateProjectInput = {
+      description: finalPrompt,
+      agentSystemPrompt: agentSystemPrompt,
+    };
+    
+    addLog(`Generating project with config: ${JSON.stringify(llmConfigSource)}, input: ${JSON.stringify(generationInput).substring(0,100)}...`);
 
     try {
-      // const aiResult = await generateProjectFromDescription({ description: finalPrompt });
-      const aiResult = await mockGenerateProject(finalPrompt); // Using mock
-      setResult(aiResult);
+      const aiResult = await generateProjectStructure(generationInput);
+      
+      let groupLogForDisplay: string | undefined = undefined;
+      if (llmConfigSource?.type === 'Grupo') {
+        groupLogForDisplay = `(Simulación de Log de Grupo para Generación de Proyecto)\nTurno 1: Orquestador (usando contexto de '${llmConfigSource.name}') -> AgenteDiseñadorProyectos. Tarea: \"${finalPrompt.substring(0, 100)}...\".\nTurno 2: AgenteDiseñadorProyectos -> Estructura de proyecto generada.`;
+      }
+
+      setResult({...aiResult, groupLog: groupLogForDisplay});
       addLog("Project generation successful.");
       toast({ title: "Proyecto Generado", description: "La estructura base del proyecto ha sido generada." });
     } catch (e: any) {
@@ -80,11 +89,24 @@ export default function GenerarProyectoPage() {
     setShowConfirmDialog(true);
   };
 
-  const handleDownloadZip = () => {
-    // Client-side zipping logic (e.g. using JSZip) would go here
-    // For now, it's a placeholder
-    addLog(`Attempting to download project "${result?.projectName}" as ZIP.`);
-    toast({ title: "Descarga (Simulada)", description: "La descarga del proyecto ZIP aún no está implementada." });
+  const handleDownloadProject = () => {
+    if (!result) {
+      toast({ variant: "destructive", title: "Sin Resultados", description: "No hay estructura de proyecto para descargar." });
+      return;
+    }
+    const filename = `${result.projectName || 'proyecto-generado'}.json`;
+    const jsonString = JSON.stringify(result, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Proyecto Descargado (JSON)", description: `La estructura del proyecto "${result.projectName}" ha sido descargada como ${filename}. Puedes usar este JSON para crear los archivos y carpetas.` });
+    addLog(`Project structure "${result.projectName}" downloaded as JSON.`);
   };
 
   return (
@@ -134,10 +156,10 @@ export default function GenerarProyectoPage() {
               <h3 className="font-semibold text-lg mb-2">Archivos Generados:</h3>
               <FileTreeDisplay files={result.files} />
             </div>
-            <Button onClick={handleDownloadZip} variant="outline">
-              <Download className="mr-2 h-4 w-4" /> Descargar Proyecto (ZIP)
+            <Button onClick={handleDownloadProject} variant="outline">
+              <Download className="mr-2 h-4 w-4" /> Descargar Estructura (JSON)
             </Button>
-            {result.groupLog && (
+            {result.groupLog && ( // Display group log if it exists
               <LogsDisplay title="Log Detallado del Grupo" logs={result.groupLog} />
             )}
           </div>
@@ -168,6 +190,9 @@ export default function GenerarProyectoPage() {
                     className="mt-1"
                 />
             </div>
+            <p className="text-xs text-muted-foreground">
+                Configuración LLM a usar: {llmConfigSource?.type} {llmConfigSource?.name ? `(${llmConfigSource.name})` : ''}
+            </p>
         </div>
       </ConfirmDialog>
     </Card>
