@@ -139,12 +139,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <MenuIcon />
               </SidebarTrigger>
             </div>
-            <div className="flex-1 flex items-center gap-2">
-              {PageIcon && <PageIcon className="h-5 w-5 text-primary" />}
-              <h1 className="text-xl font-semibold">
+            {/* Centered Title and Icon */}
+            <div className="flex-1 flex justify-center items-center gap-3 relative"> {/* Added relative for potential absolute positioning of mobile trigger if it were here */}
+              {PageIcon && <PageIcon className="h-6 w-6 text-primary" />}
+              <h1 className="text-2xl font-semibold">
                 {pageTitle}
               </h1>
             </div>
+             {/* Placeholder for right-aligned items if any, to maintain balance, or remove flex-1 from above if only centered content */}
+             <div className="w-10 md:w-0"></div> {/* This helps keep the title centered if there was a right-aligned item, or maintains space for mobile trigger */}
           </header>
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
             {children}
@@ -198,4 +201,3 @@ function DebugPanel() {
     </div>
   );
 }
-

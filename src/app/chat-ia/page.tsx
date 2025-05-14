@@ -11,58 +11,15 @@ import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import { useAppState } from '@/context/AppStateContext'; // Import useAppState
+import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, ChatMessage, Agent, AIAgentGroup } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-
-const mockChatResponse = async (
-  prompt: string,
-  history: ChatMessage[],
-  addLogFn: (log: string | Record<string, any>) => void,
-  configSource?: LLMConfigSourceOption,
-  allAgents?: Agent[], // Changed from getAgentFn
-  allGroups?: AIAgentGroup[] // Changed from getGroupFn
-): Promise<string> => {
-  addLogFn(`Mocking AI response for prompt: ${prompt.substring(0, 50)}... with history length: ${history.length}, config: ${JSON.stringify(configSource)}`);
-
-  const defaultResponsePrefix = "Como IA de CodeAlchemist,";
-  const defaultSpecificContext = `He procesado tu mensaje: "${prompt.substring(0, 30)}...". ${defaultResponsePrefix.toLowerCase()} estoy aquí para asistirte con tus tareas de desarrollo. Puedo ayudarte a generar ideas, explicar conceptos de código, o incluso debatir sobre las mejores prácticas. ¿Qué tienes en mente?`;
-
-  if (configSource?.type === 'Agente' && configSource.id && allAgents) {
-    const agent = allAgents.find(a => a.id === configSource.id);
-    if (agent) {
-      const responsePrefix = `Respuesta del agente "${agent.name}":`;
-      const specificContext = `Basado en mi prompt de sistema ("${agent.systemPrompt.substring(0, 50)}..."), he procesado tu mensaje: "${prompt.substring(0, 30)}...".`;
-      return new Promise(resolve => setTimeout(() => resolve(`${responsePrefix}\n\n${specificContext}`), 1000 + Math.random() * 1000));
-    } else {
-      addLogFn(`Agent with ID "${configSource.id}" not found in provided agent list.`);
-    }
-  } else if (configSource?.type === 'Grupo' && configSource.id && allGroups) {
-    const group = allGroups.find(g => g.id === configSource.id);
-    if (group) {
-      const responsePrefix = `Respuesta del grupo "${group.name}" (coordinado por OrquestadorFlujoAgentes):`;
-      let specificContext = `Tarea recibida: "${prompt.substring(0, 30)}...". (Simulación) El Orquestador está analizando y delegará a los agentes correspondientes. ¿En qué puedo ayudarte como grupo?`;
-      if (prompt.toLowerCase().includes("comprobacion de conexion") || prompt.toLowerCase().includes("comunicacion con todos los agentes")) {
-        specificContext = `Tarea recibida: "${prompt.substring(0, 50)}...".\n\n(Simulación) El OrquestadorFlujoAgentes ha recibido tu solicitud. El JefeDeProducto está revisando los requerimientos de comunicación. El ArquitectoSoftware está verificando la conectividad entre los módulos de agentes. El RepresentanteUsuario confirma que la comunicación debe ser clara y concisa.\n\nResultado final: Todos los agentes confirman estar listos para la comunicación y colaboración. ¿Hay alguna tarea específica que desees asignar al grupo?`;
-      }
-      return new Promise(resolve => setTimeout(() => resolve(`${responsePrefix}\n\n${specificContext}`), 1000 + Math.random() * 1000));
-    } else {
-      addLogFn(`Group with ID "${configSource.id}" not found in provided group list.`);
-    }
-  }
-
-  if (prompt.toLowerCase().includes("hola") || prompt.toLowerCase().includes("saludos")) {
-    return new Promise(resolve => setTimeout(() => resolve("¡Hola! ¿En qué puedo ayudarte hoy con CodeAlchemist?"), 1000));
-  } else if (prompt.toLowerCase().includes("error")) {
-    return new Promise(resolve => setTimeout(() => resolve("Parece que mencionaste un error. ¿Podrías darme más detalles para que pueda intentar ayudarte a solucionarlo o explicarlo?"), 1000));
-  }
-  
-  return new Promise(resolve => setTimeout(() => resolve(defaultSpecificContext), 1000 + Math.random() * 1000));
-};
+import { chatWithAgentOrGlobal } from '@/ai/flows/chat-with-agent-or-global-flow';
+import { chatWithAIGroup } from '@/ai/flows/chat-with-ai-group-flow';
 
 export default function ChatIAPage() {
   const { addLog: addLogContext } = useDebug();
-  const { agents, groups } = useAppState(); // Get agents and groups arrays directly
+  const { agents, groups, getAgentById } = useAppState();
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -88,20 +45,53 @@ export default function ChatIAPage() {
       timestamp: new Date().toISOString(),
     };
     setMessages(prev => [...prev, userMessage]);
+    const currentInputMessage = currentMessage;
     setCurrentMessage('');
     setIsLoading(true);
     setError(null);
     addLogContext(`User message to AI: ${userMessage.content.substring(0,50)}... Config: ${JSON.stringify(llmConfigSource)}`);
 
+    let aiResponseContent = "Error: No se pudo obtener respuesta de la IA.";
+
     try {
-      const aiResponseContent = await mockChatResponse(
-        userMessage.content,
-        messages,
-        addLogContext,
-        llmConfigSource,
-        agents, // Pass the agents array
-        groups  // Pass the groups array
-      );
+      if (llmConfigSource?.type === 'Ajustes Globales') {
+        const result = await chatWithAgentOrGlobal({ userMessage: currentInputMessage });
+        aiResponseContent = result.aiResponse;
+      } else if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
+        const agent = getAgentById(llmConfigSource.id);
+        if (agent) {
+          const result = await chatWithAgentOrGlobal({ userMessage: currentInputMessage, agentSystemPrompt: agent.systemPrompt });
+          aiResponseContent = result.aiResponse;
+        } else {
+          throw new Error(`Agente con ID "${llmConfigSource.id}" no encontrado.`);
+        }
+      } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
+        const group = groups.find(g => g.id === llmConfigSource.id);
+        const orchestratorAgent = agents.find(a => a.id === 'orquestador-flujo-agentes'); // Assuming fixed ID
+
+        if (group && orchestratorAgent) {
+          const participatingAgentsInfo = group.agentIds
+            .map(id => getAgentById(id))
+            .filter(Boolean) as Agent[]; // Filter out undefined and cast
+
+          const result = await chatWithAIGroup({
+            userMessage: currentInputMessage,
+            groupMainTask: group.mainTask,
+            participatingAgents: participatingAgentsInfo.map(p => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                systemPrompt: p.systemPrompt, // Pass full system prompt
+                capabilities: p.capabilities,
+                llmConfig: p.llmConfig
+            })),
+            orchestratorAgentSystemPrompt: orchestratorAgent.systemPrompt,
+          });
+          aiResponseContent = `Respuesta del Orquestador para el grupo "${group.name}":\n${result.orchestratorResponse}`;
+        } else {
+          throw new Error(`Grupo con ID "${llmConfigSource.id}" o Agente Orquestador no encontrado.`);
+        }
+      }
       
       const assistantMessage: ChatMessage = {
         id: uuidv4(),
@@ -144,7 +134,36 @@ export default function ChatIAPage() {
   
   const handleAutoFixError = async (errorMsg: string) => {
     addLogContext(`Attempting Auto-Fix for chat error: ${errorMsg}`);
-    toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error del chat."});
+    // Simulate calling an AI to fix the error or explain it
+    const userMsg: ChatMessage = {
+      id: uuidv4(),
+      role: 'user',
+      content: `Por favor, analiza este error y sugiere una solución: ${errorMsg}`,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setIsLoading(true);
+    try {
+      const result = await chatWithAgentOrGlobal({ userMessage: `Por favor, analiza este error y sugiere una solución: ${errorMsg}` });
+      const assistantMessage: ChatMessage = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: result.aiResponse,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (e: any) {
+        // Handle error from auto-fix attempt if necessary
+         const systemErrorMessage: ChatMessage = {
+            id: uuidv4(),
+            role: 'system',
+            content: `Error durante el Auto-Fix: ${e.message}`,
+            timestamp: new Date().toISOString(),
+          };
+          setMessages(prev => [...prev, systemErrorMessage]);
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
@@ -214,4 +233,3 @@ export default function ChatIAPage() {
     </Card>
   );
 }
-
