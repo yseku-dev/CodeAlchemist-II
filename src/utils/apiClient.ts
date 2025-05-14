@@ -1,4 +1,3 @@
-
 // src/utils/apiClient.ts
 "use client";
 
@@ -73,21 +72,28 @@ async function delay(ms: number): Promise<void> {
 /**
  * Parses an error object and attempts to convert it into an `AppError`
  * with a user-friendly message and a specific error type.
+ * Logs the original error for debugging.
  *
  * @param {any} error - The error object to parse.
  * @param {string} defaultMessage - A default friendly message to use if parsing fails.
+ * @param {string} [flowName] - Optional name of the flow where the error originated for context.
  * @returns {AppError} An instance of `AppError`.
  */
-function parseError(error: any, defaultMessage: string): AppError {
+function parseError(error: any, defaultMessage: string, flowName?: string): AppError {
+  // Log the original error for debugging before any processing
+  console.error(`Original Error from API/Flow${flowName ? ` (${flowName})` : ''} (before parsing to AppError):`, error);
+  // En producción, este 'error' original también debería ser capturado por Sentry, idealmente
+  // en el backend o el flujo Genkit mismo. Si no, se puede capturar aquí.
+  // Ejemplo: import * as Sentry from "@sentry/nextjs";
+  // Sentry.captureException(error, { tags: { flowName: flowName || 'unknown_flow' } });
+
+
   // If it's already an AppError (e.g., from retry logic), return it directly.
   if (error instanceof AppError) {
-    // We might still want to log its originalError if it hasn't been logged verbosely yet.
-    // For simplicity here, we assume AppErrors are constructed with sufficient info.
-    console.error("AppError recibido:", error.message, "Tipo:", error.type, "Original:", error.originalError);
+    // Log that we received an AppError to avoid re-processing if not needed, but still good for trace
+    console.warn("AppError received in parseError, returning directly:", error.message, "Type:", error.type, "Original (if wrapped):", error.originalError);
     return error;
   }
-
-  console.error("Error Original de API (antes de parsear a AppError):", error);
 
   let friendlyMessage = defaultMessage;
   let errorType: AppError['type'] = 'unknown';
@@ -97,27 +103,29 @@ function parseError(error: any, defaultMessage: string): AppError {
     friendlyMessage = error;
   } else if (error && typeof error.message === 'string') {
     const lowerErrorMessage = error.message.toLowerCase();
-    const status = error.status || error.originalError?.status; // Check error or originalError for status
+    const status = error.status || error.originalError?.status; 
 
     if (lowerErrorMessage.includes('api key') || 
         lowerErrorMessage.includes('permission denied') ||
         lowerErrorMessage.includes('unauthenticated') ||
+        lowerErrorMessage.includes('invalid_api_key') ||
         status === 401 || status === 403) {
         friendlyMessage = "Error de autenticación o permisos con el proveedor IA. Verifica tu configuración y clave API.";
         errorType = 'validation';
-        redirectTo = '/configuracion';
+        redirectTo = '/configuracion'; // Suggest redirect to configuration page
     } else if (lowerErrorMessage.includes('model_not_found') || lowerErrorMessage.includes('unknown model')) {
         friendlyMessage = "El modelo IA seleccionado no está disponible o no es válido. Revisa la configuración.";
         errorType = 'validation';
+        redirectTo = '/configuracion';
     } else if (lowerErrorMessage.includes('rate limit') || status === 429) {
         friendlyMessage = "Se ha alcanzado el límite de solicitudes al proveedor IA. Inténtalo más tarde.";
-        errorType = 'server'; // Retry logic will check for status 429
+        errorType = 'server'; 
     } else if (lowerErrorMessage.includes('network error') || lowerErrorMessage.includes('failed to fetch') || lowerErrorMessage.includes('dns_unresolved_hostname')) {
         friendlyMessage = "Error de red. Por favor, comprueba tu conexión e inténtalo de nuevo.";
         errorType = 'network';
     } else if (status === 503) {
         friendlyMessage = "El servicio de IA no está disponible temporalmente (503). Por favor, inténtalo de nuevo más tarde.";
-        errorType = 'server'; // Retry logic will check for status 503
+        errorType = 'server'; 
     } else if (status && status >= 500) {
         friendlyMessage = `Error del servidor del proveedor IA (${status}). Inténtalo de nuevo más tarde.`;
         errorType = 'server';
@@ -128,6 +136,7 @@ function parseError(error: any, defaultMessage: string): AppError {
         friendlyMessage = "La IA devolvió una respuesta en un formato inesperado. Inténtalo de nuevo.";
         errorType = 'ai';
     } else {
+        // Keep it relatively generic for unexpected errors
         friendlyMessage = `Error: ${error.message.substring(0, 200)}${error.message.length > 200 ? '...' : ''}`;
         if (error.name === 'GenkitError' || lowerErrorMessage.includes('genkit')) errorType = 'ai';
     }
@@ -138,6 +147,7 @@ function parseError(error: any, defaultMessage: string): AppError {
 
 /**
  * Wraps an asynchronous function with retry logic for transient errors.
+ * Logs retry attempts and final failures.
  * @template T The return type of the async function.
  * @param {() => Promise<T>} asyncFn - The asynchronous function to execute.
  * @param {string} flowNameForLog - A name for the flow, used in logging retry attempts.
@@ -156,38 +166,39 @@ async function retryAsyncFunction<T>(
       return await asyncFn();
     } catch (error) {
       lastCaughtError = error;
-      // Parse the error to determine if it's retryable and get its properties
-      const appErrorForRetryCheck = parseError(error, "Error durante el intento de reintento.");
+      
+      const appErrorForRetryCheck = parseError(error, "Error durante el intento de reintento.", flowNameForLog);
 
-      const originalStatus = appErrorForRetryCheck.originalError?.status;
+      const originalStatus = appErrorForRetryCheck.originalError?.status || (appErrorForRetryCheck.originalError?.cause as any)?.status; // Genkit wraps errors sometimes
       const isRetryable =
         appErrorForRetryCheck.type === 'network' ||
         originalStatus === 503 || // Service Unavailable
         originalStatus === 429;   // Rate Limit Exceeded
       
       if (isRetryable && attempt <= MAX_RETRIES) {
-        const delayTime = INITIAL_DELAY_MS * Math.pow(2, attempt - 1); // Exponential backoff
-        console.warn(`Error en ${flowNameForLog} (intento ${attempt}/${MAX_RETRIES + 1}). Reintentando en ${delayTime}ms... Error:`, appErrorForRetryCheck.originalError || appErrorForRetryCheck.message);
+        const delayTime = INITIAL_DELAY_MS * Math.pow(2, attempt - 1); 
+        console.warn(`Error reintentable en ${flowNameForLog} (intento ${attempt}/${MAX_RETRIES + 1}). Reintentando en ${delayTime}ms... Error:`, appErrorForRetryCheck.originalError || appErrorForRetryCheck.message);
         await delay(delayTime);
       } else if (attempt > MAX_RETRIES && isRetryable) {
-        // All retries failed for a retryable error
         console.error(`Todos los reintentos (${MAX_RETRIES}) fallaron para ${flowNameForLog}. Último error:`, lastCaughtError);
+        // En producción, este evento (fallo de todos los reintentos) también es importante para Sentry.
+        // Sentry.captureMessage(`All retries failed for flow: ${flowNameForLog}`, { level: 'error', extra: { lastError: lastCaughtError } });
         throw new AppError(
           `${defaultFriendlyMessage} El servicio no está respondiendo después de varios intentos.`,
           lastCaughtError,
-          appErrorForRetryCheck.type, // Preserve the type of the last error
+          appErrorForRetryCheck.type, 
           appErrorForRetryCheck.redirectTo
         );
       } else {
-        // Not retryable, or it's an AppError from a deeper source that we shouldn't retry blindly
-        // Let the main catch block of the wrapper function handle parsing this.
-        throw lastCaughtError; 
+        // Not retryable, or it's an AppError from a deeper source we shouldn't retry.
+        // Throw the already parsed AppError or the original error if it wasn't parsed into one.
+        throw appErrorForRetryCheck; 
       }
     }
   }
-  // This line should ideally be unreachable due to the loop logic.
-  // If it's reached, it means something went wrong with the retry loop itself.
-  throw new AppError("Error inesperado en la lógica de reintentos.", lastCaughtError);
+  // This should be unreachable due to the loop logic.
+  console.error("Lógica de reintentos alcanzó un estado inesperado para", flowNameForLog);
+  throw new AppError("Error inesperado en la lógica de reintentos.", lastCaughtError, 'unknown', undefined);
 }
 
 
@@ -201,11 +212,12 @@ async function retryAsyncFunction<T>(
  */
 export async function callAnalyzeCodeSnippet(input: AnalyzeCodeSnippetInput): Promise<AnalyzeCodeSnippetOutput> {
   const friendlyErrorMsg = "Ocurrió un error al analizar el fragmento de código.";
+  const flowName = 'analyzeCodeSnippet';
   try {
-    return await retryAsyncFunction(() => analyzeCodeSnippetFlow(input), 'analyzeCodeSnippet', friendlyErrorMsg);
+    return await retryAsyncFunction(() => analyzeCodeSnippetFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg);
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
 
@@ -217,11 +229,12 @@ export async function callAnalyzeCodeSnippet(input: AnalyzeCodeSnippetInput): Pr
  */
 export async function callGenerateProjectStructure(input: GenerateProjectInput): Promise<ProjectGenerationResult> {
   const friendlyErrorMsg = "Ocurrió un error al generar la estructura del proyecto.";
+  const flowName = 'generateProjectStructure';
   try {
-    return await retryAsyncFunction(() => generateProjectStructureFlow(input), 'generateProjectStructure', friendlyErrorMsg);
+    return await retryAsyncFunction(() => generateProjectStructureFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg);
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
 
@@ -233,11 +246,12 @@ export async function callGenerateProjectStructure(input: GenerateProjectInput):
  */
 export async function callRefactorProjectWithAI(input: RefactorProjectWithAIInput): Promise<RefactorProjectWithAIOutput> {
   const friendlyErrorMsg = "Ocurrió un error al refactorizar el proyecto.";
+  const flowName = 'refactorProjectWithAI';
   try {
-    return await retryAsyncFunction(() => refactorProjectWithAIFlow(input), 'refactorProjectWithAI', friendlyErrorMsg);
+    return await retryAsyncFunction(() => refactorProjectWithAIFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg);
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
 
@@ -249,11 +263,12 @@ export async function callRefactorProjectWithAI(input: RefactorProjectWithAIInpu
  */
 export async function callAnalyzeSelfCode(input: AnalyzeCodeInput): Promise<AnalyzeCodeOutput> {
   const friendlyErrorMsg = "Ocurrió un error al analizar el código del proyecto.";
+  const flowName = 'analyzeSelfCode';
   try {
-    return await retryAsyncFunction(() => analyzeSelfCodeFlow(input), 'analyzeSelfCode', friendlyErrorMsg);
+    return await retryAsyncFunction(() => analyzeSelfCodeFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg);
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
 
@@ -265,11 +280,12 @@ export async function callAnalyzeSelfCode(input: AnalyzeCodeInput): Promise<Anal
  */
 export async function callChatWithAgentOrGlobal(input: ChatWithAgentOrGlobalInput): Promise<ChatWithAgentOrGlobalOutput> {
   const friendlyErrorMsg = "Ocurrió un error en el chat con la IA.";
+  const flowName = 'chatWithAgentOrGlobal';
   try {
-    return await retryAsyncFunction(() => chatWithAgentOrGlobalFlow(input), 'chatWithAgentOrGlobal', friendlyErrorMsg);
+    return await retryAsyncFunction(() => chatWithAgentOrGlobalFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg);
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
 
@@ -281,11 +297,12 @@ export async function callChatWithAgentOrGlobal(input: ChatWithAgentOrGlobalInpu
  */
 export async function callChatWithAIGroup(input: ChatWithAIGroupInput): Promise<ChatWithAIGroupOutput> {
   const friendlyErrorMsg = "Ocurrió un error en el chat con el grupo de IA.";
+  const flowName = 'chatWithAIGroup';
   try {
-    return await retryAsyncFunction(() => chatWithAIGroupFlow(input), 'chatWithAIGroup', friendlyErrorMsg);
+    return await retryAsyncFunction(() => chatWithAIGroupFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg);
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
 
@@ -297,11 +314,12 @@ export async function callChatWithAIGroup(input: ChatWithAIGroupInput): Promise<
  */
 export async function callSuggestAgentDefinition(input: SuggestAgentDefinitionInput): Promise<SuggestAgentDefinitionOutput> {
   const friendlyErrorMsg = "Ocurrió un error al sugerir la definición del agente.";
+  const flowName = 'suggestAgentDefinition';
   try {
-    return await retryAsyncFunction(() => suggestAgentDefinitionFlow(input), 'suggestAgentDefinition', friendlyErrorMsg);
+    return await retryAsyncFunction(() => suggestAgentDefinitionFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg);
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
 
@@ -313,11 +331,12 @@ export async function callSuggestAgentDefinition(input: SuggestAgentDefinitionIn
  */
 export async function callSuggestGroupDefinition(input: SuggestGroupDefinitionInput): Promise<SuggestGroupDefinitionOutput> {
   const friendlyErrorMsg = "Ocurrió un error al sugerir la definición del grupo.";
+  const flowName = 'suggestGroupDefinition';
   try {
-    return await retryAsyncFunction(() => suggestGroupDefinitionFlow(input), 'suggestGroupDefinition', friendlyErrorMsg);
+    return await retryAsyncFunction(() => suggestGroupDefinitionFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg);
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
 
@@ -329,12 +348,11 @@ export async function callSuggestGroupDefinition(input: SuggestGroupDefinitionIn
  */
 export async function callGenerateCodeFromDescription(input: GenerateCodeFromDescriptionInput): Promise<GenerateCodeFromDescriptionOutput> {
   const friendlyErrorMsg = "Ocurrió un error al generar código desde la descripción.";
+  const flowName = 'generateCodeFromDescription';
   try {
-    return await retryAsyncFunction(() => generateCodeFromDescriptionFlow(input), 'generateCodeFromDescription', friendlyErrorMsg);
+    return await retryAsyncFunction(() => generateCodeFromDescriptionFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg);
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
-
-    

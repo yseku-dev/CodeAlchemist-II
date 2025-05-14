@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card'; // CardHeader, CardTitle, CardDescription removed
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -20,10 +20,20 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { AppError } from '@/utils/AppError';
 import { callGenerateCodeFromDescription } from '@/utils/apiClient';
 import { useAppState } from '@/context/AppStateContext';
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
+import { useRouter } from 'next/navigation';
 
-
+/**
+ * @fileOverview GenerarCodigoPage component allows users to generate code snippets
+ * from natural language descriptions. Users can select an LLM configuration source
+ * (global, specific agent, or agent group) and provide a detailed prompt.
+ * The component handles the AI call, displays results (explanation and code),
+ * and manages loading/error states.
+ */
 export default function GenerarCodigoPage() {
-  const { agents, groups, getAgentById } = useAppState(); // Added for context if agent/group is selected
+  const { getAgentById, groups } = useAppState(); 
+  const router = useRouter();
+
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,46 +44,51 @@ export default function GenerarCodigoPage() {
   const { addLog } = useDebug();
   const { toast } = useToast();
 
+  /**
+   * Handles the code generation process once confirmed by the user.
+   * Calls the AI flow and updates the UI with results or errors.
+   */
   const handleSubmit = async () => {
     setShowConfirmDialog(false); 
     setIsLoading(true);
     setError(null);
     setResult(null);
-    addLog(`Generating code with config: ${JSON.stringify(llmConfigSource)}, description: ${description.substring(0,50)}...`);
-
-    // Prepare input for the flow.
-    // If an agent or group is selected, their context might be used differently by the flow
-    // or by a more complex orchestration logic not yet implemented here.
-    // For now, the `generateCodeFromDescription` flow is simple and only takes `description`.
-    // We can pass agent/group context if the flow is enhanced in the future.
+    
     let agentSystemPrompt: string | undefined;
     let groupLogForDisplay: string | undefined;
+    let flowName = 'generateCodeFromDescription';
 
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
         const agent = getAgentById(llmConfigSource.id);
-        agentSystemPrompt = agent?.systemPrompt; // This might be passed to an enhanced flow
-        addLog(`Generating code with Agent: ${llmConfigSource.name}. Agent's system prompt might be used by an enhanced flow.`);
+        agentSystemPrompt = agent?.systemPrompt; 
+        flowName = `generateCodeFromDescription (Agent: ${agent?.name || llmConfigSource.id})`;
+        addLog({message: `Generating code with Agent: ${llmConfigSource.name}. Agent's system prompt might be used by an enhanced flow.`, flowName});
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id && llmConfigSource.name) {
         const group = groups.find(g => g.id === llmConfigSource.id);
-        // For groups, a more complex interaction via orchestrator would be ideal.
-        // Here, we simulate a log and might pass group's main task as context.
         groupLogForDisplay = `(Simulación de Log de Grupo para Generación de Código)\nTurno 1: Orquestador (usando contexto de '${llmConfigSource.name}') -> AgenteGeneradorDeCodigo. Tarea: \"${description.substring(0, 100)}...\".\nTurno 2: AgenteGeneradorDeCodigo -> Código generado.`;
-        agentSystemPrompt = group?.mainTask; // Example of passing group context
-        addLog(`Generating code with Group: ${llmConfigSource.name}. Group's task might be used by an enhanced flow.`);
+        agentSystemPrompt = group?.mainTask; 
+        flowName = `generateCodeFromDescription (Group: ${group?.name || llmConfigSource.id})`;
+        addLog({message: `Generating code with Group: ${llmConfigSource.name}. Group's task might be used by an enhanced flow.`, flowName});
+    } else {
+        addLog({message: `Generating code with Global settings. Description: ${description.substring(0,50)}...`, flowName});
     }
 
-
     try {
-      // const enhancedInput = { description, agentSystemPrompt }; // If flow supports it
+      // The current `generateCodeFromDescription` flow only takes `description`.
+      // If it's enhanced to use agentSystemPrompt, it would be passed here.
+      // const inputForFlow = { description, agentSystemPrompt }; 
       const aiResult = await callGenerateCodeFromDescription({ description });
       setResult({...aiResult, groupLog: groupLogForDisplay});
-      addLog("Code generation successful.");
+      addLog({message: "Code generation successful.", flowName});
       toast({ title: "Código Generado", description: "El fragmento de código ha sido generado exitosamente." });
     } catch (e: any) {
-      addLog({ message: "Code generation failed in UI", error: e });
+      addLog({ message: "Code generation failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
         toast({ variant: "destructive", title: "Error de Generación", description: e.friendlyMessage });
+        if (e.redirectTo) {
+          router.push(e.redirectTo);
+        }
       } else {
         const errorMsg = e.message || "Ocurrió un error al generar el código.";
         setError(errorMsg);
@@ -84,6 +99,10 @@ export default function GenerarCodigoPage() {
     }
   };
   
+  /**
+   * Handles the click event for the "Generar Código" button.
+   * Validates input and opens the confirmation dialog.
+   */
   const handleGenerateClick = () => {
     if (!description.trim()) {
       toast({ variant: "destructive", title: "Descripción Vacía", description: "Por favor, describe tu necesidad."});
@@ -92,20 +111,26 @@ export default function GenerarCodigoPage() {
     setShowConfirmDialog(true);
   };
   
+  /**
+   * Placeholder for an AI-driven error fixing mechanism.
+   * @param {string} errorMsg - The error message to be fixed.
+   */
   const handleAutoFixError = async (errorMsg: string) => {
-    addLog(`Attempting Auto-Fix for error: ${errorMsg}`);
+    const autoFixFlowName = 'chatWithAgentOrGlobal (AutoFix Error)';
+    addLog({ message: `Attempting Auto-Fix for error: ${errorMsg}`, flowName: autoFixFlowName});
     toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
+    // Example:
+    // const fixAttempt = await callChatWithAgentOrGlobal({ userMessage: `Explica este error y cómo solucionarlo: ${errorMsg}`});
+    // Show fixAttempt.aiResponse in a dialog or toast.
   };
 
   return (
     <Card className="max-w-3xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <CodeXml className="h-7 w-7 text-primary" />
-          <span>Generar Código</span>
-        </CardTitle>
-        <CardDescription>Crea fragmentos de código a partir de descripciones en lenguaje natural.</CardDescription>
-      </CardHeader>
+      <PageSectionHeader
+        icon={CodeXml}
+        title="Generar Código"
+        description="Crea fragmentos de código a partir de descripciones en lenguaje natural."
+      />
       <CardContent className="space-y-6">
         <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
         

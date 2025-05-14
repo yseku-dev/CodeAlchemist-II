@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react'; // Added useEffect
+import { Card, CardContent, CardFooter } from '@/components/ui/card'; // Removed CardHeader etc for PageSectionHeader
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Edit3, Trash2, Upload, Download, PlayCircle, Users2, Sparkles as SparklesIcon } from 'lucide-react';
@@ -20,53 +20,41 @@ import { AppError } from '@/utils/AppError';
 import { getModelsForProvider } from '@/lib/utils'; 
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import AISuggestionDialog from '@/components/features/common/AISuggestionDialog';
+import { useRouter } from 'next/navigation';
+
 
 /**
- * @fileOverview Page component for managing AI Agents.
+ * @fileOverview AgentesIAPage component for managing AI Agents.
  * Allows users to create, edit, delete, import, export, and test individual AI agents.
- * Also includes AI-assisted agent creation.
- */
-
-
-/**
- * AgentesIAPage component.
- * Main UI for AI Agent management.
- * @returns {JSX.Element} The rendered agent management page.
+ * Includes AI-assisted agent creation via a dialog.
  */
 export default function AgentesIAPage() {
   const { agents, addAgent, updateAgent, deleteAgent, settings: globalSettings, setAgents } = useAppState();
   const { toast } = useToast();
   const { addLog } = useDebug();
+  const router = useRouter();
 
-  /** State to control the visibility of the agent creation/editing form dialog. */
+
   const [isFormOpen, setIsFormOpen] = useState(false);
-  /** State to store the agent currently being edited (null if creating a new agent). */
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-  /** State to store the agent currently being considered for deletion. */
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
 
-  /** State to control the visibility of the agent test chat modal. */
   const [isTestChatOpen, setIsTestChatOpen] = useState(false);
-  /** State to store the agent currently being tested. */
   const [testingAgent, setTestingAgent] = useState<Agent | null>(null);
 
-  /** State to control the visibility of the AI-assisted agent suggestion dialog. */
   const [isSuggestAgentDialogOpen, setIsSuggestAgentDialogOpen] = useState(false);
-  /** State to store the user's description of the agent's role for AI suggestion. */
   const [agentRoleDescription, setAgentRoleDescription] = useState('');
-  /** State to indicate if an AI suggestion for an agent is currently being fetched. */
   const [isSuggestingAgent, setIsSuggestingAgent] = useState(false);
 
   /**
-   * Prepares the state for the agent form, either for a new agent, an existing agent, or an AI-suggested one.
-   * @param {Agent | SuggestAgentDefinitionOutput} [agentOrSuggestion] - The existing agent to edit or the AI-generated suggestion.
+   * Prepares the state for the agent form based on an existing agent or an AI suggestion.
+   * @param {Agent | SuggestAgentDefinitionOutput} [agentOrSuggestion] - The agent to edit or AI suggestion.
+   * @returns {Agent | null} The agent object to be used for form pre-filling, or null.
    */
-  const _prepareEditingAgentState = (agentOrSuggestion?: Agent | SuggestAgentDefinitionOutput) => {
+  const _prepareEditingAgentState = (agentOrSuggestion?: Agent | SuggestAgentDefinitionOutput): Agent | null => {
     if (agentOrSuggestion && 'id' in agentOrSuggestion && typeof agentOrSuggestion.id === 'string' && !agentOrSuggestion.id.startsWith('suggested-')) { 
-      // It's an existing Agent
       return agentOrSuggestion as Agent;
     } else if (agentOrSuggestion) { 
-      // It's a suggestion (SuggestAgentDefinitionOutput) or a pre-filled structure from suggestion
       const suggestedData = agentOrSuggestion as SuggestAgentDefinitionOutput; 
       const provider = globalSettings.llmConfig.provider || DEFAULT_LLM_SETTINGS.provider;
       const apiUrl = globalSettings.llmConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[provider] || '';
@@ -86,15 +74,14 @@ export default function AgentesIAPage() {
           } 
         },
       };
-      return { ...suggestedFormData, id: `suggested-${uuidv4()}` } as Agent; // Temporary ID for prefill logic
+      return { ...suggestedFormData, id: `suggested-${uuidv4()}` } as Agent; 
     }
-    return null; // For creating a new agent from scratch
+    return null; 
   };
 
   /**
-   * Opens the agent form.
-   * If an agent or suggestion is provided, the form is pre-filled.
-   * @param {Agent | SuggestAgentDefinitionOutput} [agentOrSuggestion] - The agent to edit or the AI suggestion.
+   * Opens the agent form, pre-filling it if an agent or suggestion is provided.
+   * @param {Agent | SuggestAgentDefinitionOutput} [agentOrSuggestion] - The agent to edit or AI suggestion.
    */
   const handleOpenForm = (agentOrSuggestion?: Agent | SuggestAgentDefinitionOutput) => {
     setEditingAgent(_prepareEditingAgentState(agentOrSuggestion));
@@ -107,6 +94,8 @@ export default function AgentesIAPage() {
    * @param {AgentFormData} formData - The data from the agent form.
    */
   const handleSubmitAgentForm = (formData: AgentFormData) => {
+    const flowName = editingAgent ? 'updateAgent' : 'addAgent';
+    addLog({message: `Submitting agent form: ${editingAgent ? 'Update' : 'Create'}`, data: formData, flowName});
     if (editingAgent && editingAgent.id.startsWith('suggested-')) { 
         addAgent(formData); 
     } else if (editingAgent) { 
@@ -120,7 +109,7 @@ export default function AgentesIAPage() {
     }
     setIsFormOpen(false);
     setEditingAgent(null); 
-    addLog(`Agent ${formData.id && !formData.id.startsWith('suggested-') ? 'updated/confirmed' : 'created'}: ${formData.name}`);
+    addLog({message: `Agent ${formData.id && !formData.id.startsWith('suggested-') ? 'updated/confirmed' : 'created'}: ${formData.name}`, flowName});
   };
 
   /**
@@ -140,6 +129,7 @@ export default function AgentesIAPage() {
    */
   const confirmDeleteAgent = () => {
     if (agentToDelete) {
+      addLog({message: `Deleting agent: ${agentToDelete.name}`, agentId: agentToDelete.id, flowName: 'deleteAgent'});
       deleteAgent(agentToDelete.id);
       setAgentToDelete(null);
     }
@@ -164,13 +154,13 @@ export default function AgentesIAPage() {
               return [...filteredPrev, ...newAgents];
             }); 
             toast({ title: "Agentes Importados", description: `${importedAgents.length} agentes importados y/o actualizados.` });
-            addLog(`${importedAgents.length} agents imported/updated.`);
+            addLog({message: `${importedAgents.length} agents imported/updated.`, flowName: 'importAgents'});
           } else {
             throw new Error("Formato JSON inválido para agentes.");
           }
         } catch (err: any) {
           toast({ variant: "destructive", title: "Error de Importación", description: err.message });
-          addLog(`Agent import failed: ${err.message}`);
+          addLog({message: `Agent import failed: ${err.message}`, error: err, flowName: 'importAgents'});
         }
       };
       reader.readAsText(file);
@@ -193,7 +183,7 @@ export default function AgentesIAPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast({ title: "Agentes Exportados", description: "Todos los agentes han sido exportados." });
-    addLog("All agents exported.");
+    addLog({message: "All agents exported.", flowName: 'exportAgents'});
   };
 
   /**
@@ -212,7 +202,7 @@ export default function AgentesIAPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast({ title: "Agente Exportado", description: `Agente "${agent.name}" exportado.` });
-    addLog(`Agent "${agent.name}" exported.`);
+    addLog({message: `Agent "${agent.name}" exported.`, agentId: agent.id, flowName: 'exportSingleAgent'});
   };
 
   /**
@@ -226,6 +216,7 @@ export default function AgentesIAPage() {
 
   /**
    * Handles the AI-assisted agent suggestion process.
+   * Calls an AI flow to get suggestions and pre-fills the form.
    */
   const handleSuggestAgent = async () => {
     if (!agentRoleDescription.trim()) {
@@ -233,7 +224,8 @@ export default function AgentesIAPage() {
       return;
     }
     setIsSuggestingAgent(true);
-    addLog(`Requesting AI suggestion for agent role: ${agentRoleDescription}`);
+    const flowName = 'suggestAgentDefinition';
+    addLog({message: `Requesting AI suggestion for agent role: ${agentRoleDescription}`, flowName});
     try {
       const suggestion = await callSuggestAgentDefinition({ roleDescription: agentRoleDescription });
       toast({ title: 'Sugerencia Recibida', description: `La IA ha sugerido una definición para el agente ${suggestion.name}.` });
@@ -241,9 +233,12 @@ export default function AgentesIAPage() {
       setAgentRoleDescription('');
       handleOpenForm(suggestion); 
     } catch (error: any) {
+      addLog({message: 'AI agent suggestion failed', errorDetails: error.originalError || error, friendlyMessage: error.friendlyMessage, flowName});
       const errorMsg = error instanceof AppError ? error.friendlyMessage : error.message || 'No se pudo obtener la sugerencia.';
       toast({ variant: 'destructive', title: 'Error de Sugerencia', description: errorMsg });
-      addLog(`AI agent suggestion failed: ${errorMsg}`);
+      if (error instanceof AppError && error.redirectTo) {
+        router.push(error.redirectTo);
+      }
     } finally {
       setIsSuggestingAgent(false);
     }

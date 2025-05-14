@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card'; // Removed CardHeader etc for PageSectionHeader
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -32,13 +32,13 @@ const initialGroupFormData: GroupFormData = {
   agentIds: [],
 };
 
-const MAX_EXECUTION_TURNS = 10; // Maximum number of turns for group execution
+const MAX_EXECUTION_TURNS = 10; 
 
 /**
- * Page component for managing AI Agent Groups.
- * Allows creating, editing, deleting, and executing AI agent groups.
+ * @fileOverview GruposTrabajoIAPage component for managing AI Agent Groups.
+ * Allows users to create, edit, delete, and execute AI agent groups.
+ * Execution involves a multi-turn conversation coordinated by an orchestrator agent.
  * Supports AI-assisted group definition.
- * @returns {JSX.Element} The rendered AI Agent Groups management page.
  */
 export default function GruposTrabajoIAPage() {
   const { groups, addGroup, updateGroup, deleteGroup, agents, getAgentById } = useAppState();
@@ -70,7 +70,7 @@ export default function GruposTrabajoIAPage() {
    * @param {AIAgentGroup | SuggestGroupDefinitionOutput} [groupOrSuggestion] - The group to edit or AI suggestion.
    */
   const handleOpenForm = (groupOrSuggestion?: AIAgentGroup | SuggestGroupDefinitionOutput) => {
-    if (groupOrSuggestion && 'id' in groupOrSuggestion && typeof groupOrSuggestion.id === 'string' && !groupOrSuggestion.id.startsWith('suggested-')) { // Existing AIAgentGroup
+    if (groupOrSuggestion && 'id' in groupOrSuggestion && typeof groupOrSuggestion.id === 'string' && !groupOrSuggestion.id.startsWith('suggested-')) { 
       const group = groupOrSuggestion as AIAgentGroup;
       setEditingGroup(group);
       setFormData({
@@ -80,17 +80,17 @@ export default function GruposTrabajoIAPage() {
         mainTask: group.mainTask,
         agentIds: [...group.agentIds],
       });
-    } else if (groupOrSuggestion) { // Suggestion (SuggestGroupDefinitionOutput)
+    } else if (groupOrSuggestion) { 
       const suggestion = groupOrSuggestion as SuggestGroupDefinitionOutput;
-      setEditingGroup(null); // Clear previous editing group
+      setEditingGroup(null); 
       setFormData({
         name: suggestion.name,
         description: suggestion.description,
         mainTask: suggestion.mainTask,
         agentIds: suggestion.agentIds,
-        id: `suggested-${uuidv4()}` // Temporary ID for prefill logic
+        id: `suggested-${uuidv4()}` 
       });
-    } else { // New group from scratch
+    } else { 
       setEditingGroup(null);
       setFormData(initialGroupFormData);
     }
@@ -122,8 +122,11 @@ export default function GruposTrabajoIAPage() {
 
   /**
    * Handles submission of the group form (create or update).
+   * Validates required fields and updates the application state.
    */
   const handleSubmitForm = () => {
+    const flowName = editingGroup ? 'updateGroup' : 'addGroup';
+    addDebugLog({message: `Submitting group form: ${editingGroup ? 'Update' : 'Create'}`, data: formData, flowName});
     if (!formData.name.trim() || !formData.mainTask.trim()) {
       toast({ variant: "destructive", title: "Campos Requeridos", description: "El nombre y la tarea principal son obligatorios." });
       return;
@@ -133,18 +136,18 @@ export default function GruposTrabajoIAPage() {
         return;
     }
 
-    if (editingGroup) { // Editing existing group
+    if (editingGroup) { 
       updateGroup({ ...editingGroup, ...formData } as AIAgentGroup);
-    } else if (formData.id && formData.id.startsWith('suggested-')) { // Confirming a suggestion
-      const { id, ...newGroupData } = formData; // remove temporary id
+    } else if (formData.id && formData.id.startsWith('suggested-')) { 
+      const { id, ...newGroupData } = formData; 
       addGroup(newGroupData);
     }
-     else { // Creating a new group from scratch
+     else { 
       addGroup(formData);
     }
     setIsFormOpen(false);
     setEditingGroup(null);
-    addDebugLog(`Group ${formData.id && !formData.id.startsWith('suggested-') ? 'updated' : 'created/confirmed'}: ${formData.name}`);
+    addDebugLog({message: `Group ${formData.id && !formData.id.startsWith('suggested-') ? 'updated' : 'created/confirmed'}: ${formData.name}`, flowName});
   };
 
   /**
@@ -160,6 +163,7 @@ export default function GruposTrabajoIAPage() {
    */
   const confirmDeleteGroup = () => {
     if (groupToDelete) {
+      addDebugLog({message: `Deleting group: ${groupToDelete.name}`, groupId: groupToDelete.id, flowName: 'deleteGroup'});
       deleteGroup(groupToDelete.id);
       setGroupToDelete(null);
     }
@@ -167,20 +171,21 @@ export default function GruposTrabajoIAPage() {
 
   /**
    * Handles the execution of an AI agent group.
-   * Manages a multi-turn conversation with the orchestrator and selected agents.
+   * Manages a multi-turn conversation with the orchestrator and selected agents via AI flows.
    * @param {AIAgentGroup} group - The group to execute.
    */
   const handleExecuteGroup = async (group: AIAgentGroup) => {
     setExecutingGroup(group);
     setExecutionLog([`Iniciando ejecución del grupo: ${group.name}...\nTarea Principal: ${group.mainTask}`]);
     setIsExecutionModalOpen(true);
-    setIsGroupExecuting(true);
-    addDebugLog(`Executing group: ${group.name}. Task: ${group.mainTask.substring(0, 50)}...`);
+    setIsGroupExecuting(true); // Set executing state
+    const flowName = 'executeAIGroup';
+    addDebugLog({message: `Executing group: ${group.name}. Task: ${group.mainTask.substring(0, 50)}...`, flowName});
     
-    executionControllerRef.current = new AbortController(); // For potential cancellation if needed, not fully used yet
+    executionControllerRef.current = new AbortController(); 
 
     let currentTurn = 1;
-    let currentOrchestratorInput = group.mainTask;
+    let currentOrchestratorInput = group.mainTask; // Initial input for orchestrator is the group's main task
     const orchestratorAgent = agents.find(a => a.id === 'orquestador-flujo-agentes');
 
     if (!orchestratorAgent) {
@@ -195,7 +200,8 @@ export default function GruposTrabajoIAPage() {
       .map(id => getAgentById(id))
       .filter(Boolean) as Agent[];
 
-    while (isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) {
+    // Execution loop
+    while (isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) { // Check isGroupExecuting flag
       if (executionControllerRef.current.signal.aborted) {
         setExecutionLog(prev => [...prev, `Turno ${currentTurn}: Ejecución cancelada por el usuario.`]);
         break;
@@ -225,7 +231,7 @@ export default function GruposTrabajoIAPage() {
           const errorMsg = "Error al parsear la respuesta JSON del Orquestador.";
           setExecutionLog(prev => [...prev, `Error Crítico: ${errorMsg} Respuesta: ${orchestratorResponse.orchestratorResponse}`]);
           toast({ variant: "destructive", title: "Error de Orquestador", description: errorMsg });
-          setIsGroupExecuting(false);
+          setIsGroupExecuting(false); 
           break;
         }
 
@@ -242,7 +248,7 @@ export default function GruposTrabajoIAPage() {
         // 3. Handle Next Step
         if (decision.next_agent_id.toUpperCase() === "COMPLETADO") {
           setExecutionLog(prev => [...prev, `\n--- Tarea Completada --- \nResultado Final del Grupo: ${decision.instruction_for_next_agent}`]);
-          setIsGroupExecuting(false);
+          setIsGroupExecuting(false); 
           break;
         }
 
@@ -263,51 +269,52 @@ export default function GruposTrabajoIAPage() {
           agentSystemPrompt: selectedAgent.systemPrompt,
         });
         setExecutionLog(prev => [...prev, `Respuesta de ${selectedAgent.name}: "${agentResponse.aiResponse.substring(0, 200)}${agentResponse.aiResponse.length > 200 ? "..." : ""}"`]);
-        currentOrchestratorInput = agentResponse.aiResponse; // Prepare for next turn
+        currentOrchestratorInput = agentResponse.aiResponse; // Prepare for next orchestrator turn
 
       } catch (error: any) {
         let friendlyMessage = "Ocurrió un error durante la ejecución del grupo.";
         if (error instanceof AppError) {
           friendlyMessage = error.friendlyMessage;
-          if (error.redirectTo) {
-            onOpenChange(false); 
+          if (error.redirectTo) { // Check for redirectTo property
+            setIsExecutionModalOpen(false); 
             router.push(error.redirectTo);
-            setIsGroupExecuting(false);
-            break;
+            setIsGroupExecuting(false); 
+            break; 
           }
         }
         setExecutionLog(prev => [...prev, `Error en Turno ${currentTurn}: ${friendlyMessage}`]);
-        addDebugLog({ message: `Error during group execution turn ${currentTurn}`, errorDetails: error, friendlyMessage, flowName: 'handleExecuteGroup' });
+        addDebugLog({ message: `Error during group execution turn ${currentTurn}`, errorDetails: error, friendlyMessage, flowName });
         toast({ variant: "destructive", title: "Error de Ejecución", description: friendlyMessage });
-        setIsGroupExecuting(false);
+        setIsGroupExecuting(false); 
         break;
       }
       currentTurn++;
     }
 
-    if (isGroupExecuting && currentTurn > MAX_EXECUTION_TURNS) {
+    if (isGroupExecuting && currentTurn > MAX_EXECUTION_TURNS) { // Still executing after max turns
       setExecutionLog(prev => [...prev, `\nSe alcanzó el número máximo de turnos (${MAX_EXECUTION_TURNS}). Ejecución detenida.`]);
     }
      if (!isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) { // Stopped by user or error before max turns
         setExecutionLog(prev => [...prev, `\nEjecución del grupo finalizada o detenida.`]);
     }
-    setIsGroupExecuting(false); // Ensure it's always false at the end
+    setIsGroupExecuting(false); // Ensure it's always false at the very end
     executionControllerRef.current = null;
   };
 
   /**
-   * Stops the currently active group execution.
+   * Stops the currently active group execution by setting the `isGroupExecuting` flag to false.
    */
   const handleStopExecution = () => {
     if (executionControllerRef.current) {
-      executionControllerRef.current.abort();
+      executionControllerRef.current.abort(); // Signal abortion if needed by flows
     }
     setIsGroupExecuting(false); // This will terminate the loop in handleExecuteGroup
-    addDebugLog(`Group execution stop requested for: ${executingGroup?.name}`);
+    addDebugLog({message: `Group execution stop requested for: ${executingGroup?.name}`, flowName: 'stopAIGroupExecution'});
   };
 
   /**
    * Handles the AI-assisted group definition suggestion.
+   * Calls an AI flow to get suggestions and pre-fills the form.
    */
   const handleSuggestGroup = async () => {
     if (!groupTaskDescription.trim()) {
@@ -315,7 +322,8 @@ export default function GruposTrabajoIAPage() {
       return;
     }
     setIsSuggestingGroup(true);
-    addDebugLog(`Requesting AI suggestion for group task: ${groupTaskDescription}`);
+    const flowName = 'suggestGroupDefinition';
+    addDebugLog({message: `Requesting AI suggestion for group task: ${groupTaskDescription}`, flowName});
     try {
       const agentInfos: AgentInfoForGroupSuggestion[] = availableAgentsForSelection.map(a => ({ id: a.id, name: a.name, description: a.description }));
       const suggestion = await callSuggestGroupDefinition({ groupTaskDescription, availableAgents: agentInfos });
@@ -324,9 +332,12 @@ export default function GruposTrabajoIAPage() {
       setGroupTaskDescription('');
       handleOpenForm(suggestion);
     } catch (error: any) {
+      addDebugLog({message: 'AI group suggestion failed', errorDetails: error.originalError || error, friendlyMessage: error.friendlyMessage, flowName});
       const errorMsg = error instanceof AppError ? error.friendlyMessage : error.message || 'No se pudo obtener la sugerencia.';
       toast({ variant: 'destructive', title: 'Error de Sugerencia', description: errorMsg });
-      addDebugLog({message: 'AI group suggestion failed', errorDetails: error, friendlyMessage: errorMsg});
+      if (error instanceof AppError && error.redirectTo) {
+        router.push(error.redirectTo);
+      }
     } finally {
       setIsSuggestingGroup(false);
     }
@@ -445,7 +456,7 @@ export default function GruposTrabajoIAPage() {
                 <DialogTitle>Ejecución del Grupo: {executingGroup?.name}</DialogTitle>
                 <DialogDescription>Tarea Principal: {executingGroup?.mainTask}</DialogDescription>
             </DialogHeader>
-            <div className="flex-grow overflow-hidden -mx-6"> {/* Apply negative margin to allow LogsDisplay to use full width */}
+            <div className="flex-grow overflow-hidden -mx-6"> 
                 <LogsDisplay title="Log de Ejecución Detallado" logs={executionLog} defaultExpanded={true} />
             </div>
             <DialogFooter className="pt-4 border-t">
@@ -473,34 +484,3 @@ export default function GruposTrabajoIAPage() {
     </div>
   );
 }
-
-// Helper to ensure execution log updates are visible
-const useExecutionLogUpdater = (logArray: string[], setLogArray: React.Dispatch<React.SetStateAction<string[]>>) => {
-  const addExecutionLog = (message: string) => {
-    setLogArray(prev => [...prev, message]);
-  };
-  return { addExecutionLog };
-};
-
-/**
- * Parses the orchestrator's JSON response.
- * @param {string} jsonString - The JSON string from the orchestrator.
- * @returns {{next_agent_id: string, instruction_for_next_agent: string, reasoning?: string} | null} Parsed decision or null if error.
- */
-function parseOrchestratorDecision(jsonString: string): {next_agent_id: string, instruction_for_next_agent: string, reasoning?: string} | null {
-  try {
-    const parsed = JSON.parse(jsonString);
-    if (parsed && typeof parsed.next_agent_id === 'string' && typeof parsed.instruction_for_next_agent === 'string') {
-      return {
-        next_agent_id: parsed.next_agent_id,
-        instruction_for_next_agent: parsed.instruction_for_next_agent,
-        reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : undefined,
-      };
-    }
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-    

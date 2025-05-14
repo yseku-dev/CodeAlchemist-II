@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card'; // Removed CardHeader etc. for PageSectionHeader
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,16 +18,26 @@ import { GENERAL_PRIORITIES, GeneralPriority } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CodeBlock from '@/components/code-block';
 import ConfirmDialog from '@/components/confirm-dialog';
-import { refactorProjectWithAI } from '@/ai/flows/refactor-project-with-ai';
+import { callRefactorProjectWithAI } from '@/utils/apiClient';
 import LogsDisplay from '@/components/logs-display';
 import { Separator } from "@/components/ui/separator";
 import { useAppState } from '@/context/AppStateContext';
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
+import { useRouter } from 'next/navigation';
+import { AppError } from '@/utils/AppError';
+
 
 type ProjectSourceType = "upload" | "git";
 const NINGUNA_PRIORITY_VALUE = "__none__"; 
 
+/**
+ * @fileOverview RefactorizarProyectoPage component allows users to analyze an existing project
+ * for refactoring suggestions. Users can upload a project or provide a Git URL,
+ * specify refactoring goals and priorities, and then review and manage AI-generated suggestions.
+ */
 export default function RefactorizarProyectoPage() {
-  const { agents, getAgentById } = useAppState();
+  const { agents, getAgentById } = useAppState(); 
+  const router = useRouter();
   
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(
     () => ({ type: 'Ajustes Globales' as const })
@@ -40,7 +50,7 @@ export default function RefactorizarProyectoPage() {
         ? { type: 'Agente' as const, id: defaultAgentFound.id, name: defaultAgentFound.name }
         : { type: 'Ajustes Globales' as const };
       
-      if (llmConfigSource?.type !== newConfig.type || llmConfigSource?.id !== newConfig.id) {
+      if (llmConfigSource?.type !== newConfig.type || (llmConfigSource.type === newConfig.type && llmConfigSource.id !== newConfig.id)) {
         setLlmConfigSource(newConfig);
       }
     }
@@ -68,6 +78,11 @@ export default function RefactorizarProyectoPage() {
   const { addLog } = useDebug();
   const { toast } = useToast();
 
+  /**
+   * Handles changes to the file input for project source.
+   * Validates file type and size.
+   * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
+   */
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -77,7 +92,7 @@ export default function RefactorizarProyectoPage() {
 
       if ((allowedTypes.includes(file.type) || isAllowedTextFile || file.name.endsWith('.zip')) && file.size <= 10 * 1024 * 1024) {
         setUploadedFile(file);
-        addLog(`File selected: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+        addLog(`File selected for refactor: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
       } else {
         toast({ variant: "destructive", title: "Archivo Inválido", description: "Tipo de archivo no admitido o tamaño excede 10MB." });
         setUploadedFile(null);
@@ -86,22 +101,24 @@ export default function RefactorizarProyectoPage() {
     }
   };
 
+  /**
+   * Initiates the project refactoring analysis by calling the AI flow.
+   * Manages loading states, error handling, and displays results.
+   */
   const handleAnalyze = async () => {
     setIsLoading(true);
     setError(null);
     setSuggestions([]);
     setGroupLog(undefined);
+    let flowName = 'refactorProjectWithAI';
 
     let projectSourceValue = "";
     if (projectSourceType === "upload" && uploadedFile) {
-      // For real analysis, we'd need to read the file content or send it.
-      // Here, we're just sending a reference. The Genkit flow needs to handle this.
-      // For a true implementation, this would involve FileReader to read as data URI or text.
       projectSourceValue = `uploaded_file_reference:${uploadedFile.name}`; 
-      addLog(`Analyzing uploaded file reference: ${uploadedFile.name}`);
+      addLog({message: `Analyzing uploaded file reference for refactor: ${uploadedFile.name}`, flowName});
     } else if (projectSourceType === "git" && gitUrl) {
       projectSourceValue = gitUrl;
-      addLog(`Analyzing Git URL: ${gitUrl}`);
+      addLog({message: `Analyzing Git URL for refactor: ${gitUrl}`, flowName});
     } else {
       toast({ variant: "destructive", title: "Fuente del Proyecto Requerida", description: "Sube un archivo o proporciona una URL de Git." });
       setIsLoading(false);
@@ -116,10 +133,10 @@ export default function RefactorizarProyectoPage() {
       focusArea: focusArea || undefined,
     };
     
-    addLog(`Refactoring project with input: ${JSON.stringify(input)} and config: ${JSON.stringify(llmConfigSource)}`);
+    addLog({message: `Refactoring project with input: ${JSON.stringify(input)} and config: ${JSON.stringify(llmConfigSource)}`, flowName});
 
     try {
-      const aiResult: AIResult = await refactorProjectWithAI(input);
+      const aiResult: AIResult = await callRefactorProjectWithAI(input);
       
       let finalResult: AIResult = { ...aiResult, groupLog: undefined };
 
@@ -129,17 +146,29 @@ export default function RefactorizarProyectoPage() {
       setGroupLog(finalResult.groupLog);
       setSuggestions(finalResult.suggestions.map((s,idx) => ({...s, id: `suggestion-${idx}-${Date.now()}`, status: 'pending'})));
       toast({ title: "Análisis Completado", description: "Sugerencias de refactorización generadas." });
-      addLog("Refactoring analysis successful.");
+      addLog({message: "Refactoring analysis successful.", flowName});
     } catch (e: any) {
-      const errorMsg = e.message || "Ocurrió un error durante el análisis de refactorización.";
-      setError(errorMsg);
-      addLog(`Refactoring analysis failed: ${errorMsg}`);
-      toast({ variant: "destructive", title: "Error de Análisis", description: errorMsg });
+      addLog({ message: "Refactoring analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      if (e instanceof AppError) {
+        setError(e.friendlyMessage);
+        toast({ variant: "destructive", title: "Error de Análisis", description: e.friendlyMessage });
+        if (e.redirectTo) {
+          router.push(e.redirectTo);
+        }
+      } else {
+        const errorMsg = e.message || "Ocurrió un error durante el análisis de refactorización.";
+        setError(errorMsg);
+        toast({ variant: "destructive", title: "Error de Análisis", description: errorMsg });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * Marks a refactoring suggestion as applied in the UI.
+   * @param {string} id - The ID of the suggestion to apply.
+   */
   const handleApplySuggestion = (id: string) => {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'applied' } : s));
     const suggestionArea = suggestions.find(s=>s.id===id)?.area || 'desconocida';
@@ -147,6 +176,10 @@ export default function RefactorizarProyectoPage() {
     addLog(`Suggestion ${id} marked as applied.`);
   };
 
+  /**
+   * Opens a modal to display the diff for a suggestion.
+   * @param {RefactorSuggestion} suggestion - The suggestion for which to show the diff.
+   */
   const handleViewDiff = (suggestion: RefactorSuggestion) => {
     if (suggestion.snippetSuggested) {
       setCurrentDiff(suggestion.snippetSuggested);
@@ -156,12 +189,19 @@ export default function RefactorizarProyectoPage() {
     }
   };
   
+  /**
+   * Marks a refactoring suggestion as discarded in the UI.
+   * @param {string} id - The ID of the suggestion to discard.
+   */
   const handleDiscardSuggestion = (id: string) => {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'discarded' } : s));
     toast({ title: "Sugerencia Descartada" });
     addLog(`Suggestion ${id} discarded.`);
   };
 
+  /**
+   * Marks all pending suggestions as applied.
+   */
   const handleApplyAll = () => {
     setSuggestions(prev => prev.map(s => s.status === 'pending' ? { ...s, status: 'applied' } : s));
     toast({ title: "Todas Marcadas como Aplicadas", description: "Todas las sugerencias pendientes han sido marcadas. Aplica los cambios manualmente." });
@@ -172,13 +212,11 @@ export default function RefactorizarProyectoPage() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
       <Card className="lg:col-span-1">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <GitPullRequestDraft className="h-7 w-7 text-primary" />
-            <span>Refactorizar Proyecto</span>
-          </CardTitle>
-          <CardDescription>Analiza un proyecto para obtener sugerencias de refactorización y aplícalas.</CardDescription>
-        </CardHeader>
+        <PageSectionHeader
+          icon={GitPullRequestDraft}
+          title="Refactorizar Proyecto"
+          description="Analiza un proyecto para obtener sugerencias de refactorización y aplícalas."
+        />
         <CardContent className="space-y-6">
           <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
 
@@ -252,17 +290,15 @@ export default function RefactorizarProyectoPage() {
       </Card>
 
       <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <ListChecks className="h-7 w-7 text-primary" />
-           <span>Resultados y Sugerencias</span>
-          </CardTitle>
-          {suggestions.length > 0 && (
-            <div className="flex justify-end">
-                <Button onClick={handleApplyAll} size="sm" variant="outline" disabled={isLoading || suggestions.every(s => s.status !== 'pending')}>Marcar Todas como Aplicadas</Button>
-            </div>
-          )}
-        </CardHeader>
+        <PageSectionHeader
+            icon={ListChecks}
+            title="Resultados y Sugerencias"
+            actions={suggestions.length > 0 ? (
+                <Button onClick={handleApplyAll} size="sm" variant="outline" disabled={isLoading || suggestions.every(s => s.status !== 'pending')}>
+                    Marcar Todas como Aplicadas
+                </Button>
+            ) : null}
+        />
         <CardContent>
           {error && <ErrorDisplay error={error} />}
           {isLoading && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">Analizando proyecto...</p></div>}
@@ -341,5 +377,3 @@ export default function RefactorizarProyectoPage() {
     </div>
   );
 }
-
-    

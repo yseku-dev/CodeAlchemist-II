@@ -16,11 +16,21 @@ import type { LLMConfigSourceOption, ChatMessage, Agent, AIAgentGroup } from '@/
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from '@/utils/AppError';
 import { callChatWithAgentOrGlobal, callChatWithAIGroup } from '@/utils/apiClient';
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
+import { useRouter } from 'next/navigation';
 
 
+/**
+ * @fileOverview ChatIAPage component allows users to interact with an AI assistant.
+ * Users can select a global LLM configuration, a specific agent, or an AI agent group
+ * to direct their conversation. The component handles message sending, display,
+ * error handling, and chat clearing.
+ */
 export default function ChatIAPage() {
   const { addLog: addLogContext } = useDebug();
   const { agents, groups, getAgentById } = useAppState();
+  const router = useRouter();
+
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -36,6 +46,10 @@ export default function ChatIAPage() {
     }
   }, [messages]);
 
+  /**
+   * Handles sending the current message to the AI based on the selected LLM configuration.
+   * It updates the chat history with user and AI messages and handles loading states and errors.
+   */
   const handleSendMessage = async () => {
     if (!currentMessage.trim()) return;
 
@@ -50,7 +64,9 @@ export default function ChatIAPage() {
     setCurrentMessage('');
     setIsLoading(true);
     setError(null);
-    addLogContext(`User message to AI: ${userMessage.content.substring(0,50)}... Config: ${JSON.stringify(llmConfigSource)}`);
+    const flowName = llmConfigSource?.type === 'Grupo' ? 'chatWithAIGroup' : 'chatWithAgentOrGlobal';
+    addLogContext({ message: `User message to AI: ${userMessage.content.substring(0,50)}... Config: ${JSON.stringify(llmConfigSource)}`, flowName });
+
 
     let aiResponseContent = "Error: No se pudo obtener respuesta de la IA.";
 
@@ -101,30 +117,34 @@ export default function ChatIAPage() {
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, assistantMessage]);
-      addLogContext(`AI response: ${aiResponseContent.substring(0,50)}...`);
+      addLogContext({ message: `AI response: ${aiResponseContent.substring(0,50)}...`, flowName });
     } catch (e: any) {
-      addLogContext({ message: "AI chat error in UI", error: e });
+      addLogContext({ message: "AI chat error in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      
+      const systemErrorMessageContent = e instanceof AppError ? e.friendlyMessage : (e.message || "Ocurrió un error al comunicarse con la IA.");
       const systemErrorMessage: ChatMessage = {
         id: uuidv4(),
         role: 'system',
-        content: `Error: ${e.message}`,
+        content: `Error: ${systemErrorMessageContent}`,
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, systemErrorMessage]);
       
-      if (e instanceof AppError) {
-        setError(e.friendlyMessage);
-        toast({ variant: "destructive", title: "Error de Chat", description: e.friendlyMessage });
-      } else {
-        const errorMsg = e.message || "Ocurrió un error al comunicarse con la IA.";
-        setError(errorMsg);
-        toast({ variant: "destructive", title: "Error de Chat", description: errorMsg });
+      setError(systemErrorMessageContent);
+      toast({ variant: "destructive", title: "Error de Chat", description: systemErrorMessageContent });
+
+      if (e instanceof AppError && e.redirectTo) {
+        router.push(e.redirectTo);
       }
     } finally {
       setIsLoading(false);
     }
   };
   
+  /**
+   * Handles key press events in the textarea, sending the message on Enter (without Shift).
+   * @param {React.KeyboardEvent<HTMLTextAreaElement>} event - The keyboard event.
+   */
   const handleKeyPress = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -132,6 +152,9 @@ export default function ChatIAPage() {
     }
   };
 
+  /**
+   * Clears the current chat history and error state.
+   */
   const handleClearChat = () => {
     setMessages([]);
     setError(null);
@@ -139,8 +162,12 @@ export default function ChatIAPage() {
     addLogContext("Chat history cleared.");
   };
   
+  /**
+   * Attempts to use the AI to analyze and suggest a fix for a displayed error message.
+   * @param {string} errorMsg - The error message to analyze.
+   */
   const handleAutoFixError = async (errorMsg: string) => {
-    addLogContext(`Attempting Auto-Fix for chat error: ${errorMsg}`);
+    addLogContext({message: `Attempting Auto-Fix for chat error: ${errorMsg}`, flowName: 'chatWithAgentOrGlobal (AutoFix)'});
     const userFixRequest: ChatMessage = {
       id: uuidv4(),
       role: 'user',
@@ -149,8 +176,8 @@ export default function ChatIAPage() {
     };
     setMessages(prev => [...prev, userFixRequest]);
     setIsLoading(true);
+    setError(null);
     try {
-      // Using the global config for auto-fix for simplicity
       const result = await callChatWithAgentOrGlobal({ userMessage: userFixRequest.content });
       const assistantMessage: ChatMessage = {
         id: uuidv4(),
@@ -160,18 +187,19 @@ export default function ChatIAPage() {
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (e: any) {
-        addLogContext({ message: "Auto-fix attempt failed", error: e });
+        addLogContext({ message: "Auto-fix attempt failed", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName: 'chatWithAgentOrGlobal (AutoFix)' });
+        const systemErrorMessageContent = e instanceof AppError ? e.friendlyMessage : (e.message || "No se pudo completar el auto-fix.");
          const systemErrorMessage: ChatMessage = {
             id: uuidv4(),
             role: 'system',
-            content: `Error durante el Auto-Fix: ${e.message}`,
+            content: `Error durante el Auto-Fix: ${systemErrorMessageContent}`,
             timestamp: new Date().toISOString(),
           };
           setMessages(prev => [...prev, systemErrorMessage]);
-           if (e instanceof AppError) {
-            toast({ variant: "destructive", title: "Error en Auto-Fix", description: e.friendlyMessage });
-          } else {
-            toast({ variant: "destructive", title: "Error en Auto-Fix", description: e.message || "No se pudo completar el auto-fix." });
+          setError(systemErrorMessageContent);
+          toast({ variant: "destructive", title: "Error en Auto-Fix", description: systemErrorMessageContent });
+          if (e instanceof AppError && e.redirectTo) {
+            router.push(e.redirectTo);
           }
     } finally {
         setIsLoading(false);
@@ -180,29 +208,29 @@ export default function ChatIAPage() {
 
   return (
     <Card className="w-full h-full flex flex-col">
-      <CardHeader className="border-b">
-        <CardTitle className="flex items-center gap-3">
-          <MessageCircle className="h-7 w-7 text-primary" />
-          <span>Chat con IA</span>
-        </CardTitle>
-        <CardDescription>Interactúa con un asistente IA para consultas, ideas y más.</CardDescription>
-        <div className="pt-2">
-         <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
+      <PageSectionHeader
+          icon={MessageCircle}
+          title="Chat con IA"
+          description="Interactúa con un asistente IA para consultas, ideas y más."
+      />
+      <CardContent className="flex-1 overflow-hidden p-0 flex flex-col"> {/* Modified for flex layout */}
+        <div className="p-4 border-b"> {/* Moved LLMConfigSelector to its own div within CardContent */}
+          <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
         </div>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-hidden p-0">
-        <ScrollArea className="h-full p-4" ref={scrollAreaRef}>
+        <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}> {/* ScrollArea now takes remaining space */}
           <div className="space-y-4">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] p-3 rounded-lg ${
+                <div className={`max-w-[85%] p-3 rounded-lg shadow-sm ${
                   msg.role === 'user' ? 'bg-primary text-primary-foreground' : 
-                  msg.role === 'assistant' ? 'bg-muted' : 'bg-destructive/20 text-destructive-foreground'
+                  msg.role === 'assistant' ? 'bg-muted' : 
+                  'bg-destructive/10 text-destructive-foreground border border-destructive/30 flex items-start gap-2' // System/Error
                 }`}>
                   <div className="flex items-center gap-2 mb-1">
-                    {msg.role === 'assistant' && <Bot className="h-5 w-5" />}
+                    {msg.role === 'assistant' && <Bot className="h-5 w-5 text-accent" />}
                     {msg.role === 'user' && <User className="h-5 w-5" />}
-                    <span className="font-semibold text-sm capitalize">{msg.role === 'assistant' ? 'Asistente IA' : msg.role}</span>
+                    {msg.role === 'system' && <Bot className="h-5 w-5 text-destructive" />} 
+                    <span className="font-semibold text-sm capitalize">{msg.role === 'assistant' ? 'Asistente IA' : msg.role === 'system' ? 'Sistema' : 'Usuario'}</span>
                   </div>
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   <p className="text-xs opacity-60 mt-1 text-right">{new Date(msg.timestamp).toLocaleTimeString()}</p>
@@ -211,8 +239,8 @@ export default function ChatIAPage() {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] p-3 rounded-lg bg-muted flex items-center">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                <div className="max-w-[85%] p-3 rounded-lg bg-muted flex items-center shadow-sm">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
                   <span className="text-sm">Pensando...</span>
                 </div>
               </div>
@@ -221,7 +249,7 @@ export default function ChatIAPage() {
         </ScrollArea>
       </CardContent>
       <CardFooter className="p-4 border-t">
-        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || "Error desconocido en chat")}/>}
+        {error && !isLoading && <div className="w-full mb-2"><ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || "Error desconocido en chat")}/></div>}
         <div className="flex w-full items-center gap-2">
           <Textarea
             value={currentMessage}

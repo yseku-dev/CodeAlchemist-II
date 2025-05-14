@@ -29,12 +29,18 @@ export default function GlobalError({ error, reset }: GlobalErrorProps): JSX.Ele
   useEffect(() => {
     // Log the error to a centralized monitoring system in production
     console.error("GlobalError caught an error:", error);
+    if (error.message) {
+      console.error("Error Message:", error.message);
+    }
     if (error.stack) {
       console.error("Stack trace:", error.stack);
     }
     if (error.digest) {
       console.error("Error digest (Next.js specific for server errors):", error.digest);
     }
+    // En producción, enviar este 'error' a Sentry:
+    // import * as Sentry from "@sentry/nextjs";
+    // Sentry.captureException(error);
   }, [error]);
 
   return (

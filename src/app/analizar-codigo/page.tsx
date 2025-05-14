@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card'; // CardHeader, CardTitle, CardDescription removed
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,14 +17,24 @@ import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, AnalyzeCodeSnippetInput, AnalyzeCodeSnippetOutput } from '@/types';
 import { AppError } from '@/utils/AppError';
 import { callAnalyzeCodeSnippet } from '@/utils/apiClient';
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
+import { useRouter } from 'next/navigation';
 
 
+/**
+ * @fileOverview AnalizarCodigoPage component allows users to analyze code snippets or files.
+ * Users can upload a file, fetch code from a Git URL, or paste code directly.
+ * The component then calls an AI flow to get an explanation and suggested improvements.
+ * Results, including original and suggested code, are displayed, and can be saved as snapshots.
+ */
 export default function AnalizarCodigoPage() {
-  const { agents, groups, getAgentById } = useAppState();
+  const { agents, groups, getAgentById, addSnapshot } = useAppState();
+  const router = useRouter();
+
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [codeToAnalyze, setCodeToAnalyze] = useState('');
   const [fileUrl, setFileUrl] = useState('');
-  const [uploadedFileContent, setUploadedFileContent] = useState<string | null>(null);
+  const [uploadedFileContent, setUploadedFileContent] = useState<string | null>(null); // Not directly used for analysis input, but for pre-filling
   const [userAnalysisPrompt, setUserAnalysisPrompt] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
@@ -34,17 +44,21 @@ export default function AnalizarCodigoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addLog } = useDebug();
   const { toast } = useToast();
-  const { addSnapshot } = useAppState();
+  // const { addSnapshot } = useAppState(); // Already destructured from useAppState
 
+  /**
+   * Handles changes to the file input, reading the file content and pre-filling the textarea.
+   * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
+   */
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.type.startsWith('text/') && file.size <= 5 * 1024 * 1024) { // Max 5MB for text files
+      if (file.type.startsWith('text/') && file.size <= 5 * 1024 * 1024) { 
         const reader = new FileReader();
         reader.onload = (e) => {
           const content = e.target?.result as string;
-          setUploadedFileContent(content);
-          setCodeToAnalyze(content); // Pre-fill textarea
+          setUploadedFileContent(content); // Keep for potential reference if needed, not sent to AI
+          setCodeToAnalyze(content); 
           addLog(`File loaded: ${file.name}, size: ${file.size}`);
         };
         reader.readAsText(file);
@@ -56,6 +70,10 @@ export default function AnalizarCodigoPage() {
     }
   };
 
+  /**
+   * Fetches code content from a given Git URL.
+   * Note: This is a simplified client-side fetch. A robust solution might require a backend proxy.
+   */
   const handleFetchFromUrl = async () => {
     if (!fileUrl.trim()) {
       toast({ variant: "destructive", title: "URL Vacía", description: "Introduce una URL de archivo Git." });
@@ -65,15 +83,13 @@ export default function AnalizarCodigoPage() {
     setError(null);
     addLog(`Fetching code from URL: ${fileUrl}`);
     try {
-      // This is a placeholder. Real fetching needs a backend or CORS-enabled endpoint.
-      // For a robust solution, this would ideally be a server action that fetches the URL content.
-      const response = await fetch(fileUrl);
+      const response = await fetch(fileUrl); // Potential CORS issues here for arbitrary URLs
       if (!response.ok) {
         throw new Error(`Error al obtener de la URL: ${response.status} ${response.statusText}`);
       }
       const text = await response.text();
       setCodeToAnalyze(text);
-      setUploadedFileContent(null); // Clear file upload if URL is used
+      setUploadedFileContent(null); 
       toast({ title: "Código Obtenido", description: "Contenido de la URL cargado." });
     } catch (e: any) {
       const errorMsg = e.message || "Error al obtener el código de la URL.";
@@ -85,6 +101,10 @@ export default function AnalizarCodigoPage() {
     }
   };
 
+  /**
+   * Initiates the code analysis process by calling the AI flow.
+   * Manages loading states, error handling, and displays results.
+   */
   const handleAnalyze = async () => {
     if (!codeToAnalyze.trim()) {
       toast({ variant: "destructive", title: "Código Vacío", description: "Introduce o carga código para analizar." });
@@ -95,15 +115,16 @@ export default function AnalizarCodigoPage() {
     setResult(null);
     
     let agentSystemPrompt: string | undefined;
+    let flowName = 'analyzeCodeSnippet';
+
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
       const agent = getAgentById(llmConfigSource.id);
       agentSystemPrompt = agent?.systemPrompt;
+      flowName = `analyzeCodeSnippet (Agent: ${agent?.name || llmConfigSource.id})`;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
       const group = groups.find(g => g.id === llmConfigSource.id);
-      // For group, use its mainTask as context or a specific agent's prompt if defined.
-      // Here, we might pass the group's main task or a generic instruction.
-      // The `analyzeCodeSnippet` flow's prompt might need to be aware of this context.
       agentSystemPrompt = group?.mainTask || "Analiza este código en el contexto de un grupo de trabajo especializado.";
+      flowName = `analyzeCodeSnippet (Group: ${group?.name || llmConfigSource.id})`;
       addLog(`Analyzing with Group: ${llmConfigSource.name}. Using group's task/context for analysis flow.`);
     }
 
@@ -113,18 +134,22 @@ export default function AnalizarCodigoPage() {
       agentSystemPrompt: agentSystemPrompt
     };
     
-    addLog(`Analyzing code with config: ${JSON.stringify(llmConfigSource)}, input: ${JSON.stringify({code: codeToAnalyze.substring(0,50)+"...", userPrompt: analysisInput.userPrompt})}`);
+    addLog({ message: `Analyzing code with input: ${JSON.stringify({code: codeToAnalyze.substring(0,50)+"...", userPrompt: analysisInput.userPrompt})}`, config: llmConfigSource, flowName });
+
 
     try {
       const aiResult = await callAnalyzeCodeSnippet(analysisInput);
       setResult(aiResult);
-      addLog("Code analysis successful.");
+      addLog({ message: "Code analysis successful.", flowName });
       toast({ title: "Análisis Completado", description: "El código ha sido analizado." });
     } catch (e: any) {
-      addLog({ message: "Code analysis failed in UI", error: e });
+      addLog({ message: "Code analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
         toast({ variant: "destructive", title: "Error de Análisis", description: e.friendlyMessage });
+        if (e.redirectTo) {
+          router.push(e.redirectTo);
+        }
       } else {
         const errorMsg = e.message || "Ocurrió un error durante el análisis.";
         setError(errorMsg);
@@ -135,6 +160,10 @@ export default function AnalizarCodigoPage() {
     }
   };
 
+  /**
+   * Saves a snapshot of either the original or suggested code.
+   * @param {'original' | 'suggested'} type - The type of code to save.
+   */
   const handleSaveSnapshot = (type: 'original' | 'suggested') => {
     if (!result) return;
     const codeToSave = type === 'original' ? result.originalCode : result.suggestedCode;
@@ -142,27 +171,33 @@ export default function AnalizarCodigoPage() {
         toast({variant: "destructive", title: "Error", description: `No hay código ${type} para guardar.`});
         return;
     }
-    const name = `Código ${type} - ${new Date().toLocaleTimeString()}`;
+    const name = `Análisis - Código ${type === 'original' ? 'Original' : 'Sugerido'} - ${new Date().toLocaleTimeString()}`;
     addSnapshot({ name, code: codeToSave, source: type });
   };
   
+  /**
+   * Attempts to use AI to provide a solution or explanation for a displayed error.
+   * @param {string} errorMsg - The error message to analyze.
+   */
   const handleAutoFixError = async (errorMsg: string) => {
-    addLog(`Attempting Auto-Fix for error: ${errorMsg}`);
+    // This function would typically call another AI flow designed for error explanation/fixing.
+    // For now, it shows a toast and logs.
+    const autoFixFlowName = 'chatWithAgentOrGlobal (AutoFix Error)';
+    addLog({message: `Attempting Auto-Fix for error: ${errorMsg}`, flowName: autoFixFlowName });
     toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
-    // This would call another flow, perhaps a generic error analysis flow.
-    // For now, it's a placeholder for UI interaction.
+    // Example: 
+    // const fixAttempt = await callChatWithAgentOrGlobal({ userMessage: `Explica este error y cómo solucionarlo: ${errorMsg}`});
+    // Show fixAttempt.aiResponse in a dialog or toast.
   };
 
 
   return (
     <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <ScanLine className="h-7 w-7 text-primary" />
-          <span>Analizar Código</span>
-        </CardTitle>
-        <CardDescription>Obtén análisis detallados y sugerencias de mejora para fragmentos o archivos de código.</CardDescription>
-      </CardHeader>
+      <PageSectionHeader
+        icon={ScanLine}
+        title="Analizar Código"
+        description="Obtén análisis detallados y sugerencias de mejora para fragmentos o archivos de código."
+      />
       <CardContent className="space-y-6">
         <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
         
@@ -184,7 +219,7 @@ export default function AnalizarCodigoPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">O pega el código abajo</span>
+              <span className="bg-card px-2 text-muted-foreground">O pega el código abajo</span>
             </div>
           </div>
           <Textarea

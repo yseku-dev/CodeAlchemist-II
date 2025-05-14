@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card'; // CardHeader, CardTitle, CardDescription removed
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,19 @@ import LogsDisplay from '@/components/logs-display';
 import { useAppState } from '@/context/AppStateContext';
 import { AppError } from '@/utils/AppError';
 import { callGenerateProjectStructure } from '@/utils/apiClient';
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
+import { useRouter } from 'next/navigation';
 
-
+/**
+ * @fileOverview GenerarProyectoPage component allows users to generate a base project structure.
+ * Users describe the project, select an LLM configuration source, and the AI generates
+ * a suggested project name, notes, and a list of files with their content.
+ * The generated structure can be downloaded as a JSON file.
+ */
 export default function GenerarProyectoPage() {
   const { agents, groups, getAgentById } = useAppState();
+  const router = useRouter();
+
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [description, setDescription] = useState('');
   const [currentPromptForDialog, setCurrentPromptForDialog] = useState('');
@@ -34,6 +43,11 @@ export default function GenerarProyectoPage() {
   const { addLog } = useDebug();
   const { toast } = useToast();
 
+  /**
+   * Handles the project generation process once confirmed by the user.
+   * It calls the AI flow with the final prompt and updates the UI with results or errors.
+   * @param {string} finalPrompt - The prompt to be used for project generation.
+   */
   const handleProjectGeneration = async (finalPrompt: string) => {
     setShowConfirmDialog(false);
     setIsLoading(true);
@@ -41,13 +55,19 @@ export default function GenerarProyectoPage() {
     setResult(null);
     
     let agentSystemPrompt: string | undefined;
+    let flowName = 'generateProjectStructure';
+
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
       const agent = getAgentById(llmConfigSource.id);
       agentSystemPrompt = agent?.systemPrompt;
+      flowName = `generateProjectStructure (Agent: ${agent?.name || llmConfigSource.id})`;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
       const group = groups.find(g => g.id === llmConfigSource.id);
       agentSystemPrompt = group?.mainTask || "Genera un proyecto basado en la siguiente descripción, actuando como un orquestador de un grupo de agentes especializados.";
-      addLog(`Generating project with Group: ${llmConfigSource.name}. Using group's task/context for generation flow.`);
+      flowName = `generateProjectStructure (Group: ${group?.name || llmConfigSource.id})`;
+      addLog({message: `Generating project with Group: ${llmConfigSource.name}. Using group's task/context for generation flow.`, flowName});
+    } else {
+      addLog({message: `Generating project with Global settings. Prompt: ${finalPrompt.substring(0,100)}...`, flowName});
     }
 
     const generationInput: GenerateProjectInput = {
@@ -55,7 +75,7 @@ export default function GenerarProyectoPage() {
       agentSystemPrompt: agentSystemPrompt,
     };
     
-    addLog(`Generating project with config: ${JSON.stringify(llmConfigSource)}, input: ${JSON.stringify(generationInput).substring(0,100)}...`);
+    addLog({message: `Generating project input: ${JSON.stringify(generationInput).substring(0,100)}...`, config: llmConfigSource, flowName});
 
     try {
       const aiResult = await callGenerateProjectStructure(generationInput);
@@ -65,14 +85,17 @@ export default function GenerarProyectoPage() {
         groupLogForDisplay = `(Simulación de Log de Grupo para Generación de Proyecto)\nTurno 1: Orquestador (usando contexto de '${llmConfigSource.name}') -> AgenteDiseñadorProyectos. Tarea: \"${finalPrompt.substring(0, 100)}...\".\nTurno 2: AgenteDiseñadorProyectos -> Estructura de proyecto generada.`;
       }
 
-      setResult({...aiResult, groupLog: groupLogForDisplay}); // groupLog is part of ProjectGenerationResult type
-      addLog("Project generation successful.");
+      setResult({...aiResult, groupLog: groupLogForDisplay});
+      addLog({message: "Project generation successful.", flowName});
       toast({ title: "Proyecto Generado", description: "La estructura base del proyecto ha sido generada." });
     } catch (e: any) {
-      addLog({ message: "Project generation failed in UI", error: e });
+      addLog({ message: "Project generation failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
         toast({ variant: "destructive", title: "Error de Generación", description: e.friendlyMessage });
+        if (e.redirectTo) {
+          router.push(e.redirectTo);
+        }
       } else {
         const errorMsg = e.message || "Ocurrió un error al generar el proyecto.";
         setError(errorMsg);
@@ -83,6 +106,10 @@ export default function GenerarProyectoPage() {
     }
   };
   
+  /**
+   * Handles the click event for the "Generar Proyecto" button.
+   * Validates input and opens the confirmation dialog.
+   */
   const handleGenerateClick = () => {
     if (!description.trim()) {
       toast({ variant: "destructive", title: "Descripción Vacía", description: "Por favor, describe tu proyecto."});
@@ -92,13 +119,16 @@ export default function GenerarProyectoPage() {
     setShowConfirmDialog(true);
   };
 
+  /**
+   * Handles the download of the generated project structure as a JSON file.
+   */
   const handleDownloadProject = () => {
     if (!result) {
       toast({ variant: "destructive", title: "Sin Resultados", description: "No hay estructura de proyecto para descargar." });
       return;
     }
     const filename = `${result.projectName || 'proyecto-generado'}.json`;
-    const jsonString = JSON.stringify(result, null, 2); // result already includes files
+    const jsonString = JSON.stringify(result, null, 2); 
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -112,20 +142,26 @@ export default function GenerarProyectoPage() {
     addLog(`Project structure "${result.projectName}" downloaded as JSON.`);
   };
 
+  /**
+   * Placeholder for an AI-driven error fixing mechanism for this page.
+   * @param {string} errorMsg - The error message to be fixed.
+   */
   const handleAutoFixError = async (errorMsg: string) => {
-    addLog(`Attempting Auto-Fix for error: ${errorMsg}`);
+    const autoFixFlowName = 'chatWithAgentOrGlobal (AutoFix Error)';
+    addLog({message: `Attempting Auto-Fix for error: ${errorMsg}`, flowName: autoFixFlowName});
     toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
+    // Example:
+    // const fixAttempt = await callChatWithAgentOrGlobal({ userMessage: `Explica este error y cómo solucionarlo: ${errorMsg}`});
+    // Show fixAttempt.aiResponse in a dialog or toast.
   };
 
   return (
     <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <FolderPlus className="h-7 w-7 text-primary" />
-          <span>Generar Proyecto</span>
-        </CardTitle>
-        <CardDescription>Crea una estructura base para nuevos proyectos a partir de tus especificaciones.</CardDescription>
-      </CardHeader>
+      <PageSectionHeader
+        icon={FolderPlus}
+        title="Generar Proyecto"
+        description="Crea una estructura base para nuevos proyectos a partir de tus especificaciones."
+      />
       <CardContent className="space-y-6">
         <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
         

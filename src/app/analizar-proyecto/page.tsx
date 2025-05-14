@@ -1,50 +1,67 @@
 
 "use client";
 
-import React, { useState, useRef } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import React, { useState, useRef, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card'; // Removed CardHeader etc. for PageSectionHeader
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, FolderSearch } from 'lucide-react'; 
+import { Loader2, Upload, FolderSearch, ListChecks } from 'lucide-react'; 
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput, Agent } from '@/types'; // Updated types
-import { analyzeSelfCode as analyzeProjectFlow } from '@/ai/flows/analyze-self-code'; // Renamed import for clarity
+import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput, Agent } from '@/types'; 
+import { analyzeSelfCode as analyzeProjectFlow } from '@/ai/flows/analyze-self-code'; 
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useAppState } from '@/context/AppStateContext';
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
+import { useRouter } from 'next/navigation';
+import { AppError } from '@/utils/AppError';
+
 
 type ProjectSourceType = "upload" | "git";
 
+/**
+ * @fileOverview AnalizarProyectoPage component allows users to perform a holistic analysis
+ * of an entire project. Users can upload a project (ZIP/JSON) or provide a Git URL,
+ * select an LLM configuration, and specify analysis parameters. The component then
+ * displays the AI's overall assessment, identified areas, and specific suggestions.
+ */
 export default function AnalizarProyectoPage() {
-  const { agents, getAgentById } = useAppState(); // For group logic
+  const { agents, getAgentById } = useAppState(); 
+  const router = useRouter();
+
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [projectSourceType, setProjectSourceType] = useState<ProjectSourceType>("upload");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [gitUrl, setGitUrl] = useState('');
   const [searchDepth, setSearchDepth] = useState<string>('');
-  const [focusArea, setFocusArea] = useState<string>(''); // This serves as 'analysisPreferences'
+  const [focusArea, setFocusArea] = useState<string>(''); 
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<AnalyzeCodeOutput | null>(null); // Updated type
+  const [result, setResult] = useState<AnalyzeCodeOutput | null>(null); 
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addLog } = useDebug();
   const { toast } = useToast();
 
+  /**
+   * Handles changes to the file input for project source.
+   * Validates file type (ZIP/JSON) and size.
+   * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
+   */
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const allowedTypes = ['application/zip', 'application/json'];
       if (allowedTypes.includes(file.type) && file.size <= 25 * 1024 * 1024) { 
         setUploadedFile(file);
-        addLog(`Project file selected: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+        addLog(`Project file selected for analysis: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
       } else {
         toast({ variant: "destructive", title: "Archivo Inválido", description: "Sube un archivo .zip o .json de menos de 25MB." });
         setUploadedFile(null);
@@ -53,92 +70,15 @@ export default function AnalizarProyectoPage() {
     }
   };
 
-  const handleAnalyze = async () => {
-    setIsLoading(true);
-    setError(null);
-    setResult(null);
-
-    let analysisInput: AnalyzeCodeInput;
-
-    if (projectSourceType === "upload" && uploadedFile) {
-      // For uploaded files, we'd ideally read its content.
-      // For this version, we'll send a placeholder string or indicate it's an upload.
-      // A real implementation would require sending file content or path to a backend/flow.
-      // Let's assume the flow 'analyzeProjectFlow' can take a hint about the source.
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-          const projectContent = e.target?.result as string;
-          analysisInput = {
-            sourceCodeLocation: "UploadedString",
-            projectContent: projectContent, // Sending base64 for ZIPs might be better if flow supports it
-            analysisPreferences: focusArea || undefined,
-            searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-            focusArea: focusArea || undefined,
-          };
-          addLog(`Analyzing uploaded project: ${uploadedFile.name}`);
-          await executeAnalysis(analysisInput);
-      };
-      reader.onerror = () => {
-          toast({ variant: "destructive", title: "Error de Lectura", description: "No se pudo leer el archivo."});
-          setIsLoading(false);
-      }
-      // If it's a JSON, read as text. If ZIP, indicate it.
-      if (uploadedFile.type === 'application/json') {
-        reader.readAsText(uploadedFile);
-      } else if (uploadedFile.type === 'application/zip') {
-        // For ZIP, sending filename might be a hint to a backend. Here, we'll send a marker.
-        // Or, ideally, extract content if possible, or send base64.
-        // For now, we'll treat it like a string for the flow, with a note.
-        analysisInput = {
-            sourceCodeLocation: "UploadedString", // Or a new type like "UploadedZip" if flow handles it
-            projectContent: `Contenido del archivo ZIP: ${uploadedFile.name}. El flujo debe poder manejar esta referencia.`,
-            analysisPreferences: focusArea || undefined,
-            searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-            focusArea: focusArea || undefined,
-          };
-        addLog(`Analyzing uploaded ZIP project: ${uploadedFile.name} (content not sent, reference only)`);
-        await executeAnalysis(analysisInput);
-      } else {
-          toast({ variant: "destructive", title: "Tipo de Archivo no Soportado", description: "El análisis de este tipo de archivo no está completamente implementado para envío directo."});
-          setIsLoading(false);
-          return;
-      }
-      return; // Execution continues in FileReader onload
-    } else if (projectSourceType === "git" && gitUrl) {
-      analysisInput = {
-        sourceCodeLocation: "Git",
-        gitRepoUrl: gitUrl,
-        analysisPreferences: focusArea || undefined,
-        searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-        focusArea: focusArea || undefined,
-      };
-      addLog(`Analyzing Git project URL: ${gitUrl}`);
-    } else {
-      toast({ variant: "destructive", title: "Fuente del Proyecto Requerida", description: "Sube un archivo o proporciona una URL de Git." });
-      setIsLoading(false);
-      return;
-    }
-    
-    await executeAnalysis(analysisInput);
-  };
-
+  /**
+   * Initiates the project analysis by constructing the input and calling the AI flow.
+   * This function is called by `handleAnalyze` after initial setup.
+   * @param {AnalyzeCodeInput} input - The input for the analysis flow.
+   */
   const executeAnalysis = async (input: AnalyzeCodeInput) => {
-     addLog(`Analyzing project with input: ${JSON.stringify(input).substring(0, 200)}... and config: ${JSON.stringify(llmConfigSource)}`);
+     const flowName = 'analyzeProject (analyzeSelfCode flow)';
+     addLog({message: `Analyzing project with input: ${JSON.stringify(input).substring(0, 200)}... and config: ${JSON.stringify(llmConfigSource)}`, flowName});
     
-    let agentSystemPrompt: string | undefined;
-     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
-      const agent = getAgentById(llmConfigSource.id);
-      agentSystemPrompt = agent?.systemPrompt;
-      // Potentially pass this to flow if flow supports agent context for generic analysis
-    } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
-      const orchestrator = agents.find(a => a.id === 'orquestador-flujo-agentes');
-      agentSystemPrompt = orchestrator?.systemPrompt;
-      addLog(`Analyzing project with Group: ${llmConfigSource.name}. Orchestrator context might be used by flow.`);
-    }
-    // The analyzeProjectFlow (analyzeSelfCode) might need to be adapted to use agentSystemPrompt
-    // if we want specific agent's persona to drive the generic project analysis.
-    // For now, the flow's internal prompt will handle the logic.
-
     try {
       const aiResult = await analyzeProjectFlow(input); 
       let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
@@ -149,28 +89,99 @@ export default function AnalizarProyectoPage() {
 
       setResult(finalResult);
       toast({ title: "Análisis Completado", description: "El proyecto ha sido analizado." });
-      addLog("Project analysis successful.");
-    } catch (e: any)
-{
-      const errorMsg = e.message || "Ocurrió un error durante el análisis del proyecto.";
-      setError(errorMsg);
-      addLog(`Project analysis failed: ${errorMsg}`);
-      toast({ variant: "destructive", title: "Error de Análisis", description: errorMsg });
+      addLog({message: "Project analysis successful.", flowName});
+    } catch (e: any) {
+      addLog({ message: "Project analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      if (e instanceof AppError) {
+        setError(e.friendlyMessage);
+        toast({ variant: "destructive", title: "Error de Análisis", description: e.friendlyMessage });
+        if (e.redirectTo) {
+          router.push(e.redirectTo);
+        }
+      } else {
+        const errorMsg = e.message || "Ocurrió un error durante el análisis del proyecto.";
+        setError(errorMsg);
+        toast({ variant: "destructive", title: "Error de Análisis", description: errorMsg });
+      }
     } finally {
       setIsLoading(false);
     }
   }
 
+  /**
+   * Prepares and triggers the project analysis process.
+   * Handles file reading for uploaded projects before calling `executeAnalysis`.
+   */
+  const handleAnalyze = async () => {
+    setIsLoading(true);
+    setError(null);
+    setResult(null);
+
+    let analysisInput: AnalyzeCodeInput;
+
+    if (projectSourceType === "upload" && uploadedFile) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+          const projectContent = e.target?.result as string;
+          analysisInput = {
+            sourceCodeLocation: "UploadedString",
+            projectContent: projectContent, 
+            analysisPreferences: focusArea || undefined, // Legacy, use focusArea
+            searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+            focusArea: focusArea || undefined,
+          };
+          addLog(`Analyzing uploaded project: ${uploadedFile.name}`);
+          await executeAnalysis(analysisInput);
+      };
+      reader.onerror = () => {
+          toast({ variant: "destructive", title: "Error de Lectura", description: "No se pudo leer el archivo."});
+          setIsLoading(false);
+      }
+      if (uploadedFile.type === 'application/json') {
+        reader.readAsText(uploadedFile);
+      } else if (uploadedFile.type === 'application/zip') {
+        // For ZIP, the content will be a base64 string if read as data URL,
+        // or just a marker if not fully processed.
+        // For simplicity, for now, we'll treat it as a reference.
+        analysisInput = {
+            sourceCodeLocation: "UploadedString", 
+            projectContent: `Contenido del archivo ZIP: ${uploadedFile.name}. (El flujo debe poder interpretar esto como una referencia o el contenido real si se envía).`,
+            analysisPreferences: focusArea || undefined,
+            searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+            focusArea: focusArea || undefined,
+          };
+        addLog(`Analyzing uploaded ZIP project: ${uploadedFile.name} (reference/placeholder content)`);
+        await executeAnalysis(analysisInput);
+      } else {
+          toast({ variant: "destructive", title: "Tipo de Archivo no Soportado", description: "El análisis de este tipo de archivo no está completamente implementado."});
+          setIsLoading(false);
+      }
+      return; 
+    } else if (projectSourceType === "git" && gitUrl) {
+      analysisInput = {
+        sourceCodeLocation: "Git",
+        gitRepoUrl: gitUrl,
+        analysisPreferences: focusArea || undefined,
+        searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+        focusArea: focusArea || undefined,
+      };
+      addLog(`Analyzing Git project URL: ${gitUrl}`);
+      await executeAnalysis(analysisInput);
+    } else {
+      toast({ variant: "destructive", title: "Fuente del Proyecto Requerida", description: "Sube un archivo o proporciona una URL de Git." });
+      setIsLoading(false);
+      return;
+    }
+  };
+
 
   return (
     <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <FolderSearch className="h-7 w-7 text-primary" />
-          <span>Análisis de Proyecto Completo</span>
-        </CardTitle>
-        <CardDescription>Realiza un análisis holístico de un proyecto entero, subido o desde Git.</CardDescription>
-      </CardHeader>
+      <PageSectionHeader
+        icon={FolderSearch}
+        title="Análisis de Proyecto Completo"
+        description="Realiza un análisis holístico de un proyecto entero, subido o desde Git."
+      />
       <CardContent className="space-y-6">
         <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
 
@@ -222,14 +233,20 @@ export default function AnalizarProyectoPage() {
         
         {result && (
           <Card className="mt-6 bg-background">
-            <CardHeader>
-              <CardTitle>{result.analysisTitle}</CardTitle>
-            </CardHeader>
+            <PageSectionHeader icon={ListChecks} title={result.analysisTitle} />
             <CardContent className="space-y-4">
               <div>
                 <h3 className="font-semibold text-lg mb-1">Evaluación General:</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.generalAssessment}</p>
               </div>
+              {result.overallImprovementIdeas && result.overallImprovementIdeas.length > 0 && (
+                 <div>
+                    <h3 className="font-semibold text-lg mb-1">Ideas Generales de Mejora:</h3>
+                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                        {result.overallImprovementIdeas.map((idea, index) => <li key={`idea-${index}`}>{idea}</li>)}
+                    </ul>
+                 </div>
+              )}
               <div>
                 <h3 className="font-semibold text-lg mb-1">Áreas Identificadas:</h3>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
@@ -246,6 +263,12 @@ export default function AnalizarProyectoPage() {
                         <p className="font-medium text-sm">{s.area}</p>
                         <p className="text-xs text-muted-foreground">{s.suggestion}</p>
                         <p className="text-xs">Prioridad: <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></p>
+                        {s.suggestedPromptForImplementation && (
+                          <div className="mt-1 pt-1 border-t border-border/50">
+                            <p className="text-xs font-semibold text-muted-foreground">Prompt Sugerido:</p>
+                            <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/50 p-1 rounded-sm">{s.suggestedPromptForImplementation}</pre>
+                          </div>
+                        )}
                       </li>
                     ))}
                     </ul>

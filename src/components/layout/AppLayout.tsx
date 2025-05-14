@@ -30,7 +30,7 @@ import {
   MessageCircle,
   Users2,
   Workflow,
-  Settings as SettingsIcon, // Renamed to avoid conflict with global Settings
+  Settings as SettingsIcon, 
   ChevronsLeft,
   ChevronsRight,
   Menu as MenuIcon,
@@ -39,10 +39,10 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
-import React, { useEffect, useMemo } from 'react'; // Added useMemo
+import React, { useEffect, useMemo } from 'react'; 
 import { useDebug } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { useToast } from '@/hooks/use-toast'; 
 
 const navItems = [
   { href: '/', label: 'Panel de Control', icon: LayoutDashboard },
@@ -99,7 +99,7 @@ function CollapsibleSidebarButton() {
 export default function AppLayout({ children }: { children: React.ReactNode }): JSX.Element {
   const pathname = usePathname();
   const { initializeDefaultData } = useAppState();
-  const { toast } = useToast(); // Get toast function
+  const { toast } = useToast(); 
 
   useEffect(() => {
     initializeDefaultData();
@@ -113,6 +113,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
       let source: string | undefined;
       let lineno: number | undefined;
       let colno: number | undefined;
+      let stack: string | undefined;
 
       if (event instanceof ErrorEvent) {
         error = event.error;
@@ -120,9 +121,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
         source = event.filename;
         lineno = event.lineno;
         colno = event.colno;
+        stack = error instanceof Error ? error.stack : undefined;
       } else { // PromiseRejectionEvent
         error = event.reason;
         message = event.reason instanceof Error ? event.reason.message : String(event.reason);
+        stack = event.reason instanceof Error ? event.reason.stack : undefined;
         // Source, lineno, colno are not directly available on PromiseRejectionEvent
       }
 
@@ -131,25 +134,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
         source,
         lineno,
         colno,
+        pathname, // Current route path
         errorObject: error,
-        stack: error instanceof Error ? error.stack : undefined,
+        stack,
       });
       
-      // In a production app, send this to a logging service.
-      // Example: Sentry.captureException(error);
+      // En producción, enviar este 'error' a Sentry:
+      // import * as Sentry from "@sentry/nextjs";
+      // Sentry.captureException(error, { 
+      //   extra: { 
+      //     message, source, lineno, colno, pathname,
+      //     originalEvent: event instanceof ErrorEvent ? "ErrorEvent" : "PromiseRejectionEvent"
+      //   } 
+      // });
 
-      // Show a generic toast to the user
       toast({
         variant: "destructive",
         title: "Error Inesperado",
-        description: "Ocurrió un error inesperado. Ya estamos trabajando en ello.",
-        duration: 5000,
+        description: "Ocurrió un error inesperado en la aplicación. Ya estamos trabajando en ello.",
+        duration: 7000,
       });
-
-      // For 'error' events, prevent default browser error handling if you've handled it sufficiently
-      // if (event instanceof ErrorEvent) {
-      //   event.preventDefault();
-      // }
     };
 
     const errorHandler = (event: ErrorEvent) => handleError(event);
@@ -162,7 +166,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
       window.removeEventListener('error', errorHandler);
       window.removeEventListener('unhandledrejection', rejectionHandler);
     };
-  }, [toast]); // Add toast to dependency array
+  }, [toast, pathname]); 
 
   const currentNavItem = useMemo(() => navItems.find(item => item.href === pathname), [pathname]);
   const pageTitle = currentNavItem?.label || 'Panel de Control';
@@ -240,7 +244,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
 function DebugPanel() {
   const { debugMode, logs, clearLogs } = useDebug();
   const [isExpanded, setIsExpanded] = React.useState(true);
-  const { toast: showToast } = useToast(); // Renamed to avoid conflict
+  const { toast: showToast } = useToast(); 
 
   if (!debugMode) return null;
 
