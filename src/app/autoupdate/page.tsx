@@ -69,7 +69,7 @@ export default function AutoUpdatePage() {
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
       analysisPreferences: analysisPreferences || undefined,
       searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-      focusArea: analysisPreferences || undefined,
+      focusArea: analysisPreferences || undefined, // Use analysisPreferences as focusArea
     };
 
     try {
@@ -94,7 +94,7 @@ export default function AutoUpdatePage() {
         fullFileContentSuggested: s.suggestedContent,
         status: 'pending',
         isEditing: false,
-        userEditedContent: s.suggestedContent, // Initialize with suggested content
+        userEditedContent: s.suggestedContent, 
       }));
 
       let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
@@ -136,8 +136,48 @@ export default function AutoUpdatePage() {
   };
 
   const handleDownloadCode = (format: 'ZIP' | 'JSON') => {
-    addLog(`Downloading current CodeAlchemist code as ${format}. (Functionality is a placeholder).`);
-    toast({ title: `Descarga ${format}`, description: "La descarga del código fuente completo no está implementada en este entorno." });
+    if (!suggestions || suggestions.length === 0) {
+      toast({ title: "Sin Sugerencias", description: "No hay sugerencias para descargar." });
+      return;
+    }
+
+    if (format === 'JSON') {
+      const filesToDownload: Record<string, string | undefined> = {};
+      let hasContent = false;
+      suggestions.forEach(s => {
+        const content = s.userEditedContent ?? s.fullFileContentSuggested;
+        if (content !== undefined) {
+          filesToDownload[s.area] = content;
+          hasContent = true;
+        }
+      });
+
+      if (!hasContent) {
+        toast({ title: "Sin Contenido", description: "Ninguna de las sugerencias tiene contenido de archivo para descargar." });
+        return;
+      }
+
+      const jsonString = JSON.stringify(filesToDownload, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = "autoupdate_sugerencias.json";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: "Descarga Completada", description: "Sugerencias descargadas como autoupdate_sugerencias.json." });
+      addLog("AutoUpdate suggestions downloaded as JSON.");
+
+    } else if (format === 'ZIP') {
+      toast({ 
+        title: "Descarga ZIP no Implementada", 
+        description: "La descarga de sugerencias como archivo ZIP no está implementada en este entorno debido a limitaciones del navegador. Por favor, utiliza la opción 'Descargar Código (JSON)'.",
+        duration: 5000,
+      });
+      addLog("ZIP download for suggestions attempted but not implemented client-side without external libraries.");
+    }
   };
 
   const handleGitCommitAndPush = async () => {
@@ -146,21 +186,21 @@ export default function AutoUpdatePage() {
       return;
     }
     addLog(`Committing and pushing to Git with message: "${commitMessage}". (Functionality requires backend/Git CLI access).`);
-    toast({ title: "Subida a Git", description: "La subida a Git no está implementada en este entorno. Se requeriría acceso a Git CLI y autenticación." });
+    toast({ title: "Subida a Git (Simulada)", description: "La subida a Git no está implementada en este entorno. Se requeriría acceso a Git CLI y autenticación." });
     setShowCommitDialog(false);
     setCommitMessage('');
   };
 
   const handleAutoFixError = async (errorMsg: string) => {
     addLog(`Attempting Auto-Fix for error: ${errorMsg}`);
-    toast({ title: "Auto-Fix", description: "La IA está analizando el error para proponer una solución. (Funcionalidad no implementada)"});
+    toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
+    // Actual AI call would go here if implemented
   };
 
   const handleToggleEdit = (suggestionId: string) => {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
         const newIsEditing = !s.isEditing;
-        // Initialize userEditedContent if entering edit mode and it's not set
         const newUserEditedContent = newIsEditing && !s.userEditedContent ? s.fullFileContentSuggested || '' : s.userEditedContent;
         return { ...s, isEditing: newIsEditing, userEditedContent: newUserEditedContent };
       }
@@ -180,7 +220,6 @@ export default function AutoUpdatePage() {
   const handleCancelEdit = (suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
-        // Revert userEditedContent to fullFileContentSuggested or clear if not available
         return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested || '' };
       }
       return s;
@@ -248,9 +287,9 @@ export default function AutoUpdatePage() {
             <span>Resultados del Auto-Análisis</span>
           </CardTitle>
           {analysisResult && (
-            <div className="flex flex-wrap gap-2 justify-end">
-                <Button variant="outline" size="sm" onClick={() => handleDownloadCode('ZIP')}><Download className="mr-2 h-4 w-4" /> Descargar Código (ZIP)</Button>
-                <Button variant="outline" size="sm" onClick={() => handleDownloadCode('JSON')}><Download className="mr-2 h-4 w-4" /> Descargar Código (JSON)</Button>
+            <div className="flex flex-wrap gap-2 justify-end mt-2">
+                <Button variant="outline" size="sm" onClick={() => handleDownloadCode('JSON')} disabled={!suggestions.length}><Download className="mr-2 h-4 w-4" /> Descargar Sugerencias (JSON)</Button>
+                <Button variant="outline" size="sm" onClick={() => handleDownloadCode('ZIP')} disabled={!suggestions.length}><Download className="mr-2 h-4 w-4" /> Descargar Sugerencias (ZIP)</Button>
                 <Button variant="outline" size="sm" onClick={() => setShowCommitDialog(true)}><GitCommit className="mr-2 h-4 w-4" /> Subir a Git</Button>
             </div>
           )}
@@ -310,7 +349,7 @@ export default function AutoUpdatePage() {
         title={`Aplicar Sugerencia a ${suggestionToApply?.area}`}
         confirmText="Sí, Marcar como Aplicada"
       >
-        <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente:</p>
+        <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually:</p>
         <ScrollArea className="h-64 border rounded-md">
           <CodeBlock code={suggestionToApply?.userEditedContent || suggestionToApply?.fullFileContentSuggested || "Error: No hay contenido para mostrar."} language="typescript" maxHeight="100%" />
         </ScrollArea>
