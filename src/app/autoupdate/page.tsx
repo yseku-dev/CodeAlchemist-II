@@ -45,12 +45,12 @@ export default function AutoUpdatePage() {
         setLlmConfigSource(newConfig);
       }
     }
-  }, [agents, llmConfigSource?.type, llmConfigSource?.id ]); 
+  }, [agents, llmConfigSource?.type, (llmConfigSource as any)?.id ]); 
 
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
   const [gitRepoUrl, setGitRepoUrl] = useState('');
   const [analysisPreferences, setAnalysisPreferences] = useState('');
-  const [searchDepth, setSearchDepth] = useState<string>('');
+  // searchDepth removed as per new requirement
 
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -85,7 +85,7 @@ export default function AutoUpdatePage() {
       sourceCodeLocation: sourceType,
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
       analysisPreferences: analysisPreferences || undefined,
-      searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+      // searchDepth is no longer passed, implying full depth
       focusArea: analysisPreferences || undefined, 
     };
 
@@ -109,6 +109,7 @@ export default function AutoUpdatePage() {
         suggestion: s.suggestion,
         priority: s.priority,
         fullFileContentSuggested: s.suggestedContent,
+        suggestedPromptForImplementation: s.suggestedPromptForImplementation, // Added this line
         status: 'pending',
         isEditing: false,
         userEditedContent: undefined, 
@@ -211,14 +212,12 @@ export default function AutoUpdatePage() {
   const handleAutoFixError = async (errorMsg: string) => {
     addLog(`Attempting Auto-Fix for error: ${errorMsg}`);
     toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
-    // Actual AI call would go here if implemented
   };
 
   const handleToggleEdit = (suggestionId: string) => {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
         const newIsEditing = !s.isEditing;
-        // Initialize userEditedContent with fullFileContentSuggested only when starting to edit and userEditedContent is not already set
         const newUserEditedContent = newIsEditing && s.userEditedContent === undefined ? s.fullFileContentSuggested || '' : s.userEditedContent;
         return { ...s, isEditing: newIsEditing, userEditedContent: newUserEditedContent };
       }
@@ -238,7 +237,6 @@ export default function AutoUpdatePage() {
   const handleCancelEdit = (suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
-        // Revert to original suggested content if user cancels edit, or clear if no original
         return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested || undefined };
       }
       return s;
@@ -292,10 +290,7 @@ export default function AutoUpdatePage() {
             <Label htmlFor="analysis-prefs" className="text-sm font-normal">Preferencias de Análisis / Campo de Enfoque (opcional)</Label>
             <Textarea id="analysis-prefs" value={analysisPreferences} onChange={(e) => setAnalysisPreferences(e.target.value)} placeholder="Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano." rows={3} disabled={isLoading} />
           </div>
-           <div className="space-y-2">
-            <Label htmlFor="search-depth-autoupdate" className="text-sm font-normal">Profundidad de Búsqueda (opcional)</Label>
-            <Input id="search-depth-autoupdate" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder="Ej: 2 (niveles)" disabled={isLoading} min="1" />
-          </div>
+          {/* Search depth input removed */}
 
           <Button onClick={handleStartAnalysis} disabled={isLoading} className="w-full">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Iniciar Auto-Análisis"}
@@ -343,7 +338,7 @@ export default function AutoUpdatePage() {
               <div className="mt-4 pt-4 border-t">
                 <h4 className="font-semibold text-lg">Sugerencias Detalladas:</h4>
                 {suggestions.length === 0 && <p className="text-sm text-muted-foreground">No hay sugerencias detalladas.</p>}
-                <ScrollArea className="max-h-[50vh] overflow-y-auto pr-2">
+                <ScrollArea className="max-h-[calc(100vh-22rem)] md:max-h-[calc(100vh-25rem)] lg:max-h-[50vh] overflow-y-auto pr-2"> {/* Adjusted max-height */}
                     <div className="space-y-3">
                     {suggestions.map(s => (
                         <AutoUpdateSuggestionCard
@@ -374,13 +369,13 @@ export default function AutoUpdatePage() {
         title={`Aplicar Sugerencia a ${suggestionToApply?.area}`}
         confirmText="Sí, Marcar como Aplicada"
       >
-        <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente:</p>
+        <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually:</p>
         <ScrollArea className="h-64 border rounded-md">
           <CodeBlock code={suggestionToApply?.userEditedContent || suggestionToApply?.fullFileContentSuggested || "Error: No hay contenido para mostrar."} language="typescript" maxHeight="100%" />
         </ScrollArea>
       </ConfirmDialog>
 
-      <Dialog open={showTestDialog && !!suggestionToTest} onOpenChange={setShowTestDialog}>
+      <Dialog open={showTestDialog && !!suggestionToTest} onOpenChange={(open) => { if(!open) setSuggestionToTest(null); setShowTestDialog(open);}}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Testear Sugerencia: {suggestionToTest?.area}</DialogTitle>
@@ -399,7 +394,7 @@ export default function AutoUpdatePage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showTestInVenvDialog && !!suggestionToTestInVenv} onOpenChange={setShowTestInVenvDialog}>
+      <Dialog open={showTestInVenvDialog && !!suggestionToTestInVenv} onOpenChange={(open) => { if(!open) setSuggestionToTestInVenv(null); setShowTestInVenvDialog(open);}}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Testear Sugerencia en Entorno Virtual: {suggestionToTestInVenv?.area}</DialogTitle>
@@ -417,6 +412,7 @@ export default function AutoUpdatePage() {
               toast({ title: "Simulación: Prueba en Entorno Virtual", description: `Se simula el inicio de pruebas para ${suggestionToTestInVenv?.area}.`});
               addLog(`Simulated virtual environment test for ${suggestionToTestInVenv?.area}.`);
               setShowTestInVenvDialog(false);
+              setSuggestionToTestInVenv(null);
             }}>
               Simular Inicio de Prueba
             </Button>
@@ -445,5 +441,3 @@ export default function AutoUpdatePage() {
     </div>
   );
 }
-
-    

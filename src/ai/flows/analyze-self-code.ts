@@ -34,6 +34,7 @@ const AnalyzeCodeOutputSchema = z.object({
     suggestion: z.string().describe('A detailed suggestion for improvement or correction.'),
     priority: z.enum(['Alta', 'Media', 'Baja']).describe('The priority of the suggestion.'),
     suggestedContent: z.string().optional().describe('The suggested content of the analyzed file. This includes the full file content, and not just a snippet.'),
+    suggestedPromptForImplementation: z.string().optional().describe('Un prompt bien elaborado, en castellano, que podría usarse para que una IA implemente esta sugerencia específica.'),
   })).describe('A list of detailed suggestions for improvement.'),
   generalAssessment: z.string().describe('An overall assessment of the code quality and potential issues.'),
   groupLog: z.string().optional().describe('Log from group execution if applicable.'),
@@ -70,6 +71,8 @@ Parámetros de Análisis:
 {{/if}}
 {{#if searchDepth}}
 - Profundidad de Análisis Sugerida: Nivel {{{searchDepth}}} (mayor número implica mayor profundidad).
+{{else}}
+- Profundidad de Análisis Sugerida: Total / Exhaustiva.
 {{/if}}
 {{#if analysisPreferences}}
 - Preferencias Adicionales de Análisis (considerar como sinónimo de focusArea si este último no está presente): {{{analysisPreferences}}}
@@ -91,6 +94,7 @@ Proporciona la siguiente información en tu respuesta (en castellano):
     *   suggestion: La descripción detallada de la mejora.
     *   priority: "Alta", "Media", o "Baja".
     *   suggestedContent (opcional): Si la sugerencia implica un cambio de código directo, proporciona el contenido completo del archivo modificado.
+    *   suggestedPromptForImplementation (opcional): Un prompt bien elaborado, en castellano, que se podría dar a otra IA para que implemente esta sugerencia específica. Este prompt debe ser claro, conciso y contener toda la información necesaria para la tarea. Por ejemplo, si la sugerencia es "Refactorizar la función X para usar async/await", el prompt podría ser: "Refactoriza la siguiente función X del archivo Y.js para que utilice async/await en lugar de promesas anidadas, manteniendo la misma funcionalidad: [código de la función X]". Si la sugerencia es conceptual, este prompt debe guiar la implementación de esa idea.
 *   generalAssessment: Una evaluación general del estado del código y recomendaciones de alto nivel.
 *   overallImprovementIdeas (opcional): Una lista de 2-3 ideas de alto nivel para mejoras generales del proyecto, relacionadas con los objetivos o el área de enfoque proporcionada. Por ejemplo, si el enfoque es "rendimiento UI", una idea podría ser "Explorar la carga diferida (lazy loading) de componentes pesados".
 

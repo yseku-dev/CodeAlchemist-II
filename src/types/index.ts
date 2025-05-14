@@ -76,14 +76,13 @@ export interface ProjectGenerationResult {
   projectName: string;
   aiNotes: string;
   files: GeneratedFile[];
-  groupLog?: string; // Added for consistency, can be populated if group interaction becomes real
+  groupLog?: string;
 }
 
 // For "Generar Proyecto" Flow
 export interface GenerateProjectInput {
   description: string;
-  // Potentially add llmConfigSource if the flow needs to be aware of it for specific agent context
-  // agentSystemPrompt?: string; // If a specific agent's context from a group should be used
+  agentSystemPrompt?: string; 
 }
 
 
@@ -111,7 +110,6 @@ export interface AnalyzeCodeSnippetOutput {
   explanation: string;
   originalCode: string; // Echo back the original code for consistency
   suggestedCode: string;
-  // Potentially add: issuesFound: Issue[] where Issue has severity, line numbers, etc.
 }
 
 
@@ -121,6 +119,7 @@ export interface AutoUpdateSuggestion {
   suggestion: string; // description of the suggestion
   priority: "Alta" | "Media" | "Baja";
   fullFileContentSuggested?: string; // The complete suggested content of the file
+  suggestedPromptForImplementation?: string; // NEW: AI-generated prompt to implement the suggestion
   status?: 'pending' | 'applied' | 'discarded';
   isEditing?: boolean;
   userEditedContent?: string;
@@ -148,8 +147,7 @@ export interface SuggestAgentDefinitionInput {
   roleDescription: string;
 }
 export type SuggestAgentDefinitionOutput = Omit<AgentFormData, 'llmConfig' | 'id'> & {
-  // llmConfig is typically set by user or defaults, AI suggests core properties
-  capabilities: AgentCapabilities; // Ensure capabilities are part of the AI suggestion
+  capabilities: AgentCapabilities;
 };
 
 
@@ -167,9 +165,9 @@ export type SuggestGroupDefinitionOutput = Omit<GroupFormData, 'id'>;
 
 // For RefactorProjectWithAI flow
 export interface RefactorProjectWithAIInput {
-  projectSource: string; // Can be a data URI for uploaded file or Git URL
+  projectSource: string; 
   goals?: string;
-  priority?: string; // e.g., 'Security', 'Readability'
+  priority?: string; 
   searchDepth?: number;
   focusArea?: string;
 }
@@ -190,10 +188,10 @@ export interface RefactorProjectWithAIOutput {
 
 // For AnalyzeSelfCode (which can also be used for generic project analysis)
 export interface AnalyzeCodeInput {
-  sourceCodeLocation: 'Local' | 'Git' | 'UploadedString'; // 'Local' for own code, 'Git' for URL, 'UploadedString' for direct string content
-  projectContent?: string; // For 'UploadedString' or fetched Git content
-  gitRepoUrl?: string; // If sourceCodeLocation is 'Git'
-  analysisPreferences?: string; // Specific areas or concerns
+  sourceCodeLocation: 'Local' | 'Git' | 'UploadedString'; 
+  projectContent?: string; 
+  gitRepoUrl?: string; 
+  analysisPreferences?: string; 
   searchDepth?: number;
   focusArea?: string;
 }
@@ -205,7 +203,8 @@ export interface AnalyzeCodeOutput {
     area: string;
     suggestion: string;
     priority: 'Alta' | 'Media' | 'Baja';
-    suggestedContent?: string; // Full suggested file content
+    suggestedContent?: string; 
+    suggestedPromptForImplementation?: string; // NEW: AI-generated prompt to implement the suggestion
   }>;
   generalAssessment: string;
   groupLog?: string;

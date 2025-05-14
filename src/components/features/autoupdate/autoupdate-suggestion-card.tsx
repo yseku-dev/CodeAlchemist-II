@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { AutoUpdateSuggestion } from '@/types';
 import { Edit3, Check, X, Play, Wand2Icon, Save, TestTubeDiagonal } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area'; // Import ScrollArea
 
 interface AutoUpdateSuggestionCardProps {
   suggestion: AutoUpdateSuggestion;
@@ -17,7 +18,7 @@ interface AutoUpdateSuggestionCardProps {
   onSaveEdit: (suggestionId: string) => void;
   onCancelEdit: (suggestionId: string) => void;
   onTest: (suggestion: AutoUpdateSuggestion) => void;
-  onTestInVenv: (suggestion: AutoUpdateSuggestion) => void; // New prop
+  onTestInVenv: (suggestion: AutoUpdateSuggestion) => void;
 }
 
 export default function AutoUpdateSuggestionCard({
@@ -28,9 +29,9 @@ export default function AutoUpdateSuggestionCard({
   onSaveEdit,
   onCancelEdit,
   onTest,
-  onTestInVenv, // New prop
+  onTestInVenv,
 }: AutoUpdateSuggestionCardProps) {
-  const { id, area, suggestion: descriptionText, priority, fullFileContentSuggested, status, isEditing, userEditedContent } = suggestion;
+  const { id, area, suggestion: descriptionText, priority, fullFileContentSuggested, suggestedPromptForImplementation, status, isEditing, userEditedContent } = suggestion;
   const hasContentToActOn = !!(fullFileContentSuggested || userEditedContent);
 
   return (
@@ -47,6 +48,16 @@ export default function AutoUpdateSuggestionCard({
       </CardHeader>
       <CardContent className="text-sm px-4 pb-3 space-y-2">
         <p className="text-xs">{descriptionText}</p>
+        {suggestedPromptForImplementation && (
+          <div className="mt-2 pt-2 border-t border-border/50">
+            <Label htmlFor={`prompt-${id}`} className="text-xs font-semibold text-muted-foreground">Prompt:</Label>
+            <ScrollArea className="h-20 mt-1 rounded-md border bg-muted/30 p-2">
+                <pre id={`prompt-${id}`} className="text-xs whitespace-pre-wrap font-mono">
+                    {suggestedPromptForImplementation}
+                </pre>
+            </ScrollArea>
+          </div>
+        )}
         {isEditing && (fullFileContentSuggested || userEditedContent !== undefined) && (
           <div className="space-y-2 mt-2">
             <Label htmlFor={`edit-${id}`} className="text-xs font-medium">Editar Contenido Sugerido:</Label>
@@ -101,4 +112,3 @@ export default function AutoUpdateSuggestionCard({
     </Card>
   );
 }
-
