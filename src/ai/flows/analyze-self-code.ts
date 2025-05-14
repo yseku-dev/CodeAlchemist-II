@@ -22,7 +22,7 @@ const AnalyzeCodeInputSchema = z.object({
   projectContent: z.string().optional().describe("The actual project content, e.g., for 'UploadedString' or fetched Git content."),
   gitRepoUrl: z.string().optional().describe('The URL of the Git repository if sourceCodeLocation is Git.'),
   analysisPreferences: z.string().optional().describe('Specific areas or concerns to focus the analysis on. Used as focusArea.'),
-  searchDepth: z.number().int().positive().optional().describe('How deep the analysis should go, e.g., number of levels in directory structure or call stack. 1 is superficial.'),
+  searchDepth: z.number().int().positive().optional().describe('How deep the analysis should go, e.g., number of levels in directory structure or call stack. 1 is superficial. If not provided, assume a comprehensive/total analysis.'),
   focusArea: z.string().optional().describe('Specific functional area, module, or quality attribute (e.g., "performance", "security", "UI rendering logic") to concentrate the analysis on.'),
 });
 
@@ -36,7 +36,7 @@ const AnalyzeCodeOutputSchema = z.object({
     suggestedContent: z.string().optional().describe('The suggested content of the analyzed file. This includes the full file content, and not just a snippet.'),
     suggestedPromptForImplementation: z.string().optional().describe('Un prompt bien elaborado, en castellano, que podría usarse para que una IA implemente esta sugerencia específica.'),
   })).describe('A list of detailed suggestions for improvement.'),
-  generalAssessment: z.string().describe('An overall assessment of the code quality and potential issues.'),
+  generalAssessment: z.string().describe("An overall assessment of the code quality and potential issues. THIS MUST START WITH a summary of the project's objectives and core functionalities before detailing quality, issues, or recommendations."),
   groupLog: z.string().optional().describe('Log from group execution if applicable.'),
   overallImprovementIdeas: z.array(z.string()).optional().describe('High-level ideas for general project improvement based on objectives or focus area.'),
 });
@@ -72,22 +72,15 @@ Parámetros de Análisis:
 {{#if searchDepth}}
 - Profundidad de Análisis Sugerida: Nivel {{{searchDepth}}} (mayor número implica mayor profundidad).
 {{else}}
-- Profundidad de Análisis Sugerida: Total / Exhaustiva.
+- Profundidad de Análisis Sugerida: Total / Exhaustiva (analiza todo el código proporcionado).
 {{/if}}
 {{#if analysisPreferences}}
 - Preferencias Adicionales de Análisis (considerar como sinónimo de focusArea si este último no está presente): {{{analysisPreferences}}}
 {{/if}}
 
-Considera los siguientes aspectos durante tu análisis:
-- Calidad del código: Legibilidad, mantenibilidad, adherencia a principios SOLID y Clean Code.
-- Posibles errores: Bugs lógicos, condiciones de carrera, manejo incorrecto de excepciones.
-- Oportunidades de refactorización: Código duplicado, clases/funciones muy largas, alta complejidad ciclomática.
-- Rendimiento: Cuellos de botella, operaciones ineficientes.
-- Seguridad: Vulnerabilidades comunes (SQL injection, XSS, manejo de secretos, etc., si aplica al contexto del código).
-- Arquitectura: Cohesión, acoplamiento, modularidad.
-
 Proporciona la siguiente información en tu respuesta (en castellano):
 *   analysisTitle: Un título conciso que resuma los hallazgos principales.
+*   generalAssessment: Una evaluación general del estado del código. IMPORTANTE: COMIENZA esta evaluación con un resumen de los objetivos y funcionalidades principales del proyecto analizado. Luego, continúa con la calidad del código, posibles errores, oportunidades de refactorización, rendimiento, seguridad, y arquitectura (cohesión, acoplamiento, modularidad).
 *   identifiedAreas: Una lista de componentes, módulos, archivos o aspectos clave que requieren atención o son destacables.
 *   detailedSuggestions: Una lista de sugerencias específicas y accionables. Para cada sugerencia:
     *   area: El archivo/componente/función específica.
@@ -95,7 +88,6 @@ Proporciona la siguiente información en tu respuesta (en castellano):
     *   priority: "Alta", "Media", o "Baja".
     *   suggestedContent (opcional): Si la sugerencia implica un cambio de código directo, proporciona el contenido completo del archivo modificado.
     *   suggestedPromptForImplementation (opcional): Un prompt bien elaborado, en castellano, que se podría dar a otra IA para que implemente esta sugerencia específica. Este prompt debe ser claro, conciso y contener toda la información necesaria para la tarea. Por ejemplo, si la sugerencia es "Refactorizar la función X para usar async/await", el prompt podría ser: "Refactoriza la siguiente función X del archivo Y.js para que utilice async/await en lugar de promesas anidadas, manteniendo la misma funcionalidad: [código de la función X]". Si la sugerencia es conceptual, este prompt debe guiar la implementación de esa idea.
-*   generalAssessment: Una evaluación general del estado del código y recomendaciones de alto nivel.
 *   overallImprovementIdeas (opcional): Una lista de 2-3 ideas de alto nivel para mejoras generales del proyecto, relacionadas con los objetivos o el área de enfoque proporcionada. Por ejemplo, si el enfoque es "rendimiento UI", una idea podría ser "Explorar la carga diferida (lazy loading) de componentes pesados".
 
 Tu respuesta DEBE ser únicamente el objeto JSON que se adhiere al esquema de salida.

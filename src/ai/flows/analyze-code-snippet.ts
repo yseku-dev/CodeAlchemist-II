@@ -20,7 +20,7 @@ const AnalyzeCodeSnippetInputSchema = z.object({
 });
 
 const AnalyzeCodeSnippetOutputSchema = z.object({
-  explanation: z.string().describe('An explanation of what the original code does.'),
+  explanation: z.string().describe("An explanation of what the original code does, its objectives, and main functionalities. This should be provided before any suggestions for changes."),
   originalCode: z.string().describe('The original code snippet that was analyzed.'),
   suggestedCode: z.string().describe('The suggested version of the code with improvements or alternatives.'),
 });
@@ -38,9 +38,9 @@ const prompt = ai.definePrompt({
   prompt: `{{#if agentSystemPrompt}}
 {{{agentSystemPrompt}}}
 
-Analiza el siguiente fragmento de código.
+Analiza el siguiente fragmento de código. Tu respuesta debe estar en castellano y seguir el formato de salida JSON especificado.
 {{else}}
-Eres un experto analizador de código. Tu tarea es analizar el siguiente fragmento de código.
+Eres un experto analizador de código. Tu tarea es analizar el siguiente fragmento de código. Tu respuesta debe estar en castellano y seguir el formato de salida JSON especificado.
 {{/if}}
 
 {{#if language}}
@@ -59,11 +59,9 @@ Por favor, tenlas en cuenta.
 {{/if}}
 
 Proporciona la siguiente información en tu respuesta:
-1.  **Explicación**: Una descripción en lenguaje natural de lo que hace el código original.
-2.  **Código Original**: El código original que se analizó (debe ser idéntico al proporcionado).
-3.  **Código Sugerido**: Una versión del código con las mejoras, correcciones u optimizaciones que propones. Si no hay sugerencias significativas, puedes devolver el código original o añadir comentarios útiles.
-
-Asegúrate de que tu respuesta esté en castellano y siga el formato de salida JSON especificado.
+1.  **explanation**: PRIMERO, una descripción clara y concisa en lenguaje natural de lo que hace el código original, cuáles son sus objetivos y sus funcionalidades principales.
+2.  **originalCode**: El código original que se analizó (debe ser idéntico al proporcionado).
+3.  **suggestedCode**: Una versión del código con las mejoras, correcciones u optimizaciones que propones. Si no hay sugerencias significativas, puedes devolver el código original o añadir comentarios útiles.
 `,
 });
 
