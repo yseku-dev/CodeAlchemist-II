@@ -98,7 +98,7 @@ export default function RefactorizarProyectoPage() {
         suggestions: [
           { id: "1", area: "src/utils.js - function calculateTotal", description: "Simplificar lógica condicional y usar early returns para mejorar legibilidad.", priority: "Media", snippetSuggested: { original: "if (value > 0) { if (discount > 0) { return value - discount; } else { return value; } } else { return 0; }", modified: "if (value <= 0) return 0;\nif (discount <= 0) return value;\nreturn value - discount;" } },
           { id: "2", area: "components/UserProfile.tsx", description: "Extraer componente UserAvatar para reutilización.", priority: "Alta" },
-          { id: "3", area: "api/paymentController.java", description: "Añadir manejo de excepciones específico para fallos de red.", priority: "Alta", snippetSuggested: { original: "// process payment\nPaymentService.charge(amount);", modified: "try {\n  PaymentService.charge(amount);\n} catch (NetworkException e) {\n  log.error(\\"Network error during payment\\", e);\n  throw new PaymentFailedException(\\"Network issue\\", e);\n}"}},
+          { id: "3", area: "api/paymentController.java", description: "Añadir manejo de excepciones específico para fallos de red.", priority: "Alta", snippetSuggested: { original: "// process payment\nPaymentService.charge(amount);", modified: `try {\n  PaymentService.charge(amount);\n} catch (NetworkException e) {\n  log.error("Network error during payment", e);\n  throw new PaymentFailedException("Network issue", e);\n}`}},
         ]
       };
       // Simulate group log if group is selected
@@ -294,3 +294,4 @@ export default function RefactorizarProyectoPage() {
     </div>
   );
 }
+
