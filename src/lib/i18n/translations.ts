@@ -35,7 +35,7 @@ export type TranslationKey = string;
  */
 const translationsData = {
   es: {
-    "app.title": "CodeAlchemist", // Added
+    "app.title": "CodeAlchemist",
     "sidebar": {
         "dashboard": "Panel de Control",
         "generateCode": "Generar Código",
@@ -731,7 +731,7 @@ const translationsData = {
         },
         "autofixSuggestionReceived": {
             "title": "Sugerencia de Auto-Corrección Recibida",
-            "description": "El 'EquipoDesarrolloSoftware' ha proporcionado una sugerencia."
+            "description": "'EquipoDesarrolloSoftware' ha proporcionado una sugerencia."
         },
         "autofixError": {
             "title": "Error en Auto-Corrección"
@@ -1169,7 +1169,7 @@ const translationsData = {
     }
   },
   en: {
-    "app.title": "CodeAlchemist", // Added
+    "app.title": "CodeAlchemist",
     "sidebar": {
         "dashboard": "Dashboard",
         "generateCode": "Generate Code",
