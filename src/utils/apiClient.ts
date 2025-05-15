@@ -1,3 +1,4 @@
+
 // src/utils/apiClient.ts
 "use client";
 
@@ -5,17 +6,18 @@
  * @fileOverview API client utility for calling Genkit flows and handling errors.
  * This module centralizes calls to AI flows and provides a consistent error handling mechanism
  * by wrapping errors in a custom `AppError` class. Includes retry logic for transient errors.
+ * JSDoc comments added for clarity.
  */
 
 import { AppError } from './AppError';
 
 // Importing all flow functions and their types
-import { 
-  analyzeCodeSnippet as analyzeCodeSnippetFlow, 
-  type AnalyzeCodeSnippetInput, 
-  type AnalyzeCodeSnippetOutput 
+import {
+  analyzeCodeSnippet as analyzeCodeSnippetFlow,
+  type AnalyzeCodeSnippetInput,
+  type AnalyzeCodeSnippetOutput
 } from '@/ai/flows/analyze-code-snippet';
-import { 
+import {
   generateProjectStructure as generateProjectStructureFlow,
   type GenerateProjectInput,
   type ProjectGenerationResult
@@ -26,8 +28,8 @@ import {
   type RefactorProjectWithAIOutput
 } from '@/ai/flows/refactor-project-with-ai';
 import {
-  analyzeSelfCode as analyzeSelfCodeFlow,
-  type AnalyzeCodeInput, 
+  analyzeSelfCode as analyzeSelfCodeFlow, // analyzeSelfCode is used for general project analysis too
+  type AnalyzeCodeInput,
   type AnalyzeCodeOutput
 } from '@/ai/flows/analyze-self-code';
 import {
@@ -55,6 +57,11 @@ import {
   type GenerateCodeFromDescriptionInput,
   type GenerateCodeFromDescriptionOutput
 } from '@/ai/flows/generate-code-from-description';
+import {
+  autoFixErrorWithGroup as autoFixErrorWithGroupFlow,
+  type AutoFixErrorWithGroupInput,
+  type AutoFixErrorWithGroupOutput
+} from '@/ai/flows/auto-fix-error-with-group-flow';
 
 
 const MAX_RETRIES = 2; // 2 retries means 3 total attempts
@@ -81,17 +88,15 @@ async function delay(ms: number): Promise<void> {
  */
 function parseError(error: any, defaultMessage: string, flowName?: string): AppError {
   // Log the original error for debugging before any processing
-  console.error(`Original Error from API/Flow${flowName ? ` (${flowName})` : ''} (before parsing to AppError):`, error);
-  // En producción, este 'error' original también debería ser capturado por Sentry, idealmente
-  // en el backend o el flujo Genkit mismo. Si no, se puede capturar aquí.
-  // Ejemplo: import * as Sentry from "@sentry/nextjs";
-  // Sentry.captureException(error, { tags: { flowName: flowName || 'unknown_flow' } });
+  // In production, this original 'error' should also be captured by Sentry, ideally
+  // in the backend or the Genkit flow itself. If not, it can be captured here.
+  // Example: Sentry.captureException(error, { tags: { flowName: flowName || 'unknown_flow' } });
+  console.error(`Error Original de API/Flujo${flowName ? ` (${flowName})` : ''} (antes de parsear a AppError):`, error);
 
 
   // If it's already an AppError (e.g., from retry logic), return it directly.
   if (error instanceof AppError) {
-    // Log that we received an AppError to avoid re-processing if not needed, but still good for trace
-    console.warn("AppError received in parseError, returning directly:", error.message, "Type:", error.type, "Original (if wrapped):", error.originalError);
+    console.warn("[apiClient.parseError] AppError recibido, devolviendo directamente:", error.message, "Tipo:", error.type, "Original (si estaba envuelto):", error.originalError);
     return error;
   }
 
@@ -103,42 +108,44 @@ function parseError(error: any, defaultMessage: string, flowName?: string): AppE
     friendlyMessage = error;
   } else if (error && typeof error.message === 'string') {
     const lowerErrorMessage = error.message.toLowerCase();
-    const status = error.status || error.originalError?.status; 
+    // Attempt to get status from various possible locations in wrapped errors
+    const status = error.status || error.originalError?.status || (error.originalError?.cause as any)?.status;
 
-    if (lowerErrorMessage.includes('api key') || 
+
+    if (lowerErrorMessage.includes('api key') ||
         lowerErrorMessage.includes('permission denied') ||
         lowerErrorMessage.includes('unauthenticated') ||
         lowerErrorMessage.includes('invalid_api_key') ||
         status === 401 || status === 403) {
         friendlyMessage = "Error de autenticación o permisos con el proveedor IA. Verifica tu configuración y clave API.";
         errorType = 'validation';
-        redirectTo = '/configuracion'; // Suggest redirect to configuration page
-    } else if (lowerErrorMessage.includes('model_not_found') || lowerErrorMessage.includes('unknown model')) {
+        redirectTo = '/configuracion';
+    } else if (lowerErrorMessage.includes('model_not_found') || lowerErrorMessage.includes('unknown model') || lowerErrorMessage.includes('model not found')) {
         friendlyMessage = "El modelo IA seleccionado no está disponible o no es válido. Revisa la configuración.";
         errorType = 'validation';
         redirectTo = '/configuracion';
     } else if (lowerErrorMessage.includes('rate limit') || status === 429) {
         friendlyMessage = "Se ha alcanzado el límite de solicitudes al proveedor IA. Inténtalo más tarde.";
-        errorType = 'server'; 
-    } else if (lowerErrorMessage.includes('network error') || lowerErrorMessage.includes('failed to fetch') || lowerErrorMessage.includes('dns_unresolved_hostname')) {
-        friendlyMessage = "Error de red. Por favor, comprueba tu conexión e inténtalo de nuevo.";
+        errorType = 'server';
+    } else if (lowerErrorMessage.includes('network error') || lowerErrorMessage.includes('failed to fetch') || lowerErrorMessage.includes('dns_unresolved_hostname') || lowerErrorMessage.includes('econnrefused')) {
+        friendlyMessage = "Error de red. Por favor, comprueba tu conexión e inténtalo de nuevo. Si usas un modelo local (LM Studio, Ollama), asegúrate de que esté en ejecución.";
         errorType = 'network';
     } else if (status === 503) {
         friendlyMessage = "El servicio de IA no está disponible temporalmente (503). Por favor, inténtalo de nuevo más tarde.";
-        errorType = 'server'; 
+        errorType = 'server';
     } else if (status && status >= 500) {
         friendlyMessage = `Error del servidor del proveedor IA (${status}). Inténtalo de nuevo más tarde.`;
         errorType = 'server';
     } else if (status === 400) {
         friendlyMessage = `Solicitud inválida al proveedor IA: ${error.message.substring(0,150)}`;
         errorType = 'validation';
-    } else if (lowerErrorMessage.includes('output parsing failed') || lowerErrorMessage.includes('json format')) {
-        friendlyMessage = "La IA devolvió una respuesta en un formato inesperado. Inténtalo de nuevo.";
+    } else if (lowerErrorMessage.includes('output parsing failed') || lowerErrorMessage.includes('json format') || lowerErrorMessage.includes('failed to parse')) {
+        friendlyMessage = "La IA devolvió una respuesta en un formato inesperado. Inténtalo de nuevo. Si el problema persiste, revisa el prompt o la configuración del modelo.";
         errorType = 'ai';
     } else {
         // Keep it relatively generic for unexpected errors
         friendlyMessage = `Error: ${error.message.substring(0, 200)}${error.message.length > 200 ? '...' : ''}`;
-        if (error.name === 'GenkitError' || lowerErrorMessage.includes('genkit')) errorType = 'ai';
+        if (error.name === 'GenkitError' || lowerErrorMessage.includes('genkit') || error.message.includes('flow execution failed')) errorType = 'ai';
     }
   }
   return new AppError(friendlyMessage, error, errorType, redirectTo);
@@ -166,38 +173,39 @@ async function retryAsyncFunction<T>(
       return await asyncFn();
     } catch (error) {
       lastCaughtError = error;
-      
+      // Parse error first to get its type and original status for retry decision
       const appErrorForRetryCheck = parseError(error, "Error durante el intento de reintento.", flowNameForLog);
 
-      const originalStatus = appErrorForRetryCheck.originalError?.status || (appErrorForRetryCheck.originalError?.cause as any)?.status; // Genkit wraps errors sometimes
+      const originalErrorStatus = appErrorForRetryCheck.originalError?.status || (appErrorForRetryCheck.originalError?.cause as any)?.status;
       const isRetryable =
         appErrorForRetryCheck.type === 'network' ||
-        originalStatus === 503 || // Service Unavailable
-        originalStatus === 429;   // Rate Limit Exceeded
-      
+        originalErrorStatus === 503 || // Service Unavailable
+        originalErrorStatus === 429;   // Rate Limit Exceeded
+
       if (isRetryable && attempt <= MAX_RETRIES) {
-        const delayTime = INITIAL_DELAY_MS * Math.pow(2, attempt - 1); 
-        console.warn(`Error reintentable en ${flowNameForLog} (intento ${attempt}/${MAX_RETRIES + 1}). Reintentando en ${delayTime}ms... Error:`, appErrorForRetryCheck.originalError || appErrorForRetryCheck.message);
+        const delayTime = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
+        console.warn(`[apiClient.retryAsyncFunction] Error reintentable en ${flowNameForLog} (intento ${attempt}/${MAX_RETRIES + 1}). Reintentando en ${delayTime}ms... Error:`, appErrorForRetryCheck.originalError || appErrorForRetryCheck.message);
         await delay(delayTime);
       } else if (attempt > MAX_RETRIES && isRetryable) {
-        console.error(`Todos los reintentos (${MAX_RETRIES}) fallaron para ${flowNameForLog}. Último error:`, lastCaughtError);
-        // En producción, este evento (fallo de todos los reintentos) también es importante para Sentry.
+        console.error(`[apiClient.retryAsyncFunction] Todos los reintentos (${MAX_RETRIES}) fallaron para ${flowNameForLog}. Último error:`, lastCaughtError);
+        // In production, this event (failure of all retries) is also important for Sentry.
         // Sentry.captureMessage(`All retries failed for flow: ${flowNameForLog}`, { level: 'error', extra: { lastError: lastCaughtError } });
         throw new AppError(
           `${defaultFriendlyMessage} El servicio no está respondiendo después de varios intentos.`,
           lastCaughtError,
-          appErrorForRetryCheck.type, 
+          appErrorForRetryCheck.type,
           appErrorForRetryCheck.redirectTo
         );
       } else {
         // Not retryable, or it's an AppError from a deeper source we shouldn't retry.
-        // Throw the already parsed AppError or the original error if it wasn't parsed into one.
-        throw appErrorForRetryCheck; 
+        // Throw the already parsed AppError.
+        throw appErrorForRetryCheck;
       }
     }
   }
   // This should be unreachable due to the loop logic.
-  console.error("Lógica de reintentos alcanzó un estado inesperado para", flowNameForLog);
+  // Added for type safety, though practically the loop will always throw or return.
+  console.error("[apiClient.retryAsyncFunction] Lógica de reintentos alcanzó un estado inesperado para", flowNameForLog);
   throw new AppError("Error inesperado en la lógica de reintentos.", lastCaughtError, 'unknown', undefined);
 }
 
@@ -216,8 +224,8 @@ export async function callAnalyzeCodeSnippet(input: AnalyzeCodeSnippetInput): Pr
   try {
     return await retryAsyncFunction(() => analyzeCodeSnippetFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw parseError(error, friendlyErrorMsg, flowName);
+    if (error instanceof AppError) throw error; // Already processed by retryAsyncFunction or parseError
+    throw parseError(error, friendlyErrorMsg, flowName); // Catch errors not from retry logic
   }
 }
 
@@ -351,6 +359,24 @@ export async function callGenerateCodeFromDescription(input: GenerateCodeFromDes
   const flowName = 'generateCodeFromDescription';
   try {
     return await retryAsyncFunction(() => generateCodeFromDescriptionFlow(input), flowName, friendlyErrorMsg);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw parseError(error, friendlyErrorMsg, flowName);
+  }
+}
+
+/**
+ * Calls the `autoFixErrorWithGroup` Genkit flow with retry logic and standardized error handling.
+ * This flow attempts to get a fix suggestion from the 'EquipoDesarrolloSoftware' group.
+ * @param {AutoFixErrorWithGroupInput} input - The error details for the auto-fix attempt.
+ * @returns {Promise<AutoFixErrorWithGroupOutput>} The suggested solution and diagnostic notes from the group.
+ * @throws {AppError} If an error occurs during the flow execution or after retries.
+ */
+export async function callAutoFixErrorWithGroup(input: AutoFixErrorWithGroupInput): Promise<AutoFixErrorWithGroupOutput> {
+  const friendlyErrorMsg = "Ocurrió un error al intentar la corrección automática con el grupo de IA.";
+  const flowName = 'autoFixErrorWithGroup';
+  try {
+    return await retryAsyncFunction(() => autoFixErrorWithGroupFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw parseError(error, friendlyErrorMsg, flowName);
