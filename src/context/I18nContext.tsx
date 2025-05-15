@@ -38,7 +38,8 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 /**
  * Helper function to recursively get a nested translation string.
- * @param {string} key - The dot-separated key (e.g., "settings.title").
+ * It first checks if the key exists directly, then attempts to resolve a dot-separated path.
+ * @param {string} key - The key (e.g., "app.title" or "settings.title").
  * @param {any} translationsObject - The translation object for the current language.
  * @returns {string | undefined} The translated string or undefined if not found.
  */
@@ -46,6 +47,14 @@ const getNestedTranslation = (key: string, translationsObject: any): string | un
   if (!translationsObject || typeof translationsObject !== 'object') {
     return undefined;
   }
+  // Check for direct key first (handles keys like "app.title")
+  if (Object.prototype.hasOwnProperty.call(translationsObject, key)) {
+    const directValue = translationsObject[key];
+    if (typeof directValue === 'string') {
+      return directValue;
+    }
+  }
+  // If not found directly, try to resolve as a nested path
   return key.split('.').reduce((obj, k) => (obj && obj[k] !== undefined ? obj[k] : undefined), translationsObject);
 };
 
@@ -59,8 +68,6 @@ const getNestedTranslation = (key: string, translationsObject: any): string | un
 export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const { settings, updateLanguage: updateAppLanguage } = useAppState();
   
-  // Determine the active language based on AppState, falling back to default.
-  // This is the single source of truth for the current language within this context.
   const activeLanguage = settings?.language && SUPPORTED_LANGUAGES.some(l => l.code === settings.language)
     ? settings.language
     : DEFAULT_LANGUAGE_CODE;
@@ -72,7 +79,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
    */
   const setLanguage = useCallback((langCode: LanguageCode) => {
     if (SUPPORTED_LANGUAGES.some(l => l.code === langCode)) {
-      updateAppLanguage(langCode); // Update global state (which persists to localStorage)
+      updateAppLanguage(langCode);
       if (typeof window !== 'undefined') {
         document.documentElement.lang = langCode;
       }
@@ -91,14 +98,14 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
    * @returns {string} The translated string.
    */
   const t = useCallback((key: TranslationKey, params?: Record<string, string | number>): string => {
-    let translationSet = translations[activeLanguage] || translations[DEFAULT_LANGUAGE_CODE];
-    let translatedString = getNestedTranslation(key, translationSet);
+    let languageTranslations = translations[activeLanguage];
+    let translatedString = getNestedTranslation(key, languageTranslations);
 
     // Fallback to default language if not found in active language
     if (translatedString === undefined && activeLanguage !== DEFAULT_LANGUAGE_CODE) {
-      console.warn(`[I18nContext] Translation not found for key: "${key}" in language: "${activeLanguage}". Falling back to default.`);
-      translationSet = translations[DEFAULT_LANGUAGE_CODE];
-      translatedString = getNestedTranslation(key, translationSet);
+      console.warn(`[I18nContext] Translation not found for key: "${key}" in language: "${activeLanguage}". Falling back to default "${DEFAULT_LANGUAGE_CODE}".`);
+      languageTranslations = translations[DEFAULT_LANGUAGE_CODE];
+      translatedString = getNestedTranslation(key, languageTranslations);
     }
 
     if (translatedString === undefined) {
@@ -149,3 +156,4 @@ export const useI18n = (): I18nContextType => {
   }
   return context;
 };
+
