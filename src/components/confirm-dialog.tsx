@@ -12,6 +12,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useI18n } from '@/context/I18nContext';
+
+/**
+ * @fileOverview A reusable confirmation dialog component.
+ * Uses ShadCN's AlertDialog component and supports i18n for default button texts.
+ */
 
 /**
  * Props for the ConfirmDialog component.
@@ -27,17 +33,19 @@ interface ConfirmDialogProps {
   title: string;
   /** Optional description or main content of the dialog. Can be a string or ReactNode. */
   description?: string | React.ReactNode;
-  /** Text for the confirm button. Defaults to "Confirmar". */
+  /** Text for the confirm button. Defaults to "Confirmar" (translated). */
   confirmText?: string;
-  /** Text for the cancel button. Defaults to "Cancelar". */
+  /** Text for the cancel button. Defaults to "Cancelar" (translated). Can be an empty string to hide it. */
   cancelText?: string;
   /** Optional children to render inside the dialog's content area, above the footer. */
   children?: React.ReactNode;
+  /** Optional boolean to disable the confirm button, e.g., while an action is in progress. */
+  confirmDisabled?: boolean;
 }
 
 /**
  * A reusable confirmation dialog component.
- * Uses ShadCN's AlertDialog component.
+ * Uses ShadCN's AlertDialog component and i18n for default button texts.
  *
  * @param {ConfirmDialogProps} props - The props for the component.
  * @returns {JSX.Element | null} The rendered dialog or null if not open.
@@ -48,10 +56,17 @@ export default function ConfirmDialog({
   onConfirm,
   title,
   description,
-  confirmText = "Confirmar",
-  cancelText = "Cancelar",
-  children
+  confirmText,
+  cancelText,
+  children,
+  confirmDisabled = false,
 }: ConfirmDialogProps) {
+  const { t } = useI18n();
+
+  // Determine default texts if not provided
+  const finalConfirmText = confirmText || t('common.confirm');
+  const finalCancelText = cancelText === undefined ? t('common.cancel') : cancelText; // Allow empty string to hide
+
   if (!isOpen) return null;
 
   return (
@@ -63,8 +78,8 @@ export default function ConfirmDialog({
         </AlertDialogHeader>
         {children && <div className="py-4">{children}</div>}
         <AlertDialogFooter>
-          {cancelText && <AlertDialogCancel onClick={onClose}>{cancelText}</AlertDialogCancel>}
-          <AlertDialogAction onClick={onConfirm}>{confirmText}</AlertDialogAction>
+          {finalCancelText && <AlertDialogCancel onClick={onClose}>{finalCancelText}</AlertDialogCancel>}
+          <AlertDialogAction onClick={onConfirm} disabled={confirmDisabled}>{finalConfirmText}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

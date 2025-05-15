@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card'; // CardHeader, CardTitle, CardDescription removed
+import { Card, CardContent } from '@/components/ui/card'; 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -21,16 +21,20 @@ import { AppError } from '@/utils/AppError';
 import { callGenerateProjectStructure } from '@/utils/apiClient';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
+import JSZip from 'jszip';
+import { useI18n } from '@/context/I18nContext';
+
 
 /**
  * @fileOverview GenerarProyectoPage component allows users to generate a base project structure.
  * Users describe the project, select an LLM configuration source, and the AI generates
  * a suggested project name, notes, and a list of files with their content.
- * The generated structure can be downloaded as a JSON file.
+ * The generated structure can be downloaded as a JSON file or a ZIP archive.
  */
 export default function GenerarProyectoPage() {
   const { agents, groups, getAgentById } = useAppState();
   const router = useRouter();
+  const { t } = useI18n();
 
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [description, setDescription] = useState('');
@@ -56,6 +60,7 @@ export default function GenerarProyectoPage() {
     
     let agentSystemPrompt: string | undefined;
     let flowName = 'generateProjectStructure';
+    const orchestratorAgent = getAgentById('orquestador-flujo-agentes');
 
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
       const agent = getAgentById(llmConfigSource.id);
@@ -63,7 +68,8 @@ export default function GenerarProyectoPage() {
       flowName = `generateProjectStructure (Agent: ${agent?.name || llmConfigSource.id})`;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
       const group = groups.find(g => g.id === llmConfigSource.id);
-      agentSystemPrompt = group?.mainTask || "Genera un proyecto basado en la siguiente descripción, actuando como un orquestador de un grupo de agentes especializados.";
+      // For project generation, using the group's main task directly as context for the flow.
+      agentSystemPrompt = group?.mainTask || orchestratorAgent?.systemPrompt; 
       flowName = `generateProjectStructure (Group: ${group?.name || llmConfigSource.id})`;
       addLog({message: `Generating project with Group: ${llmConfigSource.name}. Using group's task/context for generation flow.`, flowName});
     } else {
@@ -81,25 +87,32 @@ export default function GenerarProyectoPage() {
       const aiResult = await callGenerateProjectStructure(generationInput);
       
       let groupLogForDisplay: string | undefined = undefined;
-      if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name) {
-        groupLogForDisplay = `(Simulación de Log de Grupo para Generación de Proyecto)\nTurno 1: Orquestador (usando contexto de '${llmConfigSource.name}') -> AgenteDiseñadorProyectos. Tarea: \"${finalPrompt.substring(0, 100)}...\".\nTurno 2: AgenteDiseñadorProyectos -> Estructura de proyecto generada.`;
+      if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
+        const group = groups.find(g => g.id === llmConfigSource.id);
+        groupLogForDisplay = t('autoupdate.logs.groupContextLog', {
+            groupName: llmConfigSource.name,
+            groupTask: (group?.mainTask || 'N/A').substring(0,150),
+            userInput: finalPrompt.substring(0, 100),
+            orchestratorContext: (agentSystemPrompt || orchestratorAgent?.systemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
+            flowName: 'generateProjectStructure'
+        });
       }
 
       setResult({...aiResult, groupLog: groupLogForDisplay});
       addLog({message: "Project generation successful.", flowName});
-      toast({ title: "Proyecto Generado", description: "La estructura base del proyecto ha sido generada." });
+      toast({ title: t('generateProject.toast.projectGenerated'), description: t('generateProject.results.suggestedNameLabel') + ` ${aiResult.projectName}` });
     } catch (e: any) {
       addLog({ message: "Project generation failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
-        toast({ variant: "destructive", title: "Error de Generación", description: e.friendlyMessage });
+        toast({ variant: "destructive", title: t('generateProject.toast.generationError'), description: e.friendlyMessage });
         if (e.redirectTo) {
           router.push(e.redirectTo);
         }
       } else {
         const errorMsg = e.message || "Ocurrió un error al generar el proyecto.";
         setError(errorMsg);
-        toast({ variant: "destructive", title: "Error de Generación", description: errorMsg });
+        toast({ variant: "destructive", title: t('generateProject.toast.generationError'), description: errorMsg });
       }
     } finally {
       setIsLoading(false);
@@ -112,7 +125,7 @@ export default function GenerarProyectoPage() {
    */
   const handleGenerateClick = () => {
     if (!description.trim()) {
-      toast({ variant: "destructive", title: "Descripción Vacía", description: "Por favor, describe tu proyecto."});
+      toast({ variant: "destructive", title: t('generateProject.toast.descriptionEmpty'), description: t('generateProject.confirmDialog.currentPromptLabel')});
       return;
     }
     setCurrentPromptForDialog(description);
@@ -120,26 +133,46 @@ export default function GenerarProyectoPage() {
   };
 
   /**
-   * Handles the download of the generated project structure as a JSON file.
+   * Handles the download of the generated project structure as a ZIP file.
    */
-  const handleDownloadProject = () => {
-    if (!result) {
-      toast({ variant: "destructive", title: "Sin Resultados", description: "No hay estructura de proyecto para descargar." });
+  const handleDownloadProject = async () => {
+    if (!result || !result.files || result.files.length === 0) {
+      toast({ variant: "destructive", title: t('generateProject.toast.downloadError'), description: t('generateProject.toast.downloadErrorDescription') });
       return;
     }
-    const filename = `${result.projectName || 'proyecto-generado'}.json`;
-    const jsonString = JSON.stringify(result, null, 2); 
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast({ title: "Proyecto Descargado (JSON)", description: `La estructura del proyecto "${result.projectName}" ha sido descargada como ${filename}. Puedes usar este JSON para crear los archivos y carpetas.` });
-    addLog(`Project structure "${result.projectName}" downloaded as JSON.`);
+
+    addLog(`Preparing to download project: ${result.projectName} as ZIP.`);
+    const zip = new JSZip();
+
+    result.files.forEach(file => {
+      if (file.isFolder || file.path.endsWith('/')) {
+        zip.folder(file.path);
+        addLog(`Added folder to ZIP: ${file.path}`);
+      } else {
+        zip.file(file.path, file.content);
+        addLog(`Added file to ZIP: ${file.path} (content length: ${file.content.length})`);
+      }
+    });
+
+    try {
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const filename = `${result.projectName.replace(/\s+/g, '_').toLowerCase() || 'proyecto_generado'}.zip`;
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      toast({ title: t('generateProject.toast.downloadSuccess').replace('(JSON)','(ZIP)'), description: `Se ha descargado un archivo ZIP con la estructura y contenido del proyecto "${result.projectName}".` });
+      addLog(`Project structure "${result.projectName}" downloaded as ${filename}.`);
+    } catch (e: any) {
+        const errorMsg = e.message || "Error al generar el archivo ZIP.";
+        toast({ variant: "destructive", title: "Error de Descarga ZIP", description: errorMsg });
+        addLog(`Failed to generate or download ZIP for project ${result.projectName}: ${errorMsg}`);
+    }
   };
 
   /**
@@ -159,19 +192,19 @@ export default function GenerarProyectoPage() {
     <Card className="max-w-4xl mx-auto">
       <PageSectionHeader
         icon={FolderPlus}
-        title="Generar Proyecto"
-        description="Crea una estructura base para nuevos proyectos a partir de tus especificaciones."
+        title={t('generateProject.title')}
+        description={t('generateProject.description')}
       />
       <CardContent className="space-y-6">
-        <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
+        <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} label={t('common.llmSourceLabel')} />
         
         <div className="space-y-2">
-          <Label htmlFor="description">Describe tu proyecto</Label>
+          <Label htmlFor="description">{t('generateProject.describeProjectLabel')}</Label>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ej: Un API REST con Node.js y Express, con rutas para usuarios y productos, y una base de datos PostgreSQL."
+            placeholder={t('generateProject.describeProjectPlaceholder')}
             rows={8}
             disabled={isLoading}
           />
@@ -179,7 +212,7 @@ export default function GenerarProyectoPage() {
         
         <Button onClick={handleGenerateClick} disabled={isLoading} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Generar Proyecto
+          {t('generateProject.generateButton')}
         </Button>
 
         {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || "Error desconocido")} />}
@@ -187,24 +220,24 @@ export default function GenerarProyectoPage() {
         {result && (
           <div className="space-y-6 mt-6 p-4 border rounded-md bg-background">
             <div>
-              <h3 className="font-semibold text-xl mb-1">Nombre Sugerido:</h3>
+              <h3 className="font-semibold text-xl mb-1">{t('generateProject.results.suggestedNameLabel')}</h3>
               <p className="text-lg text-primary">{result.projectName}</p>
             </div>
              {result.aiNotes && (
               <div>
-                <h3 className="font-semibold text-lg mb-1">Notas de la IA:</h3>
+                <h3 className="font-semibold text-lg mb-1">{t('generateProject.results.aiNotesLabel')}</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.aiNotes}</p>
               </div>
             )}
             <div>
-              <h3 className="font-semibold text-lg mb-2">Archivos Generados:</h3>
+              <h3 className="font-semibold text-lg mb-2">{t('generateProject.results.generatedFilesLabel')}</h3>
               <FileTreeDisplay files={result.files} />
             </div>
             <Button onClick={handleDownloadProject} variant="outline">
-              <Download className="mr-2 h-4 w-4" /> Descargar Estructura (JSON)
+              <Download className="mr-2 h-4 w-4" /> {t('generateProject.results.downloadButton')}
             </Button>
             {result.groupLog && ( 
-              <LogsDisplay title="Log Detallado del Grupo" logs={result.groupLog} />
+              <LogsDisplay title={t('generateProject.results.groupLogTitle')} logs={result.groupLog} />
             )}
           </div>
         )}
@@ -214,18 +247,18 @@ export default function GenerarProyectoPage() {
         isOpen={showConfirmDialog}
         onClose={() => setShowConfirmDialog(false)}
         onConfirm={() => handleProjectGeneration(currentPromptForDialog)}
-        title="Confirmar Generación de Proyecto"
-        confirmText="Sí, Generar Proyecto"
+        title={t('generateProject.confirmDialog.title')}
+        confirmText={t('generateProject.confirmDialog.confirmButton')}
       >
         <div className="space-y-4">
             <div>
-                <Label className="font-semibold">Prompt Actual:</Label>
+                <Label className="font-semibold">{t('generateProject.confirmDialog.currentPromptLabel')}</Label>
                 <ScrollArea className="h-24 border rounded-md p-2 text-sm bg-muted mt-1">
                     {description}
                 </ScrollArea>
             </div>
             <div>
-                <Label htmlFor="redefine-prompt">Redefinir Prompt (opcional):</Label>
+                <Label htmlFor="redefine-prompt">{t('generateProject.confirmDialog.redefinePromptLabel')}</Label>
                 <Textarea
                     id="redefine-prompt"
                     value={currentPromptForDialog}
@@ -235,7 +268,7 @@ export default function GenerarProyectoPage() {
                 />
             </div>
             <p className="text-xs text-muted-foreground">
-                Configuración LLM a usar: {llmConfigSource?.type} {llmConfigSource?.name ? `(${llmConfigSource.name})` : ''}
+                 {t('generateProject.confirmDialog.llmConfigInfo')} {llmConfigSource?.type} {llmConfigSource?.name ? `(${llmConfigSource.name})` : ''}
             </p>
         </div>
       </ConfirmDialog>

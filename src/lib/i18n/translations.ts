@@ -194,7 +194,16 @@ const translationsData = {
         "error": "Error",
         "loading": "Cargando...",
         "processing": "Procesando...",
-        "uploading": "Subiendo..."
+        "uploading": "Subiendo...",
+        "llmSourceLabel": "Usar Configuración LLM De",
+        "globalSettings": "Ajustes Globales",
+        "agentLabel": "Agente",
+        "groupLabel": "Grupo",
+        "selectPlaceholder": "Seleccionar...",
+        "selectAgentPlaceholder": "Selecciona un agente",
+        "selectGroupPlaceholder": "Selecciona un grupo",
+        "noAgentsAvailable": "No hay agentes disponibles.",
+        "noGroupsAvailable": "No hay grupos disponibles."
     },
 
     "autoupdate": {
@@ -418,6 +427,94 @@ const translationsData = {
         "toast.analysisComplete.title": "Análisis Completado",
         "toast.analysisComplete.description": "El proyecto ha sido analizado.",
         "toast.analysisError.title": "Error de Análisis"
+    },
+    "generateCode": {
+      "title": "Generar Código",
+      "description": "Crea fragmentos de código a partir de descripciones en lenguaje natural.",
+      "describeNeedLabel": "Describe tu necesidad",
+      "describeNeedPlaceholder": "Ej: Una función en Python que sume dos números y maneje errores de tipo.",
+      "generateButton": "Generar Código",
+      "results.explanationLabel": "Explicación:",
+      "results.codeSnippetLabel": "Fragmento de Código:",
+      "results.groupLogTitle": "Log Detallado del Grupo",
+      "confirmDialog.title": "Confirmar Generación de Código",
+      "confirmDialog.llmSource": "Fuente LLM:",
+      "confirmDialog.promptLabel": "Prompt:",
+      "toast.descriptionEmpty": "Por favor, describe tu necesidad.",
+      "toast.codeGenerated": "El fragmento de código ha sido generado exitosamente.",
+      "toast.generationError": "Error de Generación"
+    },
+    "generateProject": {
+      "title": "Generar Proyecto",
+      "description": "Crea una estructura base para nuevos proyectos a partir de tus especificaciones.",
+      "describeProjectLabel": "Describe tu proyecto",
+      "describeProjectPlaceholder": "Ej: Un API REST con Node.js y Express, con rutas para usuarios y productos, y una base de datos PostgreSQL.",
+      "generateButton": "Generar Proyecto",
+      "results.suggestedNameLabel": "Nombre Sugerido:",
+      "results.aiNotesLabel": "Notas de la IA:",
+      "results.generatedFilesLabel": "Archivos Generados:",
+      "results.downloadButton": "Descargar Proyecto (ZIP)",
+      "results.downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
+      "results.groupLogTitle": "Log Detallado del Grupo",
+      "confirmDialog.title": "Confirmar Generación de Proyecto",
+      "confirmDialog.currentPromptLabel": "Prompt Actual:",
+      "confirmDialog.redefinePromptLabel": "Redefinir Prompt (opcional):",
+      "confirmDialog.llmConfigInfo": "Configuración LLM a usar:",
+      "confirmDialog.confirmButton": "Sí, Generar Proyecto",
+      "toast.descriptionEmpty": "Por favor, describe tu proyecto.",
+      "toast.projectGenerated": "La estructura base del proyecto ha sido generada.",
+      "toast.generationError": "Error de Generación",
+      "toast.downloadError": "Sin Resultados",
+      "toast.downloadErrorDescription": "No hay estructura de proyecto para descargar.",
+      "toast.downloadSuccess": "Proyecto Descargado (como JSON)",
+      "toast.downloadSuccessDescription": "Se ha descargado un archivo JSON con la estructura y contenido del proyecto. Puedes usar este archivo para crear los archivos y carpetas manualmente o con un script. La generación directa de archivos ZIP no es soportada por esta función en el navegador."
+    },
+    "analyzeCode": {
+      "title": "Analizar Código",
+      "description": "Obtén análisis detallados y sugerencias de mejora para fragmentos o archivos de código.",
+      "codeSourceLabel": "Fuente del Código:",
+      "uploadFileLabel": "Subir un archivo de código (opcional)",
+      "gitFileUrlLabel": "URL de Archivo Git (opcional, raw content)",
+      "gitFileUrlPlaceholder": "Ej: https://raw.githubusercontent.com/...",
+      "fetchUrlButton": "Obtener",
+      "pasteCodeInstruction": "O pega el código abajo",
+      "pasteCodePlaceholder": "Pega tu código aquí para analizarlo...",
+      "additionalInstructionsLabel": "Instrucciones Adicionales para el Análisis (opcional)",
+      "additionalInstructionsPlaceholder": "Ej: Enfócate en la seguridad, o sugiere alternativas más performantes.",
+      "analyzeButton": "Analizar Código",
+      "results.explanationLabel": "Explicación:",
+      "results.originalCodeLabel": "Código Original:",
+      "results.suggestedCodeLabel": "Código Sugerido:",
+      "results.saveOriginalButton": "Guardar Original",
+      "results.saveSuggestedButton": "Guardar Sugerido",
+      "toast.invalidFile.title": "Archivo Inválido",
+      "toast.invalidFile.description": "Sube un archivo de texto de menos de 5MB.",
+      "toast.emptyUrl.title": "URL Vacía",
+      "toast.emptyUrl.description": "Introduce una URL de archivo Git.",
+      "toast.fetchError.title": "Error de Obtención",
+      "toast.codeFetched.title": "Código Obtenido",
+      "toast.codeFetched.description": "Contenido de la URL cargado.",
+      "toast.emptyCode.title": "Código Vacío",
+      "toast.emptyCode.description": "Introduce o carga código para analizar.",
+      "toast.analysisComplete.title": "Análisis Completado",
+      "toast.analysisComplete.description": "El código ha sido analizado.",
+      "toast.analysisError.title": "Error de Análisis",
+      "toast.snapshotError.title": "Error",
+      "toast.snapshotError.description": "No hay código {type} para guardar."
+    },
+    "errorDisplay": {
+      "title": "Error Detectado",
+      "copyButton": "Copiar Error",
+      "autofixButton": "Auto-Fix con IA",
+      "autofixingButton": "Analizando...",
+      "toast.copied": "Error Copiado",
+      "toast.copiedDescription": "El mensaje de error ha sido copiado al portapapeles.",
+      "autofixModal.title": "Sugerencia de Auto-Corrección del Equipo de Software",
+      "autofixModal.description": "El grupo 'EquipoDesarrolloSoftware' ha analizado el error y propone lo siguiente:",
+      "autofixModal.originalErrorLabel": "Mensaje de Error Original:",
+      "autofixModal.diagnosisLabel": "Diagnóstico del Grupo:",
+      "autofixModal.solutionLabel": "Solución Sugerida:",
+      "autofixModal.invocationLogLabel": "Log de Invocación del Grupo (para depuración)"
     }
   },
   en: {
@@ -581,7 +678,16 @@ const translationsData = {
         "error": "Error",
         "loading": "Loading...",
         "processing": "Processing...",
-        "uploading": "Uploading..."
+        "uploading": "Uploading...",
+        "llmSourceLabel": "Use LLM Configuration From",
+        "globalSettings": "Global Settings",
+        "agentLabel": "Agent",
+        "groupLabel": "Group",
+        "selectPlaceholder": "Select...",
+        "selectAgentPlaceholder": "Select an agent",
+        "selectGroupPlaceholder": "Select a group",
+        "noAgentsAvailable": "No agents available.",
+        "noGroupsAvailable": "No groups available."
     },
 
     "autoupdate": {
@@ -622,7 +728,7 @@ const translationsData = {
         "suggestionCard.editContentLabel": "Edit Suggested Content:",
         "logs.executingAnalysis": "Executing self-analysis for AutoUpdate...",
         "logs.analysisStarting": "Starting Self-Analysis...",
-        "logs.groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}...\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+        "logs.groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
         "logs.analysisProcessingComplete": "AutoUpdate analysis processing complete.",
         "logs.localCodeObtained": "Local code obtained from server.",
         "logs.analysisSuccessNonGroup": "AutoUpdate analysis (non-group) successful.",
@@ -805,6 +911,94 @@ const translationsData = {
         "toast.analysisComplete.title": "Analysis Complete",
         "toast.analysisComplete.description": "The project has been analyzed.",
         "toast.analysisError.title": "Analysis Error"
+    },
+    "generateCode": {
+      "title": "Generate Code",
+      "description": "Create code snippets from natural language descriptions.",
+      "describeNeedLabel": "Describe your need",
+      "describeNeedPlaceholder": "E.g.: A Python function that sums two numbers and handles type errors.",
+      "generateButton": "Generate Code",
+      "results.explanationLabel": "Explanation:",
+      "results.codeSnippetLabel": "Code Snippet:",
+      "results.groupLogTitle": "Detailed Group Log",
+      "confirmDialog.title": "Confirm Code Generation",
+      "confirmDialog.llmSource": "LLM Source:",
+      "confirmDialog.promptLabel": "Prompt:",
+      "toast.descriptionEmpty": "Please describe your need.",
+      "toast.codeGenerated": "The code snippet has been successfully generated.",
+      "toast.generationError": "Generation Error"
+    },
+    "generateProject": {
+      "title": "Generate Project",
+      "description": "Create a base structure for new projects from your specifications.",
+      "describeProjectLabel": "Describe your project",
+      "describeProjectPlaceholder": "E.g.: A REST API with Node.js and Express, with routes for users and products, and a PostgreSQL database.",
+      "generateButton": "Generate Project",
+      "results.suggestedNameLabel": "Suggested Name:",
+      "results.aiNotesLabel": "AI Notes:",
+      "results.generatedFilesLabel": "Generated Files:",
+      "results.downloadButton": "Download Project (ZIP)",
+      "results.downloadNote": "Note: The download will be a JSON file with the project structure.",
+      "results.groupLogTitle": "Detailed Group Log",
+      "confirmDialog.title": "Confirm Project Generation",
+      "confirmDialog.currentPromptLabel": "Current Prompt:",
+      "confirmDialog.redefinePromptLabel": "Redefine Prompt (optional):",
+      "confirmDialog.llmConfigInfo": "LLM configuration to use:",
+      "confirmDialog.confirmButton": "Yes, Generate Project",
+      "toast.descriptionEmpty": "Please describe your project.",
+      "toast.projectGenerated": "The base project structure has been generated.",
+      "toast.generationError": "Generation Error",
+      "toast.downloadError": "No Results",
+      "toast.downloadErrorDescription": "No project structure to download.",
+      "toast.downloadSuccess": "Project Downloaded (as JSON)",
+      "toast.downloadSuccessDescription": "A JSON file with the project structure and content has been downloaded. You can use this file to create the files and folders manually or with a script. Direct ZIP file generation is not supported by this feature in the browser."
+    },
+    "analyzeCode": {
+      "title": "Analyze Code",
+      "description": "Get detailed analysis and improvement suggestions for code snippets or files.",
+      "codeSourceLabel": "Code Source:",
+      "uploadFileLabel": "Upload a code file (optional)",
+      "gitFileUrlLabel": "Git File URL (optional, raw content)",
+      "gitFileUrlPlaceholder": "E.g.: https://raw.githubusercontent.com/...",
+      "fetchUrlButton": "Fetch",
+      "pasteCodeInstruction": "Or paste code below",
+      "pasteCodePlaceholder": "Paste your code here to analyze...",
+      "additionalInstructionsLabel": "Additional Instructions for Analysis (optional)",
+      "additionalInstructionsPlaceholder": "E.g.: Focus on security, or suggest more performant alternatives.",
+      "analyzeButton": "Analyze Code",
+      "results.explanationLabel": "Explanation:",
+      "results.originalCodeLabel": "Original Code:",
+      "results.suggestedCodeLabel": "Suggested Code:",
+      "results.saveOriginalButton": "Save Original",
+      "results.saveSuggestedButton": "Save Suggested",
+      "toast.invalidFile.title": "Invalid File",
+      "toast.invalidFile.description": "Upload a text file under 5MB.",
+      "toast.emptyUrl.title": "Empty URL",
+      "toast.emptyUrl.description": "Enter a Git file URL.",
+      "toast.fetchError.title": "Fetch Error",
+      "toast.codeFetched.title": "Code Fetched",
+      "toast.codeFetched.description": "URL content loaded.",
+      "toast.emptyCode.title": "Empty Code",
+      "toast.emptyCode.description": "Enter or upload code to analyze.",
+      "toast.analysisComplete.title": "Analysis Complete",
+      "toast.analysisComplete.description": "The code has been analyzed.",
+      "toast.analysisError.title": "Analysis Error",
+      "toast.snapshotError.title": "Error",
+      "toast.snapshotError.description": "No {type} code to save."
+    },
+    "errorDisplay": {
+      "title": "Error Detected",
+      "copyButton": "Copy Error",
+      "autofixButton": "Auto-Fix with AI",
+      "autofixingButton": "Analyzing...",
+      "toast.copied": "Error Copied",
+      "toast.copiedDescription": "The error message has been copied to the clipboard.",
+      "autofixModal.title": "Software Team Auto-Correction Suggestion",
+      "autofixModal.description": "The 'EquipoDesarrolloSoftware' group has analyzed the error and proposes the following:",
+      "autofixModal.originalErrorLabel": "Original Error Message:",
+      "autofixModal.diagnosisLabel": "Group Diagnosis:",
+      "autofixModal.solutionLabel": "Suggested Solution:",
+      "autofixModal.invocationLogLabel": "Group Invocation Log (for debugging)"
     }
   }
 } as const;
@@ -813,20 +1007,3 @@ const translationsData = {
  * Export the translations object directly.
  */
 export const translations: AllTranslations = translationsData;
-
-// Type helper to extract all dot-notation keys from the default language (es)
-// This is primarily for developer experience and not strictly required for the i18n to work
-// if TranslationKey is just 'string'.
-type PathsToStringProps<T> = T extends string ? [] : {
-  [K in Extract<keyof T, string>]: [K, ...PathsToStringProps<T[K]>]
-}[Extract<keyof T, string>];
-
-type Join<T extends string[], D extends string> =
-  T extends [] ? never :
-  T extends [infer F] ? F :
-  T extends [infer F, ...infer R] ? F extends string ? `${F}${D}${Join<Extract<R, string[]>, D>}` : never : string;
-
-// Example: If you want to make TranslationKey more specific to actual keys in 'es'
-// export type SpecificTranslationKey = Join<PathsToStringProps<typeof translationsData['es']>, '.'>;
-// Then you could use: export type TranslationKey = SpecificTranslationKey | string; (to allow other keys too)
-// For now, TranslationKey = string is simpler and works.
