@@ -267,7 +267,8 @@ const translationsData = {
         "results": {
             "title": "Resultados del Auto-Análisis",
             "downloadSuggestionsJson": "Descargar Sugerencias (JSON)",
-            "downloadProjectZip": "Descargar Código Actual (ZIP)",
+            "downloadProjectZip": "Descargar Proyecto con Sugerencias Aplicadas (ZIP)",
+            "downloadCurrentCodeZip": "Descargar Código Actual (ZIP)",
             "uploadToGit": "Subir a Git",
             "noResults": "Inicia un análisis para ver los resultados.",
             "analysisTitleLabel": "Título del Análisis:",
@@ -360,7 +361,7 @@ const translationsData = {
             },
             "projectZipDownloadInitiated": {
                 "title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
-                "description": "Este archivo ZIP contiene un único archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
+                "description": "Este archivo ZIP contiene un único archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manually los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
             },
             "zipError": {
                 "title": "Error al Generar ZIP"
@@ -395,6 +396,14 @@ const translationsData = {
             "venvSim": {
                 "title": "Simulación: Prueba en Entorno Virtual",
                 "description": "Se simula el inicio de pruebas para {area}."
+            },
+            "downloadProjectZipToast":{
+                "title": "Descarga de Proyecto con Sugerencias Aplicadas (ZIP)",
+                "description": "Se ha descargado un archivo .zip. Importante: Este archivo ZIP contiene un único archivo JSON con las sugerencias de código. No es un ZIP del proyecto completo con estructura de carpetas. Para obtener el proyecto completo, necesitarías clonarlo desde su repositorio Git y aplicar manualmente las sugerencias descargadas."
+            },
+             "downloadCurrentCodeZipToast": {
+                "title": "Descarga de Código Actual (ZIP)",
+                "description": "Se ha iniciado la descarga de un ZIP que contiene el código fuente actual del proyecto, obtenido del servidor. Este proceso puede tardar unos momentos."
             }
         },
         "downloads": {
@@ -1193,6 +1202,14 @@ const translationsData = {
                 "description": "No se pudo cargar el estado guardado del editor para {id}."
             }
         }
+    },
+    "globalError": {
+      "title": "¡Ups! Algo salió mal",
+      "description": "Lo sentimos, encontramos un error inesperado. Nuestro equipo ha sido notificado.",
+      "recoverySuggestion": "Puedes intentar recargar la página o volver a la acción anterior.",
+      "devDetailsTitle": "Detalles del Error (Solo Desarrollo):",
+      "retryButton": "Intentar de Nuevo",
+      "homeButton": "Ir a la Página Principal"
     }
   },
   en: {
@@ -1428,7 +1445,8 @@ const translationsData = {
         "results": {
             "title": "Self-Analysis Results",
             "downloadSuggestionsJson": "Download Suggestions (JSON)",
-            "downloadProjectZip": "Download Current Code (ZIP)",
+            "downloadProjectZip": "Download Project with Applied Suggestions (ZIP)",
+            "downloadCurrentCodeZip": "Download Current Code (ZIP)",
             "uploadToGit": "Upload to Git",
             "noResults": "Start an analysis to see results.",
             "analysisTitleLabel": "Analysis Title:",
@@ -1459,7 +1477,7 @@ const translationsData = {
             "suggestionsDownloadedJson": "AutoUpdate suggestions downloaded as JSON.",
             "applyingSuggestionToZip": "Applying suggestion content to {fileName} for ZIP.",
             "appliedSuggestionsToZip": "'Applied' suggestions conceptually incorporated for ZIP.",
-            "projectZipDownloaded": "Project ZIP download ({filename}) initiated. It contains a JSON file with the content of project files obtained from the server, with 'applied' suggestions conceptually included. It's not a directly executable project ZIP.",
+            "projectZipDownloaded": "Download of Project with Suggestions (ZIP containing JSON of changes). This ZIP file ({filename}) contains a JSON file that details files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI.",
             "zipGenerationFailed": "ZIP generation failed: {error}",
             "gitUploadFailedConfig": "Git upload failed: Configuration incomplete.",
             "commitMessageMissing": "Git upload failed: Commit message required.",
@@ -1556,6 +1574,14 @@ const translationsData = {
             "venvSim": {
                 "title": "Simulation: Test in Virtual Env",
                 "description": "Simulating test start for {area}."
+            },
+            "downloadProjectZipToast":{
+                "title": "Download of Project with Applied Suggestions (ZIP)",
+                "description": "A .zip file has been downloaded. Important: This ZIP file contains a single JSON file with the code suggestions. It is not a ZIP of the complete project with folder structure. To get the full project, you would need to clone it from its Git repository and manually apply the downloaded suggestions."
+            },
+            "downloadCurrentCodeZipToast": {
+                "title": "Download of Current Code (ZIP)",
+                "description": "Download of a ZIP containing the project's current source code, obtained from the server, has started. This process may take a few moments."
             }
         },
         "downloads": {
@@ -2354,6 +2380,14 @@ const translationsData = {
                 "description": "Could not load saved editor state for {id}."
             }
         }
+    },
+    "globalError": {
+      "title": "Oops! Something went wrong",
+      "description": "We're sorry, an unexpected error occurred. Our team has been notified.",
+      "recoverySuggestion": "You can try reloading the page or going back to the previous action.",
+      "devDetailsTitle": "Error Details (Development Only):",
+      "retryButton": "Try Again",
+      "homeButton": "Go to Homepage"
     }
   }
 } as const;
@@ -2362,3 +2396,4 @@ const translationsData = {
  * Export the translations object directly.
  */
 export const translations: AllTranslations = translationsData;
+

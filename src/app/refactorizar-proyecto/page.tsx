@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,6 +26,7 @@ import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
 import { AppError } from '@/utils/AppError';
 import { useI18n } from '@/context/I18nContext';
+import type { TranslationKey } from '@/lib/i18n/translations';
 
 
 type ProjectSourceType = "upload" | "git";
@@ -36,26 +37,24 @@ const NINGUNA_PRIORITY_VALUE = "__none__";
  * for refactoring suggestions. Users can upload a project or provide a Git URL,
  * select an LLM configuration, and specify refactoring goals and priorities.
  * The component then displays AI-generated suggestions and a project overview.
+ * All UI texts are internationalized.
  */
 export default function RefactorizarProyectoPage() {
   const { agents, groups, getAgentById, getGroupById } = useAppState(); 
   const router = useRouter();
   const { t } = useI18n();
   
-  const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(
-    () => ({ type: 'Ajustes Globales' as const })
-  );
+  const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(undefined);
 
   useEffect(() => {
-    if (agents && agents.length > 0) {
+    if (agents && agents.length > 0 && llmConfigSource === undefined) {
       const defaultAgentFound = agents.find(a => a.name === "RefactorizadorCodigoExperto");
-      const newConfig = defaultAgentFound
+      setLlmConfigSource(defaultAgentFound
         ? { type: 'Agente' as const, id: defaultAgentFound.id, name: defaultAgentFound.name }
-        : { type: 'Ajustes Globales' as const };
-      
-      if (llmConfigSource?.type !== newConfig.type || (llmConfigSource.type === newConfig.type && 'id' in llmConfigSource && 'id' in newConfig && llmConfigSource.id !== newConfig.id )) {
-        setLlmConfigSource(newConfig);
-      }
+        : { type: 'Ajustes Globales' as const }
+      );
+    } else if (llmConfigSource === undefined) {
+        setLlmConfigSource({ type: 'Ajustes Globales' as const });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agents]);
@@ -92,7 +91,7 @@ export default function RefactorizarProyectoPage() {
         setUploadedFile(file);
         addLog({message: `File selected for refactor: ${file.name}, type: ${file.type}, size: ${file.size} bytes`, flowName: 'handleFileChange'});
       } else {
-        toast({ variant: "destructive", title: t('refactorProject.toast.invalidFile.title'), description: t('refactorProject.toast.invalidFile.description') });
+        toast({ variant: "destructive", title: t('refactorProject.toast.invalidFile.title' as TranslationKey), description: t('refactorProject.toast.invalidFile.description' as TranslationKey) });
         setUploadedFile(null);
         if(fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -114,7 +113,7 @@ export default function RefactorizarProyectoPage() {
       projectSourceValue = gitUrl;
       addLog({message: `Analyzing Git URL for refactor: ${gitUrl}`, flowName});
     } else {
-      toast({ variant: "destructive", title: t('refactorProject.toast.sourceRequired.title'), description: t('refactorProject.toast.sourceRequired.description') });
+      toast({ variant: "destructive", title: t('refactorProject.toast.sourceRequired.title' as TranslationKey), description: t('refactorProject.toast.sourceRequired.description' as TranslationKey) });
       setIsLoading(false);
       return;
     }
@@ -127,7 +126,7 @@ export default function RefactorizarProyectoPage() {
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
         const group = getGroupById(llmConfigSource.id || '');
         const orchestrator = getAgentById('orquestador-flujo-agentes');
-        agentSystemPrompt = orchestrator?.systemPrompt || group?.mainTask; // Prefer orchestrator, fallback to group task
+        agentSystemPrompt = orchestrator?.systemPrompt || group?.mainTask; 
         flowName = `refactorProjectWithAI (Group: ${group?.name || llmConfigSource.id})`;
     }
     
@@ -143,35 +142,35 @@ export default function RefactorizarProyectoPage() {
     addLog({message: `Refactoring project with input: ${JSON.stringify(input)} and config: ${JSON.stringify(llmConfigSource)}`, flowName});
 
     try {
-      const aiResult: AIResult = await callRefactorProjectWithAI(input);
+      const aiResultData: AIResult = await callRefactorProjectWithAI(input);
       
-      let finalResult: AIResult = { ...aiResult };
+      let finalResult: AIResult = { ...aiResultData };
 
-      if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name) {
-         finalResult.groupLog = t('autoupdate.logs.groupContextLog', { // Reusing autoupdate log for now
+      if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
+         finalResult.groupLog = t('refactorProject.logs.groupContextLog' as TranslationKey, { 
             groupName: llmConfigSource.name,
             groupTask: (getGroupById(llmConfigSource.id || '')?.mainTask || 'N/A').substring(0,150),
-            userInput: (input.focusArea || t('autoupdate.analysis.general')),
-            orchestratorContext: (getAgentById('orquestador-flujo-agentes')?.systemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
+            userInput: (input.focusArea || t('autoupdate.analysis.general' as TranslationKey)), // Reusing for consistency
+            orchestratorContext: (getAgentById('orquestador-flujo-agentes')?.systemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
             flowName: 'refactorProjectWithAI'
         });
       }
       setAnalysisResult(finalResult);
       setSuggestions(finalResult.suggestions.map((s,idx) => ({...s, id: `suggestion-${idx}-${Date.now()}`, status: 'pending'})));
-      toast({ title: t('refactorProject.toast.analysisComplete.title'), description: t('refactorProject.toast.analysisComplete.description') });
+      toast({ title: t('refactorProject.toast.analysisComplete.title' as TranslationKey), description: t('refactorProject.toast.analysisComplete.description' as TranslationKey) });
       addLog({message: "Refactoring analysis successful.", data: finalResult, flowName});
     } catch (e: any) {
-      addLog({ message: "Refactoring analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      addLog({source:"RefactorProjectPage", message: "Refactoring analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
-        toast({ variant: "destructive", title: t('refactorProject.toast.analysisError.title'), description: e.friendlyMessage });
+        toast({ variant: "destructive", title: t('refactorProject.toast.analysisError.title' as TranslationKey), description: e.friendlyMessage });
         if (e.redirectTo) {
           router.push(e.redirectTo);
         }
       } else {
         const errorMsg = e.message || "Ocurrió un error durante el análisis de refactorización.";
         setError(errorMsg);
-        toast({ variant: "destructive", title: t('refactorProject.toast.analysisError.title'), description: errorMsg });
+        toast({ variant: "destructive", title: t('refactorProject.toast.analysisError.title' as TranslationKey), description: errorMsg });
       }
     } finally {
       setIsLoading(false);
@@ -181,7 +180,7 @@ export default function RefactorizarProyectoPage() {
   const handleApplySuggestion = (id: string) => {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'applied' } : s));
     const suggestionArea = suggestions.find(s=>s.id===id)?.area || 'desconocida';
-    toast({ title: t('refactorProject.toast.suggestionApplied.title'), description: t('refactorProject.toast.suggestionApplied.description', { area: suggestionArea }) });
+    toast({ title: t('refactorProject.toast.suggestionApplied.title' as TranslationKey), description: t('refactorProject.toast.suggestionApplied.description' as TranslationKey, { area: suggestionArea }) });
     addLog({message: `Suggestion ${id} marked as applied.`, flowName: 'handleApplySuggestion'});
   };
 
@@ -190,19 +189,19 @@ export default function RefactorizarProyectoPage() {
       setCurrentDiff(suggestion.snippetSuggested);
       setShowDiffModal(true);
     } else {
-      toast({ title: t('refactorProject.toast.noDiff.title'), description: t('refactorProject.toast.noDiff.description') });
+      toast({ title: t('refactorProject.toast.noDiff.title' as TranslationKey), description: t('refactorProject.toast.noDiff.description' as TranslationKey) });
     }
   };
   
   const handleDiscardSuggestion = (id: string) => {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'discarded' } : s));
-    toast({ title: t('refactorProject.toast.suggestionDiscarded.title') });
+    toast({ title: t('refactorProject.toast.suggestionDiscarded.title' as TranslationKey) });
     addLog({message: `Suggestion ${id} discarded.`, flowName: 'handleDiscardSuggestion'});
   };
 
   const handleApplyAll = () => {
     setSuggestions(prev => prev.map(s => s.status === 'pending' ? { ...s, status: 'applied' } : s));
-    toast({ title: t('refactorProject.toast.allApplied.title'), description: t('refactorProject.toast.allApplied.description') });
+    toast({ title: t('refactorProject.toast.allApplied.title' as TranslationKey), description: t('refactorProject.toast.allApplied.description' as TranslationKey) });
     addLog({message: "All pending suggestions marked as applied.", flowName: 'handleApplyAll'});
   };
 
@@ -212,46 +211,46 @@ export default function RefactorizarProyectoPage() {
       <Card className="lg:col-span-1">
         <PageSectionHeader
           icon={GitPullRequestDraft}
-          title={t('refactorProject.title')}
-          description={t('refactorProject.description')}
+          title={t('refactorProject.title' as TranslationKey)}
+          description={t('refactorProject.description' as TranslationKey)}
         />
         <CardContent className="space-y-6">
-          <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} label={t('refactorProject.llmSourceLabel')} />
+          <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} label={t('refactorProject.llmSourceLabel' as TranslationKey)} />
 
           <div className="space-y-2">
-            <Label>{t('refactorProject.projectSourceLabel')}</Label>
+            <Label>{t('refactorProject.projectSourceLabel' as TranslationKey)}</Label>
             <Select value={projectSourceType} onValueChange={(value) => setProjectSourceType(value as ProjectSourceType)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="upload">{t('refactorProject.sourceUpload')}</SelectItem>
-                <SelectItem value="git">{t('refactorProject.sourceGit')}</SelectItem>
+                <SelectItem value="upload">{t('refactorProject.sourceUpload' as TranslationKey)}</SelectItem>
+                <SelectItem value="git">{t('refactorProject.sourceGit' as TranslationKey)}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {projectSourceType === "upload" && (
             <div className="space-y-2">
-              <Label htmlFor="file-upload">{t('refactorProject.uploadLabel')}</Label>
+              <Label htmlFor="file-upload">{t('refactorProject.uploadLabel' as TranslationKey)}</Label>
               <Input id="file-upload" type="file" ref={fileInputRef} onChange={handleFileChange} disabled={isLoading} />
-              {uploadedFile && <p className="text-xs text-muted-foreground">Archivo seleccionado: {uploadedFile.name}</p>}
+              {uploadedFile && <p className="text-xs text-muted-foreground">{t('common.fileSelected' as TranslationKey, { name: uploadedFile.name })}</p>}
             </div>
           )}
 
           {projectSourceType === "git" && (
             <div className="space-y-2">
-              <Label htmlFor="git-url">{t('refactorProject.gitUrlLabel')}</Label>
-              <Input id="git-url" value={gitUrl} onChange={(e) => setGitUrl(e.target.value)} placeholder={t('refactorProject.gitUrlPlaceholder')} disabled={isLoading} />
+              <Label htmlFor="git-url">{t('refactorProject.gitUrlLabel' as TranslationKey)}</Label>
+              <Input id="git-url" value={gitUrl} onChange={(e) => setGitUrl(e.target.value)} placeholder={t('refactorProject.gitUrlPlaceholder' as TranslationKey)} disabled={isLoading} />
             </div>
           )}
 
           <Separator />
-          <Label>{t('refactorProject.paramsLabel')}</Label>
+          <Label>{t('refactorProject.paramsLabel' as TranslationKey)}</Label>
           <div className="space-y-2">
-            <Label htmlFor="refactor-goals" className="text-sm font-normal">{t('refactorProject.goalsLabel')}</Label>
-            <Textarea id="refactor-goals" value={refactorGoals} onChange={(e) => setRefactorGoals(e.target.value)} placeholder={t('refactorProject.goalsPlaceholder')} rows={3} disabled={isLoading} />
+            <Label htmlFor="refactor-goals" className="text-sm font-normal">{t('refactorProject.goalsLabel' as TranslationKey)}</Label>
+            <Textarea id="refactor-goals" value={refactorGoals} onChange={(e) => setRefactorGoals(e.target.value)} placeholder={t('refactorProject.goalsPlaceholder' as TranslationKey)} rows={3} disabled={isLoading} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="general-priority" className="text-sm font-normal">{t('refactorProject.priorityLabel')}</Label>
+            <Label htmlFor="general-priority" className="text-sm font-normal">{t('refactorProject.priorityLabel' as TranslationKey)}</Label>
             <Select
               value={generalPriority === '' ? NINGUNA_PRIORITY_VALUE : generalPriority}
               onValueChange={(selectedValue) => {
@@ -264,26 +263,26 @@ export default function RefactorizarProyectoPage() {
               disabled={isLoading}
             >
               <SelectTrigger id="general-priority">
-                <SelectValue placeholder={t('refactorProject.priorityPlaceholder')} />
+                <SelectValue placeholder={t('refactorProject.priorityPlaceholder' as TranslationKey)} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NINGUNA_PRIORITY_VALUE}>{t('refactorProject.priorityNone')}</SelectItem>
+                <SelectItem value={NINGUNA_PRIORITY_VALUE}>{t('refactorProject.priorityNone' as TranslationKey)}</SelectItem>
                 {GENERAL_PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="search-depth" className="text-sm font-normal">{t('refactorProject.depthLabel')}</Label>
-            <Input id="search-depth" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder={t('refactorProject.depthPlaceholder')} disabled={isLoading} min="1" />
+            <Label htmlFor="search-depth" className="text-sm font-normal">{t('refactorProject.depthLabel' as TranslationKey)}</Label>
+            <Input id="search-depth" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder={t('refactorProject.depthPlaceholder' as TranslationKey)} disabled={isLoading} min="1" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="focus-area" className="text-sm font-normal">{t('refactorProject.focusLabel')}</Label>
-            <Input id="focus-area" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder={t('refactorProject.focusPlaceholder')} disabled={isLoading} />
+            <Label htmlFor="focus-area" className="text-sm font-normal">{t('refactorProject.focusLabel' as TranslationKey)}</Label>
+            <Input id="focus-area" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder={t('refactorProject.focusPlaceholder' as TranslationKey)} disabled={isLoading} />
           </div>
           
           <Button onClick={handleAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {t('refactorProject.analyzeButton')}
+            {t('refactorProject.analyzeButton' as TranslationKey)}
           </Button>
         </CardContent>
       </Card>
@@ -291,10 +290,10 @@ export default function RefactorizarProyectoPage() {
       <Card className="lg:col-span-2">
         <PageSectionHeader
             icon={ListChecks}
-            title={t('refactorProject.results.title')}
+            title={t('refactorProject.results.title' as TranslationKey)}
             actions={suggestions.length > 0 ? (
                 <Button onClick={handleApplyAll} size="sm" variant="outline" disabled={isLoading || suggestions.every(s => s.status !== 'pending')}>
-                    {t('refactorProject.results.applyAllButton')}
+                    {t('refactorProject.results.applyAllButton' as TranslationKey)}
                 </Button>
             ) : null}
         />
@@ -302,30 +301,30 @@ export default function RefactorizarProyectoPage() {
           {error && <ErrorDisplay error={error} />}
           {isLoading && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{t('common.processing')}...</p></div>}
           
-          {!isLoading && !analysisResult && !error && <p className="text-muted-foreground text-center py-10">{t('refactorProject.results.noSuggestions')}</p>}
+          {!isLoading && !analysisResult && !error && <p className="text-muted-foreground text-center py-10">{t('refactorProject.results.noSuggestions' as TranslationKey)}</p>}
 
           {analysisResult && (
             <ScrollArea className="h-[calc(100vh-12rem)]">
               <div className="space-y-4 pr-4">
                 <Card className="mb-4 bg-muted/30">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2"><Info className="h-5 w-5 text-blue-600" />{t('refactorProject.results.projectSummaryCard.title')}</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2"><Info className="h-5 w-5 text-blue-600" />{t('refactorProject.results.projectSummaryCard.title' as TranslationKey)}</CardTitle>
                   </CardHeader>
                   <CardContent className="text-sm">
-                    <p className="whitespace-pre-wrap">{analysisResult.projectOverview || t('refactorProject.results.projectSummaryCard.noSummary')}</p>
+                    <p className="whitespace-pre-wrap">{analysisResult.projectOverview || t('refactorProject.results.projectSummaryCard.noSummary' as TranslationKey)}</p>
                   </CardContent>
                 </Card>
                 
                 <Separator className="my-4" />
-                <h3 className="text-lg font-semibold mb-2">{t('refactorProject.results.suggestionsTitle')}</h3>
-                {suggestions.length === 0 && <p className="text-muted-foreground text-sm">{t('refactorProject.results.noSpecificSuggestions')}</p>}
+                <h3 className="text-lg font-semibold mb-2">{t('refactorProject.results.suggestionsTitle' as TranslationKey)}</h3>
+                {suggestions.length === 0 && <p className="text-muted-foreground text-sm">{t('refactorProject.results.noSpecificSuggestions' as TranslationKey)}</p>}
                 {suggestions.map(s => (
                   <Card key={s.id} className={`transition-opacity ${s.status === 'discarded' ? 'opacity-50' : ''}`}>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <div>
                           <CardTitle className="text-md font-semibold">{s.area}</CardTitle>
-                          <CardDescription>{t('refactorProject.suggestion.priorityLabel')} <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></CardDescription>
+                          <CardDescription>{t('refactorProject.suggestion.priorityLabel' as TranslationKey)} <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></CardDescription>
                         </div>
                         {s.status === 'pending' && <BadgeHelp className="text-blue-500 h-5 w-5" />}
                         {s.status === 'applied' && <BadgeCheck className="text-green-500 h-5 w-5" />}
@@ -336,22 +335,22 @@ export default function RefactorizarProyectoPage() {
                       <p className="mb-2">{s.description}</p>
                       {s.snippetSuggested && (
                          <div className="my-2 p-2 bg-secondary/50 rounded-md">
-                            <p className="text-xs font-semibold mb-1">{t('refactorProject.suggestion.snippetLabel')}</p>
-                            <p className="text-xs text-muted-foreground break-all">{t('refactorProject.suggestion.snippetOriginal')} <code>{s.snippetSuggested.original?.substring(0,100)}{s.snippetSuggested.original && s.snippetSuggested.original.length > 100 ? '...' : ''}</code></p>
-                            <p className="text-xs text-muted-foreground break-all">{t('refactorProject.suggestion.snippetModified')} <code>{s.snippetSuggested.modified?.substring(0,100)}{s.snippetSuggested.modified && s.snippetSuggested.modified.length > 100 ? '...' : ''}</code></p>
+                            <p className="text-xs font-semibold mb-1">{t('refactorProject.suggestion.snippetLabel' as TranslationKey)}</p>
+                            <p className="text-xs text-muted-foreground break-all">{t('refactorProject.suggestion.snippetOriginal' as TranslationKey)} <code>{s.snippetSuggested.original?.substring(0,100)}{s.snippetSuggested.original && s.snippetSuggested.original.length > 100 ? '...' : ''}</code></p>
+                            <p className="text-xs text-muted-foreground break-all">{t('refactorProject.suggestion.snippetModified' as TranslationKey)} <code>{s.snippetSuggested.modified?.substring(0,100)}{s.snippetSuggested.modified && s.snippetSuggested.modified.length > 100 ? '...' : ''}</code></p>
                          </div>
                       )}
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2 py-2">
                       {s.status === 'pending' && (
                         <>
-                          <Button size="sm" variant="outline" onClick={() => handleViewDiff(s)} disabled={!s.snippetSuggested}>{t('refactorProject.suggestion.viewDiffButton')}</Button>
-                          <Button size="sm" variant="outline" onClick={() => handleDiscardSuggestion(s.id)}>{t('refactorProject.suggestion.discardButton')}</Button>
-                          <Button size="sm" onClick={() => handleApplySuggestion(s.id)}>{t('refactorProject.suggestion.applyButton')}</Button>
+                          <Button size="sm" variant="outline" onClick={() => handleViewDiff(s)} disabled={!s.snippetSuggested}>{t('refactorProject.suggestion.viewDiffButton' as TranslationKey)}</Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDiscardSuggestion(s.id)}>{t('refactorProject.suggestion.discardButton' as TranslationKey)}</Button>
+                          <Button size="sm" onClick={() => handleApplySuggestion(s.id)}>{t('refactorProject.suggestion.applyButton' as TranslationKey)}</Button>
                         </>
                       )}
                        {s.status !== 'pending' && (
-                         <Button size="sm" variant="ghost" onClick={() => setSuggestions(prev => prev.map(sg => sg.id === s.id ? {...sg, status: 'pending'} : sg))}>{t('refactorProject.suggestion.revertStateButton')}</Button>
+                         <Button size="sm" variant="ghost" onClick={() => setSuggestions(prev => prev.map(sg => sg.id === s.id ? {...sg, status: 'pending'} : sg))}>{t('refactorProject.suggestion.revertStateButton' as TranslationKey)}</Button>
                        )}
                     </CardFooter>
                   </Card>
@@ -359,7 +358,7 @@ export default function RefactorizarProyectoPage() {
               </div>
             </ScrollArea>
           )}
-          {analysisResult?.groupLog && <LogsDisplay title={t('refactorProject.logs.groupLogTitle')} logs={analysisResult.groupLog} />}
+          {analysisResult?.groupLog && <LogsDisplay title={t('refactorProject.logs.groupLogTitle' as TranslationKey)} logs={analysisResult.groupLog} />}
         </CardContent>
       </Card>
 
@@ -367,19 +366,19 @@ export default function RefactorizarProyectoPage() {
         isOpen={showDiffModal}
         onClose={() => setShowDiffModal(false)}
         onConfirm={() => setShowDiffModal(false)} 
-        title={t('refactorProject.diffModal.title')}
+        title={t('refactorProject.diffModal.title' as TranslationKey)}
         confirmText={t('common.close')}
         cancelText="" 
       >
         {currentDiff && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
             <div>
-              <h4 className="font-semibold mb-1">{t('refactorProject.diffModal.originalLabel')}</h4>
-              <CodeBlock code={currentDiff.original || t('refactorProject.diffModal.noContent')} language="plaintext" maxHeight="250px" />
+              <h4 className="font-semibold mb-1">{t('refactorProject.diffModal.originalLabel' as TranslationKey)}</h4>
+              <CodeBlock code={currentDiff.original || t('refactorProject.diffModal.noContent' as TranslationKey)} language="plaintext" maxHeight="250px" />
             </div>
             <div>
-              <h4 className="font-semibold mb-1">{t('refactorProject.diffModal.suggestedLabel')}</h4>
-              <CodeBlock code={currentDiff.modified || t('refactorProject.diffModal.noContent')} language="plaintext" maxHeight="250px"/>
+              <h4 className="font-semibold mb-1">{t('refactorProject.diffModal.suggestedLabel' as TranslationKey)}</h4>
+              <CodeBlock code={currentDiff.modified || t('refactorProject.diffModal.noContent' as TranslationKey)} language="plaintext" maxHeight="250px"/>
             </div>
           </div>
         )}

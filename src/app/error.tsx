@@ -1,3 +1,4 @@
+
 // src/app/error.tsx
 "use client";
 
@@ -5,11 +6,14 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
+import { useI18n } from '@/context/I18nContext';
+import type { TranslationKey } from '@/lib/i18n/translations';
 
 /**
  * @fileOverview Global Error Boundary for the application.
  * Catches errors during rendering and in Server Components/Actions.
  * Provides a user-friendly fallback UI and a way to attempt recovery.
+ * This component is internationalized.
  */
 
 interface GlobalErrorProps {
@@ -26,6 +30,8 @@ interface GlobalErrorProps {
  * @returns {JSX.Element} The rendered global error fallback UI.
  */
 export default function GlobalError({ error, reset }: GlobalErrorProps): JSX.Element {
+  const { t } = useI18n();
+
   useEffect(() => {
     // Log the error to a centralized monitoring system in production
     console.error("GlobalError caught an error:", error);
@@ -50,28 +56,28 @@ export default function GlobalError({ error, reset }: GlobalErrorProps): JSX.Ele
           <div className="mx-auto bg-destructive/10 p-3 rounded-full w-fit">
             <AlertTriangle className="h-10 w-10 text-destructive" />
           </div>
-          <CardTitle className="mt-4 text-2xl">¡Ups! Algo salió mal</CardTitle>
+          <CardTitle className="mt-4 text-2xl">{t('globalError.title' as TranslationKey)}</CardTitle>
           <CardDescription>
-            Lo sentimos, encontramos un error inesperado. Nuestro equipo ha sido notificado.
+            {t('globalError.description' as TranslationKey)}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Puedes intentar recargar la página o volver a la acción anterior.
+            {t('globalError.recoverySuggestion' as TranslationKey)}
           </p>
           {process.env.NODE_ENV === 'development' && error?.message && (
             <div className="mt-4 p-3 bg-muted rounded-md text-left text-xs overflow-auto max-h-32">
-              <p className="font-semibold">Detalles del Error (Solo Desarrollo):</p>
+              <p className="font-semibold">{t('globalError.devDetailsTitle' as TranslationKey)}</p>
               <pre className="whitespace-pre-wrap">{error.message}</pre>
             </div>
           )}
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 justify-center">
           <Button onClick={() => reset()} variant="outline">
-            Intentar de Nuevo
+            {t('globalError.retryButton' as TranslationKey)}
           </Button>
           <Button onClick={() => window.location.href = '/'}>
-            Ir a la Página Principal
+            {t('globalError.homeButton' as TranslationKey)}
           </Button>
         </CardFooter>
       </Card>

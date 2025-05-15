@@ -2,12 +2,12 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card'; // Removed CardHeader
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, FolderSearch, ListChecks } from 'lucide-react'; 
+import { Loader2, Upload, FolderSearch, ListChecks, Info } from 'lucide-react'; 
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
@@ -22,6 +22,7 @@ import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
 import { AppError } from '@/utils/AppError';
 import { useI18n } from '@/context/I18nContext';
+import type { TranslationKey } from '@/lib/i18n/translations';
 
 
 type ProjectSourceType = "upload" | "git";
@@ -31,6 +32,7 @@ type ProjectSourceType = "upload" | "git";
  * of an entire project. Users can upload a project (ZIP/JSON) or provide a Git URL,
  * select an LLM configuration, and specify analysis parameters. The component then
  * displays the AI's overall assessment, identified areas, and specific suggestions.
+ * All UI texts are internationalized.
  */
 export default function AnalizarProyectoPage() {
   const { agents, groups, getAgentById, getGroupById } = useAppState(); 
@@ -60,7 +62,7 @@ export default function AnalizarProyectoPage() {
         setUploadedFile(file);
         addLog(`Project file selected for analysis: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
       } else {
-        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title'), description: t('analyzeProject.toast.invalidFile.description') });
+        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title' as TranslationKey), description: t('analyzeProject.toast.invalidFile.description' as TranslationKey) });
         setUploadedFile(null);
         if(fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -75,31 +77,31 @@ export default function AnalizarProyectoPage() {
       const aiResult = await analyzeProjectFlow(input); 
       let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined, overallImprovementIdeas: aiResult.overallImprovementIdeas || [] };
 
-      if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name) {
-         finalResult.groupLog = t('autoupdate.logs.groupContextLog', { // Reusing autoupdate log for now
+      if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
+         finalResult.groupLog = t('analyzeProject.results.groupContextLog' as TranslationKey, { 
             groupName: llmConfigSource.name,
             groupTask: (getGroupById(llmConfigSource.id || '')?.mainTask || 'N/A').substring(0,150),
-            userInput: (input.focusArea || t('autoupdate.analysis.general')),
-            orchestratorContext: (getAgentById('orquestador-flujo-agentes')?.systemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
+            userInput: (input.focusArea || t('autoupdate.analysis.general' as TranslationKey)),
+            orchestratorContext: (getAgentById('orquestador-flujo-agentes')?.systemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
             flowName: 'analyzeSelfCode (AnalyzeProject)'
         });
       }
 
       setResult(finalResult);
-      toast({ title: t('analyzeProject.toast.analysisComplete.title'), description: t('analyzeProject.toast.analysisComplete.description') });
+      toast({ title: t('analyzeProject.toast.analysisComplete.title' as TranslationKey), description: t('analyzeProject.toast.analysisComplete.description' as TranslationKey) });
       addLog({message: "Project analysis successful.", data: finalResult, flowName});
     } catch (e: any) {
-      addLog({ message: "Project analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      addLog({ source:"AnalyzeProjectPage", message: "Project analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
-        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title'), description: e.friendlyMessage });
+        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title' as TranslationKey), description: e.friendlyMessage });
         if (e.redirectTo) {
           router.push(e.redirectTo);
         }
       } else {
         const errorMsg = e.message || "Ocurrió un error durante el análisis del proyecto.";
         setError(errorMsg);
-        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title'), description: errorMsg });
+        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title' as TranslationKey), description: errorMsg });
       }
     } finally {
       setIsLoading(false);
@@ -117,7 +119,6 @@ export default function AnalizarProyectoPage() {
         agentSystemPrompt = agent?.systemPrompt;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
         const group = getGroupById(llmConfigSource.id || '');
-        // Use group's main task as context for the analysis flow, as it's more direct than orchestrator's generic prompt
         agentSystemPrompt = group?.mainTask;
     }
 
@@ -141,13 +142,12 @@ export default function AnalizarProyectoPage() {
           await executeAnalysis(analysisInput);
       };
       reader.onerror = () => {
-          toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title'), description: t('analyzeProject.toast.readError.description')});
+          toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title' as TranslationKey), description: t('analyzeProject.toast.readError.description' as TranslationKey)});
           setIsLoading(false);
       }
       if (uploadedFile.type === 'application/json') {
         reader.readAsText(uploadedFile);
       } else if (uploadedFile.type === 'application/zip') {
-        // Pass a reference for ZIP; the flow `analyzeSelfCode` should handle it based on projectContent.
         const analysisInput: AnalyzeCodeInput = {
             ...analysisInputBase,
             sourceCodeLocation: "UploadedString", 
@@ -156,7 +156,7 @@ export default function AnalizarProyectoPage() {
         addLog(`Analyzing uploaded ZIP project: ${uploadedFile.name} (reference/placeholder content)`);
         await executeAnalysis(analysisInput);
       } else {
-          toast({ variant: "destructive", title: t('analyzeProject.toast.unsupportedFileType.title'), description: t('analyzeProject.toast.unsupportedFileType.description')});
+          toast({ variant: "destructive", title: t('analyzeProject.toast.unsupportedFileType.title' as TranslationKey), description: t('analyzeProject.toast.unsupportedFileType.description' as TranslationKey)});
           setIsLoading(false);
       }
       return; 
@@ -169,7 +169,7 @@ export default function AnalizarProyectoPage() {
       addLog(`Analyzing Git project URL: ${gitUrl}`);
       await executeAnalysis(analysisInput);
     } else {
-      toast({ variant: "destructive", title: t('analyzeProject.toast.sourceRequired.title'), description: t('analyzeProject.toast.sourceRequired.description') });
+      toast({ variant: "destructive", title: t('analyzeProject.toast.sourceRequired.title' as TranslationKey), description: t('analyzeProject.toast.sourceRequired.description' as TranslationKey) });
       setIsLoading(false);
       return;
     }
@@ -180,52 +180,52 @@ export default function AnalizarProyectoPage() {
     <Card className="max-w-4xl mx-auto">
       <PageSectionHeader
         icon={FolderSearch}
-        title={t('analyzeProject.title')}
-        description={t('analyzeProject.description')}
+        title={t('analyzeProject.title' as TranslationKey)}
+        description={t('analyzeProject.description' as TranslationKey)}
       />
       <CardContent className="space-y-6">
-        <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} label={t('analyzeProject.llmSourceLabel')} />
+        <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} label={t('analyzeProject.llmSourceLabel' as TranslationKey)} />
 
         <div className="space-y-2">
-          <Label>{t('analyzeProject.projectSourceLabel')}</Label>
+          <Label>{t('analyzeProject.projectSourceLabel' as TranslationKey)}</Label>
           <Select value={projectSourceType} onValueChange={(value) => setProjectSourceType(value as ProjectSourceType)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="upload">{t('analyzeProject.sourceUpload')}</SelectItem>
-              <SelectItem value="git">{t('analyzeProject.sourceGit')}</SelectItem>
+              <SelectItem value="upload">{t('analyzeProject.sourceUpload' as TranslationKey)}</SelectItem>
+              <SelectItem value="git">{t('analyzeProject.sourceGit' as TranslationKey)}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {projectSourceType === "upload" && (
           <div className="space-y-2">
-            <Label htmlFor="project-file-upload">{t('analyzeProject.uploadLabel')}</Label>
+            <Label htmlFor="project-file-upload">{t('analyzeProject.uploadLabel' as TranslationKey)}</Label>
             <Input id="project-file-upload" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".zip,application/zip,.json,application/json" disabled={isLoading} />
-            {uploadedFile && <p className="text-xs text-muted-foreground">Archivo seleccionado: {uploadedFile.name}</p>}
+            {uploadedFile && <p className="text-xs text-muted-foreground">{t('common.fileSelected' as TranslationKey, { name: uploadedFile.name })}</p>}
           </div>
         )}
 
         {projectSourceType === "git" && (
           <div className="space-y-2">
-            <Label htmlFor="project-git-url">{t('analyzeProject.gitUrlLabel')}</Label>
-            <Input id="project-git-url" value={gitUrl} onChange={(e) => setGitUrl(e.target.value)} placeholder={t('analyzeProject.gitUrlPlaceholder')} disabled={isLoading} />
+            <Label htmlFor="project-git-url">{t('analyzeProject.gitUrlLabel' as TranslationKey)}</Label>
+            <Input id="project-git-url" value={gitUrl} onChange={(e) => setGitUrl(e.target.value)} placeholder={t('analyzeProject.gitUrlPlaceholder' as TranslationKey)} disabled={isLoading} />
           </div>
         )}
 
         <Separator />
-        <Label>{t('analyzeProject.paramsLabel')}</Label>
+        <Label>{t('analyzeProject.paramsLabel' as TranslationKey)}</Label>
         <div className="space-y-2">
-          <Label htmlFor="search-depth-project" className="text-sm font-normal">{t('analyzeProject.depthLabel')}</Label>
-          <Input id="search-depth-project" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder={t('analyzeProject.depthPlaceholder')} disabled={isLoading} min="1" />
+          <Label htmlFor="search-depth-project" className="text-sm font-normal">{t('analyzeProject.depthLabel' as TranslationKey)}</Label>
+          <Input id="search-depth-project" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder={t('analyzeProject.depthPlaceholder' as TranslationKey)} disabled={isLoading} min="1" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="focus-area-project" className="text-sm font-normal">{t('analyzeProject.focusLabel')}</Label>
-          <Input id="focus-area-project" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder={t('analyzeProject.focusPlaceholder')} disabled={isLoading} />
+          <Label htmlFor="focus-area-project" className="text-sm font-normal">{t('analyzeProject.focusLabel' as TranslationKey)}</Label>
+          <Input id="focus-area-project" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder={t('analyzeProject.focusPlaceholder' as TranslationKey)} disabled={isLoading} />
         </div>
         
         <Button onClick={handleAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {t('analyzeProject.analyzeButton')}
+          {t('analyzeProject.analyzeButton' as TranslationKey)}
         </Button>
 
         {error && <ErrorDisplay error={error} />}
@@ -237,36 +237,36 @@ export default function AnalizarProyectoPage() {
             <PageSectionHeader icon={ListChecks} title={result.analysisTitle} />
             <CardContent className="space-y-4">
               <div>
-                <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.overallAssessmentLabel')}</h3>
+                <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.overallAssessmentLabel' as TranslationKey)}</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.generalAssessment}</p>
               </div>
               {result.overallImprovementIdeas && result.overallImprovementIdeas.length > 0 && (
                  <div>
-                    <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.improvementIdeasLabel')}</h3>
+                    <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.improvementIdeasLabel' as TranslationKey)}</h3>
                     <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                         {result.overallImprovementIdeas.map((idea, index) => <li key={`idea-${index}`}>{idea}</li>)}
                     </ul>
                  </div>
               )}
               <div>
-                <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.identifiedAreasLabel')}</h3>
+                <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.identifiedAreasLabel' as TranslationKey)}</h3>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                   {result.identifiedAreas.map((area, index) => <li key={index}>{area}</li>)}
                 </ul>
               </div>
               {result.detailedSuggestions && result.detailedSuggestions.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-lg mb-2">{t('analyzeProject.results.specificSuggestionsLabel')}</h3>
+                  <h3 className="font-semibold text-lg mb-2">{t('analyzeProject.results.specificSuggestionsLabel' as TranslationKey)}</h3>
                   <ScrollArea className="h-60 border rounded-md p-2">
                     <ul className="space-y-3">
                     {result.detailedSuggestions.map((s, index) => (
                       <li key={index} className="p-2 border-b last:border-b-0">
                         <p className="font-medium text-sm">{s.area}</p>
                         <p className="text-xs text-muted-foreground">{s.suggestion}</p>
-                        <p className="text-xs">{t('analyzeProject.results.suggestionPriorityLabel')} <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></p>
+                        <p className="text-xs">{t('analyzeProject.results.suggestionPriorityLabel' as TranslationKey)} <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></p>
                         {s.suggestedPromptForImplementation && (
                           <div className="mt-1 pt-1 border-t border-border/50">
-                            <p className="text-xs font-semibold text-muted-foreground">{t('analyzeProject.results.suggestedPromptLabel')}</p>
+                            <p className="text-xs font-semibold text-muted-foreground">{t('analyzeProject.results.suggestedPromptLabel' as TranslationKey)}</p>
                             <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/50 p-1 rounded-sm">{s.suggestedPromptForImplementation}</pre>
                           </div>
                         )}
@@ -276,7 +276,7 @@ export default function AnalizarProyectoPage() {
                   </ScrollArea>
                 </div>
               )}
-              {result.groupLog && <LogsDisplay title={t('analyzeProject.results.groupLogTitle')} logs={result.groupLog} />}
+              {result.groupLog && <LogsDisplay title={t('analyzeProject.results.groupLogTitle' as TranslationKey)} logs={result.groupLog} />}
             </CardContent>
           </Card>
         )}
