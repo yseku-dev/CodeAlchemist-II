@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,8 +15,8 @@ import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS, APP
 import type { LLMSettings, GitSettings, LLMProvider, AppSettings, LanguageCode } from '@/types';
 import { Upload, Download, Save, Settings as SettingsIcon, Loader2 } from 'lucide-react';
 import { getModelsForProvider } from '@/lib/utils';
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useI18n } from '@/context/I18nContext';
-import { SUPPORTED_LANGUAGES } from '@/lib/i18n/constants';
 
 /**
  * @fileOverview Page component for application configuration.
@@ -28,25 +27,21 @@ import { SUPPORTED_LANGUAGES } from '@/lib/i18n/constants';
 
 /**
  * Mock function to simulate testing LLM connection.
- * In a real application, this would make an API call to the LLM provider.
  * @param {LLMSettings} config - The LLM configuration to test.
  * @returns {Promise<boolean>} True if connection is successful, false otherwise.
  */
 const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
   console.info("Testing LLM Connection with:", config);
-  // Simulate API call success/failure
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000)); 
 };
 
 /**
  * Mock function to simulate testing Git connection.
- * In a real application, this would attempt to interact with the Git repository.
  * @param {GitSettings} config - The Git configuration to test.
  * @returns {Promise<boolean>} True if connection is successful, false otherwise.
  */
 const testGitConnection = async (config: GitSettings): Promise<boolean> => {
   console.info("Testing Git Connection with:", config);
-  // Simulate API call success/failure
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
 };
 
@@ -61,25 +56,16 @@ export default function ConfiguracionPage() {
   const { settings, updateLLMConfig, updateGitConfig, updateSettings } = useAppState();
   const { t, language: i18nLanguage, setLanguage: setI18nLanguage, supportedLanguages } = useI18n();
 
-
-  /** State for the current LLM configuration being edited. */
   const [currentLLMConfig, setCurrentLLMConfig] = useState<LLMSettings>(settings.llmConfig);
-  /** State for the current Git configuration being edited. */
   const [currentGitConfig, setCurrentGitConfig] = useState<GitSettings>(settings.gitConfig);
-  /** State for the current debug mode setting being edited. */
   const [currentDebugMode, setCurrentDebugMode] = useState<boolean>(settings.debugMode);
   
-  /** State to indicate if LLM connection test is in progress. */
   const [isTestingLLM, setIsTestingLLM] = useState(false);
-  /** State to indicate if Git connection test is in progress. */
   const [isTestingGit, setIsTestingGit] = useState(false);
 
-  /** State for the list of available models based on the selected LLM provider. */
   const [availableModels, setAvailableModels] = useState<string[]>([]);
-  /** Ref for the hidden file input used for importing configurations. */
   const importConfigInputRef = useRef<HTMLInputElement>(null);
 
-  /** Effect to synchronize local component state with global AppState settings. */
   useEffect(() => {
     setCurrentLLMConfig(settings.llmConfig);
     setCurrentGitConfig(settings.gitConfig);
@@ -91,13 +77,6 @@ export default function ConfiguracionPage() {
     }
   }, [settings]);
 
-  /**
-   * Handles changes to the LLM configuration form fields.
-   * Updates the local state for LLM settings and dynamically adjusts API URL and available models
-   * based on the selected provider.
-   * @param {keyof LLMSettings} field - The LLM setting field being changed.
-   * @param {string | LLMProvider} value - The new value for the field.
-   */
   const handleLLMConfigChange = (field: keyof LLMSettings, value: string | LLMProvider) => {
     const newConfig = { ...currentLLMConfig, [field]: value };
     
@@ -114,54 +93,31 @@ export default function ConfiguracionPage() {
     setCurrentLLMConfig(newConfig);
   };
 
-  /**
-   * Handles changes to the Git configuration form fields.
-   * @param {keyof GitSettings} field - The Git setting field being changed.
-   * @param {string} value - The new value for the field.
-   */
   const handleGitConfigChange = (field: keyof GitSettings, value: string) => {
     setCurrentGitConfig({ ...currentGitConfig, [field]: value });
   };
 
-  /**
-   * Handles changes to the debug mode switch.
-   * @param {boolean} checked - The new state of the debug mode switch.
-   */
   const handleDebugModeChange = (checked: boolean) => {
     setCurrentDebugMode(checked);
   };
 
-  /**
-   * Saves all current configuration settings to AppState and localStorage.
-   * Also updates the DebugContext and I18nContext.
-   */
   const handleSaveSettings = () => {
     updateLLMConfig(currentLLMConfig);
     updateGitConfig(currentGitConfig);
-    updateSettings({ debugMode: currentDebugMode, language: i18nLanguage }); 
+    updateSettings({ debugMode: currentDebugMode }); 
     setContextDebugMode(currentDebugMode); 
 
     toast({ title: t('settings.toast.saved.title'), description: t('settings.toast.saved.description') });
     addLog("Configuration saved.");
   };
   
-  /**
-   * Handles change of application language.
-   * Updates the I18nContext, which in turn updates AppStateContext.
-   * @param {LanguageCode} langCode - The new language code.
-   */
   const handleLanguageChange = (langCode: LanguageCode) => {
-    setI18nLanguage(langCode); // This updates I18nContext and AppStateContext (settings.language)
+    setI18nLanguage(langCode); 
     const langName = supportedLanguages.find(l => l.code === langCode)?.name || langCode.toUpperCase();
     toast({ title: t('settings.toast.languageChanged.title'), description: t('settings.toast.languageChanged.description', { langName }) });
     addLog(`Language changed to: ${langCode}`);
   };
 
-
-  /**
-   * Tests the connection to the configured LLM provider.
-   * Displays a toast message indicating success or failure.
-   */
   const handleTestLLM = async () => {
     setIsTestingLLM(true);
     addLog(`Attempting LLM connection test for provider: ${currentLLMConfig.provider}`);
@@ -176,10 +132,6 @@ export default function ConfiguracionPage() {
     setIsTestingLLM(false);
   };
 
-  /**
-   * Tests the connection to the configured Git repository.
-   * Displays a toast message indicating success or failure.
-   */
   const handleTestGit = async () => {
     setIsTestingGit(true);
     addLog(`Attempting Git connection test for repo: ${currentGitConfig.repoUrl}`);
@@ -194,22 +146,17 @@ export default function ConfiguracionPage() {
     setIsTestingGit(false);
   };
   
-  /** Effect to ensure DebugContext is updated if global debugMode changes from AppState. */
   useEffect(() => { 
     setContextDebugMode(settings.debugMode);
   }, [settings.debugMode, setContextDebugMode]);
 
-  /**
-   * Handles the export of the current application configuration to a JSON file.
-   * The exported configuration includes LLM settings, Git settings, debug mode status, and language.
-   */
   const handleExportConfig = () => {
     try {
       const configToExport: AppSettings = {
         llmConfig: currentLLMConfig,
         gitConfig: currentGitConfig,
         debugMode: currentDebugMode,
-        language: i18nLanguage, // Use current language from i18n context
+        language: i18nLanguage,
       };
       const jsonString = JSON.stringify(configToExport, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -230,11 +177,6 @@ export default function ConfiguracionPage() {
     }
   };
 
-  /**
-   * Handles the import of application configuration from a JSON file.
-   * Validates the imported file structure and updates the application state if valid.
-   * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
-   */
   const handleImportConfig = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -250,14 +192,14 @@ export default function ConfiguracionPage() {
             'llmConfig' in parsedConfig && typeof parsedConfig.llmConfig === 'object' && parsedConfig.llmConfig !== null && 'provider' in parsedConfig.llmConfig &&
             'gitConfig' in parsedConfig && typeof parsedConfig.gitConfig === 'object' && parsedConfig.gitConfig !== null &&
             'debugMode' in parsedConfig && typeof parsedConfig.debugMode === 'boolean' &&
-            'language' in parsedConfig && typeof parsedConfig.language === 'string' && SUPPORTED_LANGUAGES.some(l => l.code === parsedConfig.language)
+            'language' in parsedConfig && typeof parsedConfig.language === 'string' && supportedLanguages.some(l => l.code === parsedConfig.language)
           ) {
             const importedSettings = parsedConfig as AppSettings;
             
             updateLLMConfig(importedSettings.llmConfig);
             updateGitConfig(importedSettings.gitConfig);
-            updateSettings({ debugMode: importedSettings.debugMode, language: importedSettings.language }); 
-            setI18nLanguage(importedSettings.language); // Update I18nContext directly
+            updateSettings({ debugMode: importedSettings.debugMode }); 
+            setI18nLanguage(importedSettings.language); 
             setContextDebugMode(importedSettings.debugMode); 
 
             toast({ title: t('settings.toast.configImported.title'), description: t('settings.toast.configImported.description') });
@@ -281,27 +223,25 @@ export default function ConfiguracionPage() {
 
   return (
     <Card className="max-w-3xl mx-auto">
-      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <CardTitle className="flex items-center gap-3">
-            <SettingsIcon className="h-7 w-7 text-primary" />
-            <span>{t('settings.title')}</span>
-          </CardTitle>
-          <CardDescription>{t('settings.description')}</CardDescription>
-        </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
-          <Input type="file" id="import-config-input" ref={importConfigInputRef} className="hidden" onChange={handleImportConfig} accept=".json" />
-          <Button variant="outline" onClick={() => importConfigInputRef.current?.click()} className="w-full sm:w-auto">
-            <Upload className="mr-2 h-4 w-4" /> {t('settings.importButton')}
-          </Button>
-          <Button variant="outline" onClick={handleExportConfig} className="w-full sm:w-auto">
-            <Download className="mr-2 h-4 w-4" /> {t('settings.exportButton')}
-          </Button>
-          <Button onClick={handleSaveSettings} className="w-full sm:w-auto">
-            <Save className="mr-2 h-4 w-4" /> {t('settings.saveButton')}
-          </Button>
-        </div>
-      </CardHeader>
+      <PageSectionHeader
+        icon={SettingsIcon}
+        title={t('settings.title')}
+        description={t('settings.description')}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Input type="file" id="import-config-input" ref={importConfigInputRef} className="hidden" onChange={handleImportConfig} accept=".json" />
+            <Button variant="outline" onClick={() => importConfigInputRef.current?.click()}>
+              <Upload className="mr-2 h-4 w-4" /> {t('settings.importButton')}
+            </Button>
+            <Button variant="outline" onClick={handleExportConfig}>
+              <Download className="mr-2 h-4 w-4" /> {t('settings.exportButton')}
+            </Button>
+            <Button onClick={handleSaveSettings}>
+              <Save className="mr-2 h-4 w-4" /> {t('settings.saveButton')}
+            </Button>
+          </div>
+        }
+      />
       <CardContent className="pt-6 space-y-8">
         <Card>
           <CardHeader>
