@@ -1,3 +1,4 @@
+
 // src/lib/i18n/translations.ts
 
 import type { LanguageCode } from '@/types';
@@ -34,7 +35,7 @@ export type TranslationKey = string;
  */
 const translationsData = {
   es: {
-    "app.title": "CodeAlchemist",
+    "app.title": "CodeAlchemist", // Added
     "sidebar": {
         "dashboard": "Panel de Control",
         "generateCode": "Generar Código",
@@ -800,16 +801,26 @@ const translationsData = {
             "confirm": "Sí, Eliminar"
         },
         "toast": {
-            "appStateSaved": "Estado de Aplicación Guardado",
-            "appStateSavedDescription": "El estado actual de la aplicación \"{name}\" ha sido guardado.",
-            "appStateSavedAndDownloaded": "Estado de Aplicación Guardado y Descargado",
-            "appStateSavedAndDownloadedDescription": "El estado actual \"{name}\" ha sido guardado y descargado como {filename}.",
-            "snapshotSaved": "Snapshot Guardado",
-            "snapshotSavedDescription": "Snapshot \"{name}\" creado.",
-            "snapshotDownloaded": "Snapshot Descargado",
-            "snapshotDownloadedDescription": "Snapshot \"{name}\" descargado como {filename}.",
-            "snapshotDeleted": "Snapshot Eliminado",
-            "snapshotDeletedDescription": "Snapshot \"{name}\" eliminado.",
+            "appStateSaved": {
+                "title": "Estado de Aplicación Guardado",
+                "description": "El estado actual de la aplicación \"{name}\" ha sido guardado."
+            },
+            "appStateSavedAndDownloaded": {
+                "title": "Estado de Aplicación Guardado y Descargado",
+                "description": "El estado actual \"{name}\" ha sido guardado y descargado como {filename}."
+            },
+            "snapshotSaved": {
+                "title": "Snapshot Guardado",
+                "description": "Snapshot \"{name}\" creado."
+            },
+            "snapshotDownloaded": {
+                "title": "Snapshot Descargado",
+                "description": "Snapshot \"{name}\" descargado como {filename}."
+            },
+            "snapshotDeleted": {
+                "title": "Snapshot Eliminado",
+                "description": "Snapshot \"{name}\" eliminado."
+            },
             "compareError": {
                 "notFound": "No se encontraron los snapshots seleccionados.",
                 "selectionIncomplete": "Selecciona dos versiones (A y B) para comparar."
@@ -1158,7 +1169,7 @@ const translationsData = {
     }
   },
   en: {
-    "app.title": "CodeAlchemist",
+    "app.title": "CodeAlchemist", // Added
     "sidebar": {
         "dashboard": "Dashboard",
         "generateCode": "Generate Code",
@@ -1521,7 +1532,7 @@ const translationsData = {
             }
         },
         "downloads": {
-            "suggestionsJsonFilename": "autoupdate_suggestions.json",
+            "suggestionsJsonFilename": "autoupdate_sugerencias.json",
             "projectZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip"
         },
         "errors": {
@@ -1536,35 +1547,35 @@ const translationsData = {
         },
         "dialogs": {
             "applySuggestion": {
-                "title": "Apply Suggestion to {area}",
-                "confirmText": "Yes, Mark as Applied",
+                "title": "Aplicar Sugerencia a {area}",
+                "confirmText": "Sí, Marcar como Aplicada",
                 "description": {
-                    "p1": "Suggestion for {area} will be marked as applied.",
-                    "p2": "Actual file modification is not possible from the browser. Review the suggested (or edited) content and apply it manually in your development environment:"
+                    "p1": "Se marcará como aplicada la sugerencia para {area}.",
+                    "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually en tu entorno de desarrollo:"
                 }
             },
-            "noContentToShow": "Error: No content to display.",
+            "noContentToShow": "Error: No hay contenido para mostrar.",
             "testSuggestion": {
-                "title": "Test Suggestion: {area}",
-                "description": "Review the suggested or edited code. Actual testing must be done in your development environment."
+                "title": "Testear Sugerencia: {area}",
+                "description": "Revisa el código sugerido o editado. La prueba real debe realizarse en tu entorno de desarrollo."
             },
-            "noContentToTest": "No content to test.",
+            "noContentToTest": "No hay contenido para testear.",
             "testInVenv": {
-                "title": "Test Suggestion in Virtual Environment: {area}",
-                "description": "This functionality would simulate running the suggested code in an isolated virtual environment (e.g., Python venv, Node.js NVM). Actual execution requires a local setup or backend infrastructure.",
-                "actionNote": "Action: It would attempt to create a virtual environment, install dependencies (if inferable), and run the code/tests.",
-                "simulateButton": "Simulate Test Start"
+                "title": "Testear Sugerencia en Entorno Virtual: {area}",
+                "description": "Esta funcionalidad simularía la ejecución del código sugerido en un entorno virtual aislado (ej. Python venv, Node.js NVM). La ejecución real requiere una infraestructura local o backend.",
+                "actionNote": "Acción: Se intentaría crear un entorno virtual, instalar dependencias (si se pudieran inferir) y ejecutar el código/pruebas.",
+                "simulateButton": "Simular Inicio de Prueba"
             },
             "commitToGit": {
-                "title": "Upload Changes to Git",
-                "confirmText": "Commit and Push",
-                "placeholder": "E.g.: Applied AutoUpdate suggestions",
-                "description": "This action will attempt to commit and push to the configured repository. Ensure credentials in 'Settings' are correct."
+                "title": "Subir Cambios a Git",
+                "confirmText": "Commit y Push",
+                "placeholder": "Ej: Aplicadas sugerencias de AutoUpdate",
+                "description": "Esta acción intentará realizar un commit y push al repositorio configurado. Asegúrate de que las credenciales en 'Configuración' son correctas."
             }
         },
         "autofix": {
-            "errorContext": "Error to analyze: {error}\n\nContext: Error occurred in CodeAlchemist's AutoUpdate feature.",
-            "focusArea": "Explain the following error and propose a solution or debugging steps: \"{error}\""
+            "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
+            "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
         }
     },
     "refactorProject": {
