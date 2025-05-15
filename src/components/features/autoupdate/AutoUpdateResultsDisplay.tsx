@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Download, GitCommit, ClipboardList, FileArchive } from 'lucide-react';
 import ErrorDisplay from '@/components/error-display';
-import LogsDisplay from '@/components/logs-display';
+// import LogsDisplay from '@/components/logs-display'; // LogsDisplay is now directly in AutoUpdatePage
 import type { AnalyzeCodeOutput, AutoUpdateSuggestion } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AutoUpdateSuggestionCard from '@/components/features/autoupdate/autoupdate-suggestion-card';
@@ -35,6 +35,7 @@ interface AutoUpdateResultsDisplayProps {
 /**
  * @fileOverview Component for displaying AutoUpdate analysis results.
  * Shows analysis summary, detailed suggestions, a unified prompt, and actions like download/commit.
+ * Internationalized using useI18n.
  */
 export default function AutoUpdateResultsDisplay({
   analysisResult,

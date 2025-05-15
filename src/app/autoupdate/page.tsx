@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from "@/hooks/use-toast";
-import { useDebug, type DebugLogEntry } from '@/context/DebugContext';
+import { useDebug } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, AutoUpdateSuggestion, AnalyzeCodeInput, AnalyzeCodeOutput, AppSourceFile } from '@/types';
 import { callAnalyzeSelfCode } from '@/utils/apiClient';
@@ -40,45 +40,36 @@ type AutoUpdateSourceType = "Local" | "Git";
  */
 export default function AutoUpdatePage() {
   const { agents, groups, settings: globalSettings, getAgentById, getGroupById } = useAppState();
-  const { addLog: addDebugLog, logs: debugLogs } = useDebug();
+  const { addLog: addDebugLog } = useDebug();
   const { toast } = useToast();
   const router = useRouter();
   const { t } = useI18n();
 
-  // State for LLM configuration source
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(undefined);
 
-  // Effect to set default LLM config source based on RefactorizadorCodigoExperto agent
   useEffect(() => {
-    if (agents && agents.length > 0) {
+    if (agents && agents.length > 0 && llmConfigSource === undefined) {
       const defaultAgent = agents.find(a => a.name === "RefactorizadorCodigoExperto");
-      const initialConfig = defaultAgent
+      setLlmConfigSource(defaultAgent
         ? { type: 'Agente' as const, id: defaultAgent.id, name: defaultAgent.name }
-        : { type: 'Ajustes Globales' as const };
-      
-      if (!llmConfigSource) { // Only set if it's undefined initially
-        setLlmConfigSource(initialConfig);
-      }
-    } else if (!llmConfigSource) { // Fallback if agents are not loaded yet
-        setLlmConfigSource({ type: 'Ajustes Globales' as const });
+        : { type: 'Ajustes Globales' as const }
+      );
+    } else if (llmConfigSource === undefined) {
+      setLlmConfigSource({ type: 'Ajustes Globales' as const });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agents]); // Dependency: agents array
+  }, [agents, llmConfigSource]);
 
-  // State for analysis configuration
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
   const [gitRepoUrl, setGitRepoUrl] = useState('');
-  const [analysisPreferences, setAnalysisPreferences] = useState(''); // User's focus for the analysis
+  const [analysisPreferences, setAnalysisPreferences] = useState('');
   
-  // State for analysis process and results
-  const [isAnalyzing, setIsAnalyzing] = useState(false); // General loading/processing state
-  const [progress, setProgress] = useState(0); // Progress bar value (0-100)
-  const [analysisError, setAnalysisError] = useState<string | null>(null); // Error message from analysis
-  const [analysisResult, setAnalysisResult] = useState<AnalyzeCodeOutput | null>(null); // Full analysis output from AI
-  const [suggestions, setSuggestions] = useState<AutoUpdateSuggestion[]>([]); // Processed suggestions for UI
-  const [unifiedPrompt, setUnifiedPrompt] = useState<string | null>(null); // Combined prompt from all suggestions
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalyzeCodeOutput | null>(null);
+  const [suggestions, setSuggestions] = useState<AutoUpdateSuggestion[]>([]);
+  const [unifiedPrompt, setUnifiedPrompt] = useState<string | null>(null);
 
-  // State for dialogs
   const [showConfirmApplyDialog, setShowConfirmApplyDialog] = useState(false);
   const [suggestionToApply, setSuggestionToApply] = useState<AutoUpdateSuggestion | null>(null);
   
@@ -90,19 +81,10 @@ export default function AutoUpdatePage() {
 
   const [showCommitDialog, setShowCommitDialog] = useState(false);
   const [commitMessage, setCommitMessage] = useState('');
-  const [isUploadingGit, setIsUploadingGit] = useState(false); // Specific loading state for Git upload
-  const [detailedLogs, setDetailedLogs] = useState<string[]>([]); // Logs from server actions or complex processes
+  const [isUploadingGit, setIsUploadingGit] = useState(false);
+  const [detailedLogs, setDetailedLogs] = useState<string[]>([]);
 
 
-  /**
-   * Processes the raw analysis output from the AI flow (AnalyzeCodeOutput) and prepares
-   * it for UI display by mapping to AutoUpdateSuggestion[] and generating a unified prompt.
-   * @private
-   * @param {AnalyzeCodeOutput} aiResult - The raw output from the AI analysis flow.
-   * @param {LLMConfigSourceOption | undefined} currentLlmConfigSource - The LLM configuration used.
-   * @param {AppSourceFile[]} [currentProjectFiles] - The project files used for analysis (for original content).
-   * @returns {{ analysisOutput: AnalyzeCodeOutput; mappedSuggestions: AutoUpdateSuggestion[]; generatedUnifiedPrompt: string | null }} Processed results.
-   */
   const _processAiAnalysisOutput = useCallback((
     aiResult: AnalyzeCodeOutput,
     currentLlmConfigSource: LLMConfigSourceOption | undefined,
@@ -129,7 +111,7 @@ export default function AutoUpdatePage() {
         status: 'pending',
         isEditing: false,
         userEditedContent: undefined,
-        originalContent: relatedFile?.content, // Store original content for diff/revert
+        originalContent: relatedFile?.content,
       };
     });
 
@@ -160,11 +142,6 @@ export default function AutoUpdatePage() {
     return { analysisOutput: finalResultOutput, mappedSuggestions, generatedUnifiedPrompt: generatedUnifiedPromptText };
   }, [getAgentById, getGroupById, addDebugLog, t, analysisPreferences]);
   
-  /**
-   * Initiates the auto-analysis process.
-   * Fetches local source code (if selected) via Server Action, then calls the AI analysis flow.
-   * Manages UI state for loading, progress, errors, and results.
-   */
   const handleStartAnalysis = useCallback(async () => {
     setIsAnalyzing(true);
     setAnalysisError(null);
@@ -273,11 +250,6 @@ export default function AutoUpdatePage() {
     }
   }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, getAgentById, getGroupById, _processAiAnalysisOutput, toast, addDebugLog, router, t]); 
 
-  /**
-   * Handles marking a suggestion as "applied" in the UI.
-   * This is a conceptual application, actual file modification needs manual user intervention.
-   * @param {AutoUpdateSuggestion} suggestion - The suggestion to mark as applied.
-   */
   const handleApplySuggestionClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     if (!(suggestion.userEditedContent !== undefined || suggestion.fullFileContentSuggested !== undefined)) {
         toast({variant: "destructive", title: t('autoupdate.toast.noContentToApply.title'), description: t('autoupdate.toast.noContentToApply.description')});
@@ -287,9 +259,6 @@ export default function AutoUpdatePage() {
     setShowConfirmApplyDialog(true);
   }, [toast, t]);
 
-  /**
-   * Confirms the application of a suggestion, updating its status in the UI.
-   */
   const confirmApplySuggestion = useCallback(() => {
     if (!suggestionToApply) return;
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionMarkedApplied', { area: suggestionToApply.area })});
@@ -299,12 +268,6 @@ export default function AutoUpdatePage() {
     setSuggestionToApply(null);
   }, [suggestionToApply, toast, addDebugLog, t]);
 
-  /**
-   * Handles the download of code.
-   * For ZIP_PROJECT, it attempts to fetch server code, apply suggestions conceptually, and zip client-side.
-   * For JSON_SUGGESTIONS, it downloads a JSON of all suggestions with their full proposed content.
-   * @param {'JSON_SUGGESTIONS' | 'ZIP_PROJECT'} format - The desired download format.
-   */
   const handleDownload = useCallback(async (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => {
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.downloadRequested', { format: format })});
 
@@ -384,7 +347,7 @@ export default function AutoUpdatePage() {
                 zip.file(file.fileName, file.content);
             });
 
-            const zipFileName = `CodeAlchemist_CodigoActual_Con_Sugerencias.zip`;
+            const zipFileName = t('autoupdate.downloads.projectZipFilename');
 
             const zipBlob = await zip.generateAsync({ type: "blob" });
             const url = URL.createObjectURL(zipBlob);
@@ -397,7 +360,7 @@ export default function AutoUpdatePage() {
             URL.revokeObjectURL(url);
             toast({ 
                 title: t('autoupdate.toast.projectZipDownloadInitiated.title'), 
-                description: t('autoupdate.toast.projectZipDownloadInitiated.description'),
+                description: t('autoupdate.toast.projectZipDownloadInitiated.description', {filename: zipFileName}),
                 duration: 12000, 
             });
             addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.projectZipDownloaded', { numFiles: filesToPackage.length })});
@@ -411,9 +374,6 @@ export default function AutoUpdatePage() {
     }
   }, [suggestions, toast, addDebugLog, t, analysisResult, setIsAnalyzing]);
 
-  /**
-   * Initiates the Git commit and push process by opening the commit message dialog.
-   */
   const handleOpenCommitDialog = () => {
     if (!globalSettings.gitConfig.repoUrl || !globalSettings.gitConfig.username || !globalSettings.gitConfig.email || !globalSettings.gitConfig.pat) {
       toast({ variant: "destructive", title: t('autoupdate.toast.gitConfigIncomplete.title'), description: t('autoupdate.toast.gitConfigIncomplete.description') });
@@ -423,10 +383,6 @@ export default function AutoUpdatePage() {
     setShowCommitDialog(true);
   };
 
-  /**
-   * Performs the Git upload by calling the server action.
-   * Handles UI updates and error notifications.
-   */
   const performGitUpload = useCallback(async () => {
     if (!commitMessage.trim()) {
       toast({ variant: "destructive", title: t('autoupdate.toast.commitMessageRequired.title') });
@@ -462,10 +418,6 @@ export default function AutoUpdatePage() {
   }, [globalSettings.gitConfig, commitMessage, toast, addDebugLog, t, detailedLogs]);
 
 
-  /**
-   * Handles initiating an AI-driven auto-fix for a given error message.
-   * @param {string} errorMsg - The error message to analyze.
-   */
   const handleAutoFixError = useCallback(async (errorMsg: string) => {
     const autoFixFlowName = 'callAnalyzeSelfCode (AutoFix Error)'; 
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.attemptingAutofix', { error: errorMsg }), flowName: autoFixFlowName});
@@ -489,10 +441,6 @@ export default function AutoUpdatePage() {
     }
   }, [addDebugLog, toast, router, getAgentById, agents, t]);
 
-  /**
-   * Toggles the editing mode for a specific suggestion.
-   * @param {string} suggestionId - The ID of the suggestion to toggle.
-   */
   const handleToggleEdit = useCallback((suggestionId: string) => {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
@@ -506,50 +454,30 @@ export default function AutoUpdatePage() {
     }));
   }, []);
   
-  /**
-   * Handles changes to the content of a suggestion being edited.
-   * @param {string} suggestionId - The ID of the suggestion.
-   * @param {string} newContent - The new content from the textarea.
-   */
   const handleSuggestionContentChange = useCallback((suggestionId: string, newContent: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, userEditedContent: newContent } : s));
   }, []);
 
-  /**
-   * Saves the edited content of a suggestion and exits editing mode.
-   * @param {string} suggestionId - The ID of the suggestion to save.
-   */
   const handleSaveEdit = useCallback((suggestionId: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, isEditing: false } : s));
     toast({title: t('autoupdate.toast.editSaved.title'), description: t('autoupdate.toast.editSaved.description')})
   }, [toast, t]);
 
-  /**
-   * Cancels the editing of a suggestion, reverting any changes.
-   * @param {string} suggestionId - The ID of the suggestion to cancel editing for.
-   */
   const handleCancelEdit = useCallback((suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
+        // Revert to original AI suggestion or empty if no original AI suggestion
         return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested ?? undefined };
       }
       return s;
     }));
   }, []);
 
-  /**
-   * Opens the dialog to "test" a suggestion (shows code for review).
-   * @param {AutoUpdateSuggestion} suggestion - The suggestion to test.
-   */
   const handleTestSuggestionClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     setSuggestionToTest(suggestion);
     setShowTestDialog(true);
   }, []);
 
-  /**
-   * Opens the dialog to "test in venv" a suggestion (shows code and explains concept).
-   * @param {AutoUpdateSuggestion} suggestion - The suggestion to test.
-   */
   const handleTestInVenvClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     setSuggestionToTestInVenv(suggestion);
     setShowTestInVenvDialog(true);
@@ -677,5 +605,4 @@ export default function AutoUpdatePage() {
     </React.Fragment>
   );
 }
-
     

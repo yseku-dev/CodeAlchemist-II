@@ -250,6 +250,8 @@ const translationsData = {
         "title": "AutoUpdate (Análisis del Propio Código)",
         "description": "Permite que CodeAlchemist analice su propio código fuente.",
         "config": {
+            "title": "AutoUpdate (Análisis del Propio Código)",
+            "description": "Permite que CodeAlchemist analice su propio código fuente.",
             "llmSourceLabel": "Usar Configuración LLM De:",
             "codeSourceLabel": "Fuente del Código para Auto-Análisis",
             "sourceLocal": "Local (código actual de la app)",
@@ -350,7 +352,7 @@ const translationsData = {
             "downloadComplete": {
                 "title": "Descarga Completada",
                 "suggestionsJsonDescription": "Sugerencias descargadas como {filename}.",
-                "projectZipDescription": "Este archivo ZIP ({filename}) contiene un JSON con los cambios sugeridos por la IA. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (de Git) y aplicar manualmente los cambios del JSON."
+                "projectZipDescription": "Este archivo ZIP ({filename}) contiene un JSON con los cambios sugeridos por la IA. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (de Git) y aplicar manually los cambios del JSON."
             },
             "preparingProjectZip": {
                 "title": "Preparando Descarga del Proyecto (ZIP)...",
@@ -358,7 +360,7 @@ const translationsData = {
             },
             "projectZipDownloadInitiated": {
                 "title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
-                "description": "Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
+                "description": "Este archivo ZIP contiene un único archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
             },
             "zipError": {
                 "title": "Error al Generar ZIP"
@@ -1401,6 +1403,8 @@ const translationsData = {
         "title": "AutoUpdate (Self-Code Analysis)",
         "description": "Allow CodeAlchemist to analyze its own source code.",
         "config": {
+            "title": "AutoUpdate (Self-Code Analysis)",
+            "description": "Allow CodeAlchemist to analyze its own source code.",
             "llmSourceLabel": "Use LLM Configuration From:",
             "codeSourceLabel": "Source Code for Self-Analysis",
             "sourceLocal": "Local (current app code)",
@@ -1509,7 +1513,7 @@ const translationsData = {
             },
             "projectZipDownloadInitiated": {
                 "title": "Download of Project with Suggestions (ZIP containing JSON of changes)",
-                "description": "This ZIP file ({filename}) contains a JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
+                "description": "This ZIP file contains a single JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
             },
             "zipError": {
                 "title": "Error Generating ZIP"
@@ -1547,7 +1551,7 @@ const translationsData = {
             }
         },
         "downloads": {
-            "suggestionsJsonFilename": "autoupdate_sugerencias.json",
+            "suggestionsJsonFilename": "autoupdate_suggestions.json",
             "projectZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip"
         },
         "errors": {
@@ -1894,35 +1898,35 @@ const translationsData = {
         },
         "autofixAttempt": {
             "title": "Attempting Auto-Fix",
-            "description": "Consulting 'EquipoDesarrolloSoftware' for a possible solution..."
+            "description": "Consulting 'SoftwareDevelopmentTeam' for a possible solution..."
         },
         "autofixSuggestionReceived": {
             "title": "Auto-Fix Suggestion Received",
-            "description": "'EquipoDesarrolloSoftware' has provided a suggestion."
+            "description": "'SoftwareDevelopmentTeam' has provided a suggestion."
         },
         "autofixError": {
             "title": "Auto-Fix Error"
         }
       },
       "autofixModal": {
-        "title": "Sugerencia de Auto-Corrección del Equipo de Software",
-        "description": "El grupo 'EquipoDesarrolloSoftware' ha analizado el error y propone lo siguiente:",
-        "originalErrorLabel": "Mensaje de Error Original:",
-        "diagnosisLabel": "Diagnóstico del Grupo:",
-        "solutionLabel": "Solución Sugerida:",
-        "invocationLogLabel": "Log de Invocación del Grupo (para depuración)"
+        "title": "Software Team's Auto-Correction Suggestion",
+        "description": "The 'SoftwareDevelopmentTeam' group has analyzed the error and proposes the following:",
+        "originalErrorLabel": "Original Error Message:",
+        "diagnosisLabel": "Group's Diagnosis:",
+        "solutionLabel": "Suggested Solution:",
+        "invocationLogLabel": "Group Invocation Log (for debugging)"
       }
     },
      "versions": {
-        "title": "Versiones Guardadas (Snapshots)",
-        "description": "Gestiona instantáneas de código generadas o del estado de la aplicación.",
-        "saveAppStateButton": "Guardar Estado de App (JSON)",
-        "saveAppStateDescription": "Guarda la configuración actual, agentes y grupos como un snapshot JSON.",
-        "saveAndDownloadStateButton": "Guardar Estado y Descargar como ZIP",
-        "saveAndDownloadStateDescription": "Guarda el estado actual de la aplicación y lo descarga como un archivo .zip (conteniendo el JSON del estado).",
-        "compareButton": "Comparar A y B",
-        "compareButtonDisabledTooltip": "Selecciona dos versiones (A y B) para comparar.",
-        "deleteAllButton": "Eliminar Todas",
+        "title": "Saved Versions (Snapshots)",
+        "description": "Manage generated code snapshots or application state.",
+        "saveAppStateButton": "Save App State (JSON)",
+        "saveAppStateDescription": "Saves current settings, agents, and groups as a JSON snapshot.",
+        "saveAndDownloadStateButton": "Save State & Download as ZIP",
+        "saveAndDownloadStateDescription": "Saves the current application state and downloads it as a .zip file (containing the state JSON).",
+        "compareButton": "Compare A & B",
+        "compareButtonDisabledTooltip": "Select two versions (A and B) to compare.",
+        "deleteAllButton": "Delete All",
         "table": {
             "colA": "A",
             "colB": "B",

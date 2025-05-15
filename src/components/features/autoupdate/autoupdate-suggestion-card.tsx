@@ -23,6 +23,10 @@ interface AutoUpdateSuggestionCardProps {
   onTestInVenv: (suggestion: AutoUpdateSuggestion) => void;
 }
 
+/**
+ * @fileoverview Card component for displaying a single AutoUpdate suggestion.
+ * Allows editing, testing, and applying suggestions. Internationalized.
+ */
 export default function AutoUpdateSuggestionCard({
   suggestion,
   onApply,
@@ -34,7 +38,7 @@ export default function AutoUpdateSuggestionCard({
   onTestInVenv,
 }: AutoUpdateSuggestionCardProps) {
   const { id, area, suggestion: descriptionText, priority, fullFileContentSuggested, suggestedPromptForImplementation, status, isEditing, userEditedContent } = suggestion;
-  const hasContentToActOn = !!(fullFileContentSuggested || userEditedContent !== undefined); // Check if userEditedContent is defined
+  const hasContentToActOn = !!(fullFileContentSuggested || userEditedContent !== undefined); 
   const { toast } = useToast();
   const { t } = useI18n();
 
@@ -42,8 +46,8 @@ export default function AutoUpdateSuggestionCard({
     if (suggestedPromptForImplementation) {
       navigator.clipboard.writeText(suggestedPromptForImplementation);
       toast({
-        title: t('autoupdate.toast.editSaved.title'), // Re-use existing or add specific "Prompt Copied"
-        description: "El prompt sugerido ha sido copiado al portapapeles.", // TODO: i18n this
+        title: t('common.copy'), 
+        description: t('autoupdate.toast.editSaved.description'), // Re-using for "prompt copied"
       });
     }
   };
@@ -66,7 +70,7 @@ export default function AutoUpdateSuggestionCard({
           <div className="mt-2 pt-2 border-t border-border/50">
             <div className="flex justify-between items-center mb-1">
               <Label htmlFor={`prompt-${id}`} className="text-xs font-semibold text-muted-foreground">{t('autoupdate.suggestionCard.promptLabel')}</Label>
-              <Button variant="ghost" size="icon" onClick={handleCopyPrompt} title="Copiar Prompt" className="h-6 w-6">
+              <Button variant="ghost" size="icon" onClick={handleCopyPrompt} title={t('common.copy')} className="h-6 w-6">
                 <Copy className="h-3.5 w-3.5" />
               </Button>
             </div>
