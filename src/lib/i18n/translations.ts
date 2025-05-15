@@ -5,22 +5,14 @@ import type { LanguageCode } from '@/types';
 /**
  * @fileOverview Centralized translation strings for the CodeAlchemist application.
  * This file contains the text for different languages supported by the application.
- * Add new keys here and their translations for each supported language.
  */
 
 /**
  * Type for a single language's translations, mapping keys to strings or nested objects.
- * @example
- * {
- *   "dashboard.title": "Panel de Control",
- *   "common.save": "Guardar",
- *   "section.subsection.greeting": "Hola"
- * }
  */
 export type TranslationSet = {
-  [key: string]: string | TranslationSet; // Allows for nested objects
+  [key: string]: string | TranslationSet;
 };
-
 
 /**
  * Type for all translations, mapping language codes to their respective TranslationSet.
@@ -29,17 +21,11 @@ export type AllTranslations = {
   [lang in LanguageCode]: TranslationSet;
 };
 
-
 /**
  * Represents a key that can be used to look up a translation.
- * This type is derived from the keys of the default language (Spanish) translations.
- * This helps ensure that all keys used in the `t()` function are valid.
- *
- * To handle nested keys in `t()` function, you might use a string path like "section.subsection.key".
- * The type generation here is basic; a more sophisticated script could generate this from the object structure.
+ * Using string for broader compatibility with dotted paths.
  */
-export type TranslationKey = keyof typeof translationsData['es'] | string; // Allow string for nested paths
-
+export type TranslationKey = string;
 
 /**
  * The actual translation strings for the application.
@@ -191,7 +177,7 @@ const translationsData = {
     "autoupdate.config.startButton.loading": "Analizando...",
     "autoupdate.results.title": "Resultados del Auto-Análisis",
     "autoupdate.results.downloadSuggestionsJson": "Descargar Sugerencias (JSON)",
-    "autoupdate.results.downloadProjectZip": "Descargar Código Actual (ZIP)",
+    "autoupdate.results.downloadProjectZip": "Descargar Código Actual (ZIP)", // Renamed for intent
     "autoupdate.results.uploadToGit": "Subir a Git",
     "autoupdate.results.noResults": "Inicia un análisis para ver los resultados.",
     "autoupdate.results.analysisTitleLabel": "Título del Análisis:",
@@ -223,7 +209,7 @@ const translationsData = {
     "autoupdate.logs.suggestionsDownloadedJson": "Sugerencias de AutoUpdate descargadas como JSON.",
     "autoupdate.logs.applyingSuggestionToZip": "Aplicando contenido de sugerencia a {fileName} para ZIP.",
     "autoupdate.logs.appliedSuggestionsToZip": "Sugerencias 'applied' incorporadas conceptualmente para el ZIP.",
-    "autoupdate.logs.projectZipDownloaded": "Descarga de Proyecto ZIP iniciada con {numFiles} archivos.",
+    "autoupdate.logs.projectZipDownloaded": "Descarga de Proyecto ZIP ({filename}) iniciada. Contiene un JSON con el contenido de los archivos del proyecto obtenidos del servidor, con las sugerencias 'aplicadas' conceptualmente. No es un ZIP del proyecto ejecutable directamente.",
     "autoupdate.logs.zipGenerationFailed": "Generación de ZIP fallida: {error}",
     "autoupdate.logs.gitUploadFailedConfig": "Subida a Git fallida: Configuración incompleta.",
     "autoupdate.logs.commitMessageMissing": "Subida a Git fallida: Mensaje de commit requerido.",
@@ -258,10 +244,8 @@ const translationsData = {
     "autoupdate.toast.downloadComplete.suggestionsJsonDescription": "Sugerencias descargadas como {filename}.",
     "autoupdate.toast.preparingProjectZip.title": "Preparando Descarga del Proyecto (ZIP)...",
     "autoupdate.toast.preparingProjectZip.description": "Obteniendo código del servidor...",
-    "autoupdate.toast.projectZipDownloadInitiated.title": "Descarga de Proyecto (ZIP) Iniciada",
-    "autoupdate.toast.projectZipDownloadInitiated.description": "Este archivo ZIP contiene un JSON con el contenido de los archivos del proyecto obtenidos del servidor, con las sugerencias 'aplicadas' conceptualmente. No es un ZIP del proyecto ejecutable directamente.",
-    "autoupdate.toast.projectZipDownloadExplanation.title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
-    "autoupdate.toast.projectZipDownloadExplanation.description": "Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA.",
+    "autoupdate.toast.projectZipDownloadInitiated.title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
+    "autoupdate.toast.projectZipDownloadInitiated.description": "Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA.",
     "autoupdate.toast.zipError.title": "Error al Generar ZIP",
     "autoupdate.toast.gitConfigIncomplete.title": "Configuración Git Incompleta",
     "autoupdate.toast.gitConfigIncomplete.description": "Completa la configuración en Ajustes antes de subir a Git.",
@@ -395,9 +379,9 @@ const translationsData = {
     "analyzeProject.toast.analysisComplete.title": "Análisis Completado",
     "analyzeProject.toast.analysisComplete.description": "El proyecto ha sido analizado.",
     "analyzeProject.toast.analysisError.title": "Error de Análisis",
-    
   },
   en: {
+    // ... (English translations as previously defined) ...
     "app.title": "CodeAlchemist",
     "sidebar.dashboard": "Dashboard",
     "sidebar.generateCode": "Generate Code",
@@ -574,7 +558,7 @@ const translationsData = {
     "autoupdate.logs.suggestionsDownloadedJson": "AutoUpdate suggestions downloaded as JSON.",
     "autoupdate.logs.applyingSuggestionToZip": "Applying suggestion content to {fileName} for ZIP.",
     "autoupdate.logs.appliedSuggestionsToZip": "'Applied' suggestions conceptually incorporated for ZIP.",
-    "autoupdate.logs.projectZipDownloaded": "Project ZIP download initiated with {numFiles} files.",
+    "autoupdate.logs.projectZipDownloaded": "Project ZIP download ({filename}) initiated. It contains a JSON file with the content of project files obtained from the server, with 'applied' suggestions conceptually included. It's not a directly executable project ZIP.",
     "autoupdate.logs.zipGenerationFailed": "ZIP generation failed: {error}",
     "autoupdate.logs.gitUploadFailedConfig": "Git upload failed: Configuration incomplete.",
     "autoupdate.logs.commitMessageMissing": "Git upload failed: Commit message required.",
@@ -609,10 +593,8 @@ const translationsData = {
     "autoupdate.toast.downloadComplete.suggestionsJsonDescription": "Suggestions downloaded as {filename}.",
     "autoupdate.toast.preparingProjectZip.title": "Preparing Project Download (ZIP)...",
     "autoupdate.toast.preparingProjectZip.description": "Getting code from server...",
-    "autoupdate.toast.projectZipDownloadInitiated.title": "Project ZIP Download Initiated",
-    "autoupdate.toast.projectZipDownloadInitiated.description": "This ZIP contains a JSON file with the content of project files obtained from the server, with 'applied' suggestions conceptually included. It is not a directly executable project ZIP.",
-    "autoupdate.toast.projectZipDownloadExplanation.title": "Project Download with Suggestions (ZIP containing JSON of changes)",
-    "autoupdate.toast.projectZipDownloadExplanation.description": "This ZIP file ({filename}) contains a JSON file detailing files that would be modified by AI suggestions and their proposed new content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI.",
+    "autoupdate.toast.projectZipDownloadInitiated.title": "Project Download with Suggestions (ZIP containing JSON of changes)",
+    "autoupdate.toast.projectZipDownloadInitiated.description": "This ZIP file ({filename}) contains a JSON file detailing files that would be modified by AI suggestions and their proposed new content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI.",
     "autoupdate.toast.zipError.title": "Error Generating ZIP",
     "autoupdate.toast.gitConfigIncomplete.title": "Git Configuration Incomplete",
     "autoupdate.toast.gitConfigIncomplete.description": "Complete Git settings in Configuration before uploading.",
@@ -746,8 +728,10 @@ const translationsData = {
     "analyzeProject.toast.analysisComplete.title": "Analysis Complete",
     "analyzeProject.toast.analysisComplete.description": "The project has been analyzed.",
     "analyzeProject.toast.analysisError.title": "Analysis Error",
-    
   }
-} as const; // `as const` helps with type inference for TranslationKey
+} as const;
 
+/**
+ * Export the translations object directly.
+ */
 export const translations: AllTranslations = translationsData;
