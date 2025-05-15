@@ -19,6 +19,7 @@ import { AppError } from '@/utils/AppError';
 import { useRouter } from 'next/navigation';
 import { getApplicationSourceBundle } from './actions';
 import JSZip from 'jszip';
+import LogsDisplay from '@/components/logs-display';
 
 type AutoUpdateSourceType = "Local" | "Git";
 
@@ -30,7 +31,7 @@ type AutoUpdateSourceType = "Local" | "Git";
  * @module AutoUpdatePage
  */
 export default function AutoUpdatePage() {
-  const { agents, settings: globalSettings } = useAppState(); 
+  const { agents, groups, settings: globalSettings, getAgentById, getGroupById } = useAppState();
   const { addLog: addDebugLog } = useDebug();
   const { toast } = useToast();
   const router = useRouter();
@@ -45,12 +46,15 @@ export default function AutoUpdatePage() {
       const initialConfig = defaultAgent
         ? { type: 'Agente' as const, id: defaultAgent.id, name: defaultAgent.name }
         : { type: 'Ajustes Globales' as const };
-      if (llmConfigSource?.type !== initialConfig.type || (llmConfigSource?.type === initialConfig.type && ('id' in llmConfigSource && 'id' in initialConfig) && llmConfigSource.id !== initialConfig.id)) {
+      
+      if (llmConfigSource?.type !== initialConfig.type || 
+          (llmConfigSource?.type === 'Agente' && initialConfig.type === 'Agente' && llmConfigSource.id !== initialConfig.id) ||
+          (llmConfigSource?.type === 'Ajustes Globales' && initialConfig.type !== 'Ajustes Globales')) {
         setLlmConfigSource(initialConfig);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agents]); 
+  }, [agents]);
 
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
   const [gitRepoUrl, setGitRepoUrl] = useState('');
@@ -76,10 +80,15 @@ export default function AutoUpdatePage() {
   const [commitMessage, setCommitMessage] = useState('');
 
   /**
-   * Executes the code analysis using the selected configuration and processes the results.
-   * @param {AnalyzeCodeInput} analysisInput - The input for the analysis flow.
-   * @param {LLMConfigSourceOption | undefined} currentLlmConfigSource - The selected LLM configuration.
-   * @returns {Promise<{ analysisOutput: AnalyzeCodeOutput; mappedSuggestions: AutoUpdateSuggestion[]; generatedUnifiedPrompt: string | null }>} Processed analysis results.
+   * Processes the raw analysis output from the AI flow and prepares it for UI display.
+   * This includes mapping detailed suggestions to `AutoUpdateSuggestion` format,
+   * handling potential group logs, and generating a unified prompt from individual suggestions.
+   * @async
+   * @private
+   * @param {AnalyzeCodeInput} analysisInput - The input that was sent to the analysis flow.
+   * @param {LLMConfigSourceOption | undefined} currentLlmConfigSource - The LLM configuration source used for the analysis.
+   * @returns {Promise<{ analysisOutput: AnalyzeCodeOutput; mappedSuggestions: AutoUpdateSuggestion[]; generatedUnifiedPrompt: string | null }>} An object containing the processed analysis output, suggestions mapped for UI, and a unified prompt.
+   * @throws {AppError} If the AI flow call fails or returns unexpected data.
    */
   const _executeAnalysisAndProcessResults = useCallback(async (
     analysisInput: AnalyzeCodeInput,
@@ -90,26 +99,41 @@ export default function AutoUpdatePage() {
     
     const aiResult = await analyzeProjectFlow(analysisInput);
     
-    const mappedSuggestions: AutoUpdateSuggestion[] = aiResult.detailedSuggestions.map((s, index) => ({
-      id: `suggestion-${index}-${Date.now()}`,
-      area: s.area,
-      suggestion: s.suggestion,
-      priority: s.priority,
-      fullFileContentSuggested: s.suggestedContent,
-      suggestedPromptForImplementation: s.suggestedPromptForImplementation,
-      status: 'pending',
-      isEditing: false,
-      userEditedContent: undefined,
-    }));
+    const projectFilesForOriginalContent = analysisInput.sourceCodeLocation === 'Local' && analysisInput.projectContent 
+    ? (await getApplicationSourceBundle(false)).files || []
+    : [];
+
+
+    const mappedSuggestions: AutoUpdateSuggestion[] = aiResult.detailedSuggestions.map((s, index) => {
+      const normalizePath = (p: string) => p.replace(/^\.\//, '').replace(/^src\//, '');
+      const relatedFile = projectFilesForOriginalContent?.find(f => {
+        if (!s.area) return false;
+        const areaLower = normalizePath(s.area.toLowerCase());
+        const fileNameLower = normalizePath(f.fileName.toLowerCase());
+        const baseAreaLower = areaLower.split(' (parte ')[0]; 
+        return fileNameLower === baseAreaLower;
+      });
+      return {
+        id: `suggestion-${index}-${Date.now()}`,
+        area: s.area,
+        suggestion: s.suggestion,
+        priority: s.priority,
+        fullFileContentSuggested: s.suggestedContent,
+        suggestedPromptForImplementation: s.suggestedPromptForImplementation,
+        status: 'pending',
+        isEditing: false,
+        userEditedContent: undefined,
+        originalContent: relatedFile?.content,
+      };
+    });
 
     let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
     if (currentLlmConfigSource?.type === 'Grupo' && currentLlmConfigSource.name) {
-        const group = agents.find(g => g.id === currentLlmConfigSource?.id && currentLlmConfigSource?.type === 'Grupo'); // This seems wrong, groups are in `groups` not `agents`
-        const orchestratorAgent = agents.find(a => a.id === 'orquestador-flujo-agentes');
-        finalResult.groupLog = `Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: ${currentLlmConfigSource.name}\nTarea Principal del Grupo: ${(group?.systemPrompt || 'N/A').substring(0,150)}...\nInput del Usuario: ${analysisInput.focusArea || 'Análisis general'}\nContexto del Orquestador (usado para guiar a la IA):\n\"${(orchestratorAgent?.systemPrompt || 'No disponible').substring(0, 200)}...\"\n---\nNota: El flujo Genkit (analyzeSelfCode) fue ejecutado utilizando el contexto del orquestador del grupo seleccionado para guiar el proceso de la IA.`;
+        const group = getGroupById(currentLlmConfigSource.id || '');
+        const orchestratorAgent = getAgentById('orquestador-flujo-agentes');
+        finalResult.groupLog = `Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: ${currentLlmConfigSource.name}\nTarea Principal del Grupo: ${(group?.mainTask || 'N/A').substring(0,150)}...\nInput del Usuario: ${analysisInput.focusArea || 'Análisis general'}\nContexto del Orquestador (usado para guiar a la IA):\n\"${(orchestratorAgent?.systemPrompt || 'No disponible').substring(0, 200)}...\"\n---\nNota: El flujo Genkit (analyzeSelfCode) fue ejecutado utilizando el contexto del orquestador del grupo seleccionado para guiar el proceso de la IA.`;
     }
 
-    // Generate unified prompt
     let generatedUnifiedPrompt = null;
     if (mappedSuggestions.length > 0) {
       const allPrompts = mappedSuggestions
@@ -123,8 +147,14 @@ export default function AutoUpdatePage() {
     
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: "AutoUpdate analysis processing complete.", data: { output: finalResult, unifiedPrompt: generatedUnifiedPrompt?.substring(0,100) + "..." }, flowName});
     return { analysisOutput: finalResult, mappedSuggestions, generatedUnifiedPrompt };
-  }, [agents, addDebugLog]); // Added agents to dependency array
+  }, [agents, groups, getAgentById, getGroupById, addDebugLog]); 
   
+  /**
+   * Initiates the self-analysis process for CodeAlchemist's codebase.
+   * It fetches the source code (either locally via Server Action or from a Git URL),
+   * then calls the AI analysis flow, and updates the UI with progress and results.
+   * @async
+   */
   const handleStartAnalysis = useCallback(async () => {
     setIsAnalyzing(true);
     setError(null);
@@ -135,29 +165,39 @@ export default function AutoUpdatePage() {
     const flowName = 'analyzeSelfCode (AutoUpdate)';
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Starting AutoUpdate analysis. Source: ${sourceType}, Config: ${JSON.stringify(llmConfigSource)}`, flowName});
 
-    let projectFilesForAnalysis: AppSourceFile[] = [];
+    let projectContentForAnalysis: string | undefined;
+
     if (sourceType === 'Local') {
-      const bundleResult = await getApplicationSourceBundle(false); // false for individual files
-      if (!bundleResult.success || !bundleResult.files) {
-        handleAnalysisError(bundleResult.error || "No se pudo obtener el código fuente local para análisis.");
+      try {
+        toast({ title: "Obteniendo Código Local...", description: "Contactando al servidor para el código fuente."});
+        const bundleResult = await getApplicationSourceBundle(false); 
+        if (!bundleResult.success || !bundleResult.files) {
+          throw new Error(bundleResult.error || "No se pudo obtener el código fuente local para análisis.");
+        }
+        projectContentForAnalysis = bundleResult.files.map(f => `// --- Archivo: ${f.fileName} ---\n${f.content}`).join('\n\n');
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: "Código local obtenido del servidor."});
+      } catch (e) {
+        const err = e as Error;
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: "Failed to get local source bundle", data: { error: err.message }, flowName});
+        handleAnalysisError(err.message);
         setIsAnalyzing(false);
         return;
       }
-      projectFilesForAnalysis = bundleResult.files;
     }
     
+    const currentAgent = llmConfigSource?.type === 'Agente' ? getAgentById(llmConfigSource.id || '') : undefined;
+    const currentGroup = llmConfigSource?.type === 'Grupo' ? getGroupById(llmConfigSource.id || '') : undefined;
+
     const input: AnalyzeCodeInput = {
       sourceCodeLocation: sourceType,
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
-      projectContent: sourceType === 'Local' && projectFilesForAnalysis.length > 0 
-        ? projectFilesForAnalysis.map(f => `// --- Archivo: ${f.fileName} ---\n${f.content}`).join('\n\n') 
-        : undefined, // For Git, the flow handles fetching. For local, send concatenated content or individual files if flow supports.
+      projectContent: projectContentForAnalysis, // For local, this now contains actual code from server
       analysisPreferences: analysisPreferences || undefined, 
       focusArea: analysisPreferences || undefined, 
-      agentSystemPrompt: llmConfigSource?.type === 'Agente' 
-        ? agents.find(a => a.id === llmConfigSource.id)?.systemPrompt 
-        : llmConfigSource?.type === 'Grupo' 
-        ? agents.find(a => a.id === 'orquestador-flujo-agentes')?.systemPrompt // Or group's mainTask
+      agentSystemPrompt: currentAgent 
+        ? currentAgent.systemPrompt 
+        : currentGroup 
+        ? currentGroup.mainTask 
         : undefined,
     };
 
@@ -171,7 +211,7 @@ export default function AutoUpdatePage() {
           } else {
             clearInterval(intervalId);
           }
-        }, 200);
+        }, 300); // Slightly slower interval for better perception
         
         await _executeAnalysisAndProcessResults(input, llmConfigSource)
           .then(({ analysisOutput, mappedSuggestions, generatedUnifiedPrompt }) => {
@@ -188,6 +228,8 @@ export default function AutoUpdatePage() {
             throw err; 
           });
       } else { 
+        // For group, progress bar is less relevant as it's one complex call
+        setProgress(50); // Indicate it's working
         const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = await _executeAnalysisAndProcessResults(input, llmConfigSource);
         setAnalysisResult(analysisOutput);
         setSuggestions(mappedSuggestions);
@@ -198,17 +240,22 @@ export default function AutoUpdatePage() {
       }
     } catch (e: any) {
       addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: "AutoUpdate analysis failed in UI", data: { errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage }, flowName});
-      const errorMsg = e instanceof AppError ? e.friendlyMessage : e.message || "Ocurrió un error durante el auto-análisis.";
-      setError(errorMsg);
-      toast({ variant: "destructive", title: "Error de Auto-Análisis", description: errorMsg });
-      setProgress(0);
-      if (e instanceof AppError && e.redirectTo) {
-        router.push(e.redirectTo);
+      if (e instanceof AppError) {
+        setError(e.friendlyMessage);
+        toast({ variant: "destructive", title: "Error de Auto-Análisis", description: e.friendlyMessage });
+        if (e.redirectTo) {
+          router.push(e.redirectTo);
+        }
+      } else {
+        const errorMsg = e.message || "Ocurrió un error durante el auto-análisis.";
+        setError(errorMsg);
+        toast({ variant: "destructive", title: "Error de Auto-Análisis", description: errorMsg });
       }
+      setProgress(0);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, agents, _executeAnalysisAndProcessResults, toast, addDebugLog, router]); // Added dependencies
+  }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, agents, groups, getAgentById, getGroupById, _executeAnalysisAndProcessResults, toast, addDebugLog, router]); 
 
   /**
    * Handles the click to apply a suggestion, opening a confirmation dialog.
@@ -225,7 +272,7 @@ export default function AutoUpdatePage() {
 
   /**
    * Confirms application of a suggestion, updating its status in the UI.
-   * Actual file modification is a manual step by the user.
+   * Actual file modification is a manual step by the user due to browser limitations.
    */
   const confirmApplySuggestion = useCallback(() => {
     if (!suggestionToApply) return;
@@ -237,8 +284,12 @@ export default function AutoUpdatePage() {
   }, [suggestionToApply, toast, addDebugLog]);
 
   /**
-   * Handles downloading suggestions or the conceptual current project.
+   * Handles downloading:
+   * - 'JSON_SUGGESTIONS': Downloads a JSON file of suggestions (file path -> suggested content).
+   * - 'ZIP_PROJECT': Downloads the current project source code (obtained via Server Action) as a ZIP,
+   *                  with 'applied' suggestions conceptually included.
    * @param {'JSON_SUGGESTIONS' | 'ZIP_PROJECT'} format - The desired download format.
+   * @async
    */
   const handleDownload = useCallback(async (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => {
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Download requested: ${format}`});
@@ -252,7 +303,7 @@ export default function AutoUpdatePage() {
       let hasContent = false;
       suggestions.forEach(s => {
         const content = s.userEditedContent ?? s.fullFileContentSuggested;
-        if (content !== undefined) {
+        if (s.area && content !== undefined) {
           filesToDownload[s.area] = content;
           hasContent = true;
         }
@@ -276,41 +327,43 @@ export default function AutoUpdatePage() {
       addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: "AutoUpdate suggestions downloaded as JSON."});
     } else if (format === 'ZIP_PROJECT') {
         toast({ title: "Preparando Descarga del Proyecto (ZIP)...", description: "Obteniendo código del servidor..." });
-        const bundleResult = await getApplicationSourceBundle(false); // false to get individual files for JSZip
-        if (!bundleResult.success || !bundleResult.files) {
-            toast({ variant: "destructive", title: "Error al Obtener Código", description: bundleResult.error || "No se pudo obtener el código fuente del servidor." });
-            addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `Failed to get source bundle for ZIP: ${bundleResult.error}`});
-            return;
-        }
-
-        let filesToPackage: AppSourceFile[] = bundleResult.files;
-
-        // Apply "applied" suggestions conceptually
-        if (suggestions && suggestions.length > 0) {
-            const appliedSuggestionsMap = new Map<string, string>();
-            suggestions.filter(s => s.status === 'applied').forEach(s => {
-                const content = s.userEditedContent ?? s.fullFileContentSuggested;
-                if (s.area && content !== undefined) {
-                    appliedSuggestionsMap.set(s.area, content);
-                }
-            });
-
-            filesToPackage = filesToPackage.map(file => {
-                if (appliedSuggestionsMap.has(file.fileName)) {
-                    return { ...file, content: appliedSuggestionsMap.get(file.fileName)! };
-                }
-                return file;
-            });
-             addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Sugerencias 'applied' incorporadas conceptualmente para el ZIP.`});
-        }
-
-
-        const zip = new JSZip();
-        filesToPackage.forEach(file => {
-            zip.file(file.fileName, file.content);
-        });
-
+        setIsAnalyzing(true); // Show loading state
         try {
+            const bundleResult = await getApplicationSourceBundle(false);
+            if (!bundleResult.success || !bundleResult.files) {
+                throw new Error(bundleResult.error || "No se pudo obtener el código fuente del servidor para el ZIP.");
+            }
+
+            let filesToPackage: AppSourceFile[] = bundleResult.files;
+
+            if (suggestions && suggestions.length > 0) {
+                const appliedSuggestionsMap = new Map<string, string>();
+                suggestions.filter(s => s.status === 'applied').forEach(s => {
+                    const content = s.userEditedContent ?? s.fullFileContentSuggested;
+                    if (s.area && content !== undefined) {
+                        appliedSuggestionsMap.set(s.area, content);
+                    }
+                });
+
+                filesToPackage = filesToPackage.map(file => {
+                  const normalizePath = (p: string) => p.replace(/^\.\//, '').replace(/^src\//, '');
+                  const normalizedFileName = normalizePath(file.fileName);
+                  for (const [area, content] of appliedSuggestionsMap.entries()) {
+                      if (normalizePath(area) === normalizedFileName) {
+                          addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'DEBUG', message: `Aplicando contenido de sugerencia a ${file.fileName} para ZIP.`});
+                          return { ...file, content: content };
+                      }
+                  }
+                  return file;
+                });
+                addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Sugerencias 'applied' incorporadas conceptualmente para el ZIP.`});
+            }
+
+            const zip = new JSZip();
+            filesToPackage.forEach(file => {
+                zip.file(file.fileName, file.content);
+            });
+
             const zipBlob = await zip.generateAsync({ type: "blob" });
             const url = URL.createObjectURL(zipBlob);
             const link = document.createElement('a');
@@ -322,20 +375,24 @@ export default function AutoUpdatePage() {
             URL.revokeObjectURL(url);
             toast({ 
                 title: "Descarga de Proyecto (ZIP) Iniciada", 
-                description: "El ZIP contiene el código actual del servidor con las sugerencias aplicadas (conceptualmente).",
-                duration: 7000,
+                description: "Este ZIP contiene el código actual de la aplicación (obtenido del servidor) con las sugerencias 'aplicadas' conceptualmente.",
+                duration: 8000,
             });
             addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Project ZIP download initiated with ${filesToPackage.length} files.`});
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : "Error desconocido al generar ZIP.";
             toast({ variant: "destructive", title: "Error al Generar ZIP", description: errorMsg });
             addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `ZIP generation failed: ${errorMsg}`});
+        } finally {
+            setIsAnalyzing(false);
         }
     }
-  }, [suggestions, toast, addDebugLog]);
+  }, [suggestions, toast, addDebugLog, analysisResult]);
 
   /**
-   * Handles committing and pushing changes to Git (conceptual, as direct Git ops are not feasible from browser).
+   * Handles committing and pushing changes to Git (conceptual).
+   * Opens a dialog to get a commit message.
+   * @async
    */
   const handleGitCommitAndPush = useCallback(async () => {
     if (!commitMessage.trim()) {
@@ -349,25 +406,32 @@ export default function AutoUpdatePage() {
   }, [commitMessage, toast, addDebugLog]);
 
   /**
-   * Placeholder for AI-driven error fixing for this page.
+   * Attempts to use AI to provide a solution or explanation for a displayed error on this page.
+   * @async
    * @param {string} errorMsg - The error message to analyze.
    */
   const handleAutoFixError = useCallback(async (errorMsg: string) => {
-    const autoFixFlowName = 'chatWithAgentOrGlobal (AutoFix Error)'; // Or a dedicated auto-fix flow
+    const autoFixFlowName = 'analyzeSelfCode (AutoFix Error)'; 
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Attempting Auto-Fix for error: ${errorMsg}`, flowName: autoFixFlowName});
-    // This would ideally call an enhanced auto-fix flow, potentially using the 'EquipoDesarrolloSoftware' group
-    // For now, using the generic chat for explanation as a placeholder
+    setIsAnalyzing(true); // Use general loading indicator
+    setError(null);
     try {
-      const result = await analyzeProjectFlow({ // Re-using analyze for error context
-        sourceCodeLocation: 'Local', // Assuming error context is local
-        projectContent: `Error: ${errorMsg}\n\nContexto: Analizando el propio código de CodeAlchemist.`,
-        focusArea: `Explicar y proponer solución para el error: ${errorMsg}`,
+      const result = await analyzeProjectFlow({ 
+        sourceCodeLocation: 'Local', // Context is "local" CodeAlchemist code
+        projectContent: `Error a analizar: ${errorMsg}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.`,
+        focusArea: `Explicar el siguiente error y proponer una solución o pasos para depurarlo: "${errorMsg}"`,
+        agentSystemPrompt: getAgentById('refactorizador-codigo-experto')?.systemPrompt, // Use refactorer agent for this
       });
       toast({ title: "Sugerencia de Auto-Fix", description: result.generalAssessment, duration: 10000 });
+      // Optionally, display this in a more structured way if needed.
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Error en Auto-Fix", description: "No se pudo obtener ayuda de la IA para este error." });
+      const appErr = e instanceof AppError ? e : new AppError("No se pudo obtener ayuda de la IA para este error.", e, 'ai');
+      toast({ variant: "destructive", title: "Error en Auto-Fix", description: appErr.friendlyMessage });
+      if (appErr.redirectTo) router.push(appErr.redirectTo);
+    } finally {
+      setIsAnalyzing(false);
     }
-  }, [addDebugLog, toast]);
+  }, [addDebugLog, toast, router, getAgentById]);
 
   /**
    * Toggles the editing mode for a specific suggestion.
@@ -378,9 +442,8 @@ export default function AutoUpdatePage() {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
         const newIsEditing = !s.isEditing;
-        // Initialize userEditedContent with fullFileContentSuggested if starting to edit and it's not already set
         const newUserEditedContent = newIsEditing && s.userEditedContent === undefined 
-                                     ? (s.fullFileContentSuggested || '') 
+                                     ? (s.fullFileContentSuggested ?? '') 
                                      : s.userEditedContent;
         return { ...s, isEditing: newIsEditing, userEditedContent: newUserEditedContent };
       }
@@ -413,7 +476,7 @@ export default function AutoUpdatePage() {
   const handleCancelEdit = useCallback((suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
-        // Revert userEditedContent to the original fullFileContentSuggested
+        // Revert to the original AI suggestion or empty if none
         return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested || undefined };
       }
       return s;
@@ -438,16 +501,21 @@ export default function AutoUpdatePage() {
     setShowTestInVenvDialog(true);
   }, []);
 
-  const handleAnalysisError = (errorMsg?: string) => { // Helper for error handling
+  /**
+   * Handles analysis errors by setting the error state and displaying a toast.
+   * @param {string} [errorMsg] - The error message to display.
+   */
+  const handleAnalysisError = (errorMsg?: string) => { 
     setError(errorMsg || "Ocurrió un error desconocido durante el análisis.");
     toast({ variant: "destructive", title: "Error de Análisis", description: errorMsg || "Ocurrió un error desconocido." });
     setProgress(0);
+    setIsAnalyzing(false);
   };
 
 
   return (
     <React.Fragment>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+      <div className="space-y-6">
         <AutoUpdateConfigForm
           llmConfigSource={llmConfigSource}
           onLlmConfigSourceChange={setLlmConfigSource}
@@ -488,7 +556,7 @@ export default function AutoUpdatePage() {
           title={`Aplicar Sugerencia a ${suggestionToApply?.area}`}
           confirmText="Sí, Marcar como Aplicada"
         >
-          <p className="text-sm mb-2">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente:</p>
+          <p className="text-sm mb-2 text-muted-foreground">Se marcará como aplicada la sugerencia para <code className="bg-muted px-1 rounded-sm text-foreground">{suggestionToApply?.area}</code>. La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:</p>
           <ScrollArea className="h-64 border rounded-md">
             <CodeBlock code={suggestionToApply?.userEditedContent ?? suggestionToApply?.fullFileContentSuggested ?? "Error: No hay contenido para mostrar."} language="typescript" maxHeight="100%" />
           </ScrollArea>
