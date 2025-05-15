@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDebug, type DebugLogEntry } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, AutoUpdateSuggestion, AnalyzeCodeInput, AnalyzeCodeOutput, AppSourceFile } from '@/types';
-import { callAnalyzeSelfCode } from '@/utils/apiClient'; // Renamed from analyzeProjectFlow for clarity
+import { callAnalyzeSelfCode } from '@/utils/apiClient';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AutoUpdateConfigForm from '@/components/features/autoupdate/AutoUpdateConfigForm';
 import AutoUpdateResultsDisplay from '@/components/features/autoupdate/AutoUpdateResultsDisplay';
@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation';
 import { getApplicationSourceBundle, handleUploadToGit } from './actions';
 import JSZip from 'jszip';
 import LogsDisplay from '@/components/logs-display';
-import { useI18n } from '@/context/I18nContext'; // Assuming I18nContext is created
+import { useI18n } from '@/context/I18nContext';
 
 /**
  * @fileOverview Page component for the "AutoUpdate" feature.
@@ -46,9 +46,7 @@ export default function AutoUpdatePage() {
   const { t } = useI18n();
 
   // State for LLM configuration source
-  const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(
-    () => ({ type: 'Ajustes Globales' as const })
-  );
+  const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(undefined);
 
   // Effect to set default LLM config source based on RefactorizadorCodigoExperto agent
   useEffect(() => {
@@ -58,13 +56,11 @@ export default function AutoUpdatePage() {
         ? { type: 'Agente' as const, id: defaultAgent.id, name: defaultAgent.name }
         : { type: 'Ajustes Globales' as const };
       
-      // Only update if the derived initialConfig is different from the current one
-      // This prevents unnecessary re-renders if the state is already correctly set.
-      if (llmConfigSource?.type !== initialConfig.type || 
-          (llmConfigSource?.type === 'Agente' && initialConfig.type === 'Agente' && llmConfigSource.id !== initialConfig.id) ||
-          (llmConfigSource?.type === 'Ajustes Globales' && initialConfig.type !== 'Ajustes Globales')) {
+      if (!llmConfigSource) { // Only set if it's undefined initially
         setLlmConfigSource(initialConfig);
       }
+    } else if (!llmConfigSource) { // Fallback if agents are not loaded yet
+        setLlmConfigSource({ type: 'Ajustes Globales' as const });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agents]); // Dependency: agents array
@@ -146,7 +142,7 @@ export default function AutoUpdatePage() {
             groupTask: (group?.mainTask || 'N/A').substring(0,150),
             userInput: (analysisPreferences || t('autoupdate.analysis.general')),
             orchestratorContext: (orchestratorAgent?.systemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
-            flowName: 'analyzeSelfCode' // Or the actual flow name used for this analysis
+            flowName: 'analyzeSelfCode'
         });
     }
 
@@ -176,7 +172,7 @@ export default function AutoUpdatePage() {
     setSuggestions([]);
     setUnifiedPrompt(null);
     setProgress(0);
-    setDetailedLogs([]); // Clear previous detailed logs
+    setDetailedLogs([]); 
     const flowName = 'callAnalyzeSelfCode (AutoUpdate)';
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisStarting'), data: { sourceType, config: JSON.stringify(llmConfigSource) }, flowName});
 
@@ -193,9 +189,6 @@ export default function AutoUpdatePage() {
           throw new Error(bundleResult.error || t('autoupdate.errors.getLocalSourceFailed'));
         }
         projectFilesForAnalysis = bundleResult.files;
-        // For `analyzeSelfCode`, we pass the project content as a string if it's for local analysis
-        // or if it's a small enough Git repo content that could be fetched and passed.
-        // The flow itself will handle it. For large projects, the flow might need adaptation or a different strategy.
         projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
         addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.localCodeObtained'), data: { numFiles: projectFilesForAnalysis.length }});
       } catch (e) {
@@ -215,12 +208,11 @@ export default function AutoUpdatePage() {
       sourceCodeLocation: sourceType,
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
       projectContent: projectContentStringForAnalysis, 
-      focusArea: analysisPreferences || undefined, // Use analysisPreferences as focusArea
-      // No searchDepth, as it's assumed to be total for AutoUpdate
+      focusArea: analysisPreferences || undefined, 
       agentSystemPrompt: currentAgent 
         ? currentAgent.systemPrompt 
         : currentGroup 
-        ? currentGroup.mainTask // For groups, their main task can guide the analysis
+        ? currentGroup.mainTask 
         : undefined,
     };
 
@@ -234,7 +226,7 @@ export default function AutoUpdatePage() {
           } else {
             clearInterval(intervalId);
           }
-        }, 300); // Simulate progress over 3 seconds
+        }, 300); 
         
         await callAnalyzeSelfCode(input)
           .then((aiResult) => {
@@ -248,12 +240,12 @@ export default function AutoUpdatePage() {
             if (analysisOutput.groupLog) setDetailedLogs(prev => [...prev, analysisOutput.groupLog!]);
             addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.analysisSuccessNonGroup'), flowName});
           })
-          .catch(err => { // Catch errors specifically from callAnalyzeSelfCode or _processAiAnalysisOutput
+          .catch(err => { 
             clearInterval(intervalId);
-            throw err; // Re-throw to be caught by the outer try-catch
+            throw err; 
           });
-      } else { // For Group-based analysis
-        setProgress(50); // Indicate it's started
+      } else { 
+        setProgress(50); 
         const aiResult = await callAnalyzeSelfCode(input);
         const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = _processAiAnalysisOutput(aiResult, llmConfigSource, projectFilesForAnalysis);
         setAnalysisResult(analysisOutput);
@@ -275,7 +267,7 @@ export default function AutoUpdatePage() {
         setAnalysisError(errorMsg);
         toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title'), description: errorMsg });
       }
-      setProgress(0); // Reset progress on error
+      setProgress(0); 
     } finally {
       setIsAnalyzing(false);
     }
@@ -308,7 +300,9 @@ export default function AutoUpdatePage() {
   }, [suggestionToApply, toast, addDebugLog, t]);
 
   /**
-   * Handles the download of code: either suggested file contents as JSON, or the current project source as ZIP.
+   * Handles the download of code.
+   * For ZIP_PROJECT, it attempts to fetch server code, apply suggestions conceptually, and zip client-side.
+   * For JSON_SUGGESTIONS, it downloads a JSON of all suggestions with their full proposed content.
    * @param {'JSON_SUGGESTIONS' | 'ZIP_PROJECT'} format - The desired download format.
    */
   const handleDownload = useCallback(async (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => {
@@ -346,10 +340,10 @@ export default function AutoUpdatePage() {
       toast({ title: t('autoupdate.toast.downloadComplete.title'), description: t('autoupdate.toast.downloadComplete.suggestionsJsonDescription', { filename: t('autoupdate.downloads.suggestionsJsonFilename') }) });
       addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionsDownloadedJson')});
     } else if (format === 'ZIP_PROJECT') {
-        setIsAnalyzing(true); // Use general loading state to indicate processing
+        setIsAnalyzing(true); 
         toast({ title: t('autoupdate.toast.preparingProjectZip.title'), description: t('autoupdate.toast.preparingProjectZip.description')});
         try {
-            const bundleResult = await getApplicationSourceBundle(false); // Get individual files from server
+            const bundleResult = await getApplicationSourceBundle(false); 
             if(bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
 
             if (!bundleResult.success || !bundleResult.files) {
@@ -359,7 +353,6 @@ export default function AutoUpdatePage() {
             let filesToPackage: AppSourceFile[] = bundleResult.files;
             addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'DEBUG', message: `Archivos base para ZIP (del servidor): ${filesToPackage.length}` });
 
-            // Apply "applied" suggestions conceptually to the files fetched from server
             if (suggestions && suggestions.length > 0) {
                 const appliedSuggestionsMap = new Map<string, string>();
                 suggestions.filter(s => s.status === 'applied').forEach(s => {
@@ -374,7 +367,7 @@ export default function AutoUpdatePage() {
                 }
 
                 filesToPackage = filesToPackage.map(file => {
-                  const normalizePath = (p: string) => p.replace(new RegExp("^\\.\\/"), '').replace(new RegExp("^src\\/"), '');
+                  const normalizePath = (p: string) => p.replace(/^\.\//, '').replace(/^src\//, '');
                   const normalizedFileName = normalizePath(file.fileName);
                   for (const [area, content] of appliedSuggestionsMap.entries()) {
                       if (normalizePath(area) === normalizedFileName) {
@@ -391,9 +384,7 @@ export default function AutoUpdatePage() {
                 zip.file(file.fileName, file.content);
             });
 
-            const zipFileName = analysisResult?.analysisTitle
-              ? `CodeAlchemist_CodigoActual_Con_Sugerencias_(${analysisResult.analysisTitle.replace(/\s+/g, '_').slice(0,30)}).zip`
-              : t('autoupdate.downloads.projectZipFilename');
+            const zipFileName = `CodeAlchemist_CodigoActual_Con_Sugerencias.zip`;
 
             const zipBlob = await zip.generateAsync({ type: "blob" });
             const url = URL.createObjectURL(zipBlob);
@@ -418,7 +409,7 @@ export default function AutoUpdatePage() {
             setIsAnalyzing(false);
         }
     }
-  }, [suggestions, toast, addDebugLog, t, analysisResult]);
+  }, [suggestions, toast, addDebugLog, t, analysisResult, setIsAnalyzing]);
 
   /**
    * Initiates the Git commit and push process by opening the commit message dialog.
@@ -449,10 +440,8 @@ export default function AutoUpdatePage() {
     addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.gitUploadInProgress', { message: commitMessage }), data: { repoUrl: globalSettings.gitConfig.repoUrl }});
 
     try {
-      const result = await handleUploadToGit(globalSettings.gitConfig, commitMessage, detailedLogs); // Pass detailedLogs to be appended by server action
-      // Server action should return its own logs, so we might not need to spread them if they are pushed by reference
-      // setDetailedLogs(prev => [...prev, ...(result.logs || [])]); // This line might be redundant if parentExecutionLogs works by reference
-
+      const result = await handleUploadToGit(globalSettings.gitConfig, commitMessage, detailedLogs); 
+      
       if (result.success) {
         toast({ title: t('autoupdate.toast.gitUploadSuccess.title'), description: result.message, duration: 7000 });
         addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.gitUploadSuccess'), data: result });
@@ -478,21 +467,18 @@ export default function AutoUpdatePage() {
    * @param {string} errorMsg - The error message to analyze.
    */
   const handleAutoFixError = useCallback(async (errorMsg: string) => {
-    const autoFixFlowName = 'callAnalyzeSelfCode (AutoFix Error)'; // This flow is for general analysis, maybe create a specific one or use chat
+    const autoFixFlowName = 'callAnalyzeSelfCode (AutoFix Error)'; 
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.attemptingAutofix', { error: errorMsg }), flowName: autoFixFlowName});
-    setIsAnalyzing(true); // Reuse isAnalyzing for loading state of autofix
+    setIsAnalyzing(true); 
     setAnalysisError(null);
     try {
-      // Determine context for the AI - ideally, which agent/group config to use
       const agentForFix = getAgentById('refactorizador-codigo-experto') || (agents.length > 0 ? getAgentById(agents[0].id) : undefined);
-      const result = await callAnalyzeSelfCode({ // Using callAnalyzeSelfCode for error explanation. 
-                                                // A dedicated error fixing flow might be better.
-        sourceCodeLocation: 'Local', // Or could be 'UploadedString' with context
+      const result = await callAnalyzeSelfCode({ 
+        sourceCodeLocation: 'Local', 
         projectContent: t('autoupdate.autofix.errorContext', { error: errorMsg }),
         focusArea: t('autoupdate.autofix.focusArea', { error: errorMsg }),
-        agentSystemPrompt: agentForFix?.systemPrompt, // Contextualize with an agent good at code
+        agentSystemPrompt: agentForFix?.systemPrompt, 
       });
-      // For now, just toast the general assessment as the "fix suggestion"
       toast({ title: t('autoupdate.toast.autofixSuggestion.title'), description: result.generalAssessment, duration: 10000 });
     } catch (e: any) {
       const appErr = e instanceof AppError ? e : new AppError(t('autoupdate.errors.autofixHelperFailed'), e, 'ai');
@@ -511,7 +497,6 @@ export default function AutoUpdatePage() {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
         const newIsEditing = !s.isEditing;
-        // Initialize userEditedContent with fullFileContentSuggested if starting to edit and no user content exists
         const newUserEditedContent = newIsEditing && s.userEditedContent === undefined 
                                      ? (s.fullFileContentSuggested ?? '') 
                                      : s.userEditedContent;
@@ -546,7 +531,6 @@ export default function AutoUpdatePage() {
   const handleCancelEdit = useCallback((suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
-        // Revert userEditedContent to the original fullFileContentSuggested or undefined
         return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested ?? undefined };
       }
       return s;
@@ -584,15 +568,15 @@ export default function AutoUpdatePage() {
           analysisPreferences={analysisPreferences}
           onAnalysisPreferencesChange={setAnalysisPreferences}
           onStartAnalysis={handleStartAnalysis}
-          isLoading={isAnalyzing || isUploadingGit} // Combine loading states
+          isLoading={isAnalyzing || isUploadingGit} 
           progress={progress}
-          isAnalysisInProgress={isAnalyzing && !analysisResult && progress < 100 && llmConfigSource?.type !== 'Grupo'} // Show progress only for non-group during active analysis
+          isAnalysisInProgress={isAnalyzing && !analysisResult && progress < 100 && llmConfigSource?.type !== 'Grupo'} 
         />
 
         <AutoUpdateResultsDisplay
           analysisResult={analysisResult}
           suggestions={suggestions}
-          isLoading={isAnalyzing && !analysisResult} // Pass if AI analysis itself is loading
+          isLoading={isAnalyzing && !analysisResult} 
           error={analysisError}
           onAutoFixError={handleAutoFixError}
           onApplySuggestion={handleApplySuggestionClick}
@@ -607,7 +591,6 @@ export default function AutoUpdatePage() {
           unifiedPrompt={unifiedPrompt}
         />
 
-        {/* Dialog for Confirming Apply Suggestion */}
         <ConfirmDialog
           isOpen={showConfirmApplyDialog && !!suggestionToApply}
           onClose={() => { setSuggestionToApply(null); setShowConfirmApplyDialog(false); }}
@@ -622,7 +605,6 @@ export default function AutoUpdatePage() {
           </ScrollArea>
         </ConfirmDialog>
 
-        {/* Dialog for Testing Suggestion (Review) */}
         <Dialog open={showTestDialog && !!suggestionToTest} onOpenChange={(open) => { if(!open) setSuggestionToTest(null); setShowTestDialog(open);}}>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
@@ -642,7 +624,6 @@ export default function AutoUpdatePage() {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog for Testing in Virtual Environment (Conceptual) */}
         <Dialog open={showTestInVenvDialog && !!suggestionToTestInVenv} onOpenChange={(open) => { if(!open) setSuggestionToTestInVenv(null); setShowTestInVenvDialog(open);}}>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
@@ -671,7 +652,6 @@ export default function AutoUpdatePage() {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog for Git Commit Message */}
         <ConfirmDialog
           isOpen={showCommitDialog}
           onClose={() => setShowCommitDialog(false)}
@@ -684,10 +664,13 @@ export default function AutoUpdatePage() {
           <p className="text-xs text-muted-foreground mt-2">{t('autoupdate.dialogs.commitToGit.description')}</p>
         </ConfirmDialog>
 
-        {/* Detailed Logs Display */}
         {(analysisResult?.groupLog || detailedLogs.length > 0 || (isAnalyzing && !analysisResult && llmConfigSource?.type === 'Grupo')) && (
             <div className="lg:col-span-3 mt-4">
-            <LogsDisplay title={t('autoupdate.logs.detailedExecutionLogsTitle')} logs={detailedLogs.length > 0 ? detailedLogs : (analysisResult?.groupLog || (isAnalyzing ? [t('autoupdate.logs.analyzingWithGroup')] : [t('autoupdate.logs.waitingForGroup')]))} defaultExpanded={!!analysisResult?.groupLog || detailedLogs.length > 0}/>
+            <LogsDisplay 
+              title={t('autoupdate.logs.detailedExecutionLogsTitle')} 
+              logs={detailedLogs.length > 0 ? detailedLogs : (analysisResult?.groupLog || (isAnalyzing ? [t('autoupdate.logs.analyzingWithGroup')] : [t('autoupdate.logs.waitingForGroup')]))} 
+              defaultExpanded={!!analysisResult?.groupLog || detailedLogs.length > 0}
+            />
             </div>
         )}
       </div>
@@ -695,4 +678,4 @@ export default function AutoUpdatePage() {
   );
 }
 
-```
+    
