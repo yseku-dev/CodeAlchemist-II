@@ -8,7 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { DebugProvider } from '@/context/DebugContext';
 import { AppStateProvider } from '@/context/AppStateContext';
 import { I18nProvider } from '@/context/I18nContext'; 
-import { DEFAULT_LANGUAGE_CODE } from '@/lib/i18n/constants'; // Import for initial lang
+import { DEFAULT_LANGUAGE_CODE } from '@/lib/i18n/constants';
 
 export const metadata: Metadata = {
   title: 'CodeAlchemist',
@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang={DEFAULT_LANGUAGE_CODE}> {/* Use DEFAULT_LANGUAGE_CODE for initial server render */}
+    <html lang={DEFAULT_LANGUAGE_CODE}>
       <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
         <AppStateProvider>
           <DebugProvider>
