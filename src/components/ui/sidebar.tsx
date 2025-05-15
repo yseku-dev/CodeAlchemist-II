@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet" // Added SheetHeader, SheetTitle
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -19,6 +19,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useI18n } from "@/context/I18nContext" // Import useI18n
+import type { TranslationKey } from "@/lib/i18n/translations"; // Import TranslationKey
+
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -177,6 +180,7 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { t } = useI18n(); // Get the translation function
 
     if (collapsible === "none") {
       return (
@@ -208,7 +212,7 @@ const Sidebar = React.forwardRef<
             side={side}
           >
             <SheetHeader className="p-4 border-b border-sidebar-border text-left">
-              <SheetTitle>Navegación Principal</SheetTitle>
+              <SheetTitle>{t('sidebar.mobile.title' as TranslationKey)}</SheetTitle>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto">
               {children}
