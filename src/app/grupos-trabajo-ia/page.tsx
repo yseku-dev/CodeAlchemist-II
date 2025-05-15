@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -170,6 +169,7 @@ export default function GruposTrabajoIAPage() {
       addDebugLog({source: 'GruposTrabajoIAPage', type: 'INFO', message: `Deleting group: ${groupToDelete.name}`, data: { groupId: groupToDelete.id }, flowName: 'deleteGroup'});
       deleteGroup(groupToDelete.id);
       setGroupToDelete(null);
+      toast({ title: t('groups.deleted.title'), description: t('groups.deleted.description', {name: groupToDelete.name}) });
     }
   };
 
@@ -444,8 +444,9 @@ export default function GruposTrabajoIAPage() {
         isOpen={!!groupToDelete}
         onClose={() => setGroupToDelete(null)}
         onConfirm={confirmDeleteGroup}
-        title={t('common.delete') + `: ${groupToDelete?.name}`}
+        title={t('groups.deleteSingleModal.title', { name: groupToDelete?.name || 'N/A'})}
         description={t('groups.deleteSingleModal.description')}
+        confirmText={t('common.confirm')}
       />
 
       <Dialog open={isExecutionModalOpen} onOpenChange={(open) => {if(!open) { handleStopExecution(); setIsExecutionModalOpen(false); }}}>
