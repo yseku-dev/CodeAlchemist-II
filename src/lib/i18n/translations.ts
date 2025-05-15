@@ -49,49 +49,89 @@ const translationsData = {
         "agents": "Agentes IA",
         "groups": "Grupos de Trabajo IA",
         "settings": "Configuración",
-        "toggle.hide": "Ocultar barra lateral",
-        "toggle.show": "Mostrar barra lateral",
-        "mobile.title": "Navegación Principal"
+        "toggle": {
+            "hide": "Ocultar barra lateral",
+            "show": "Mostrar barra lateral"
+        },
+        "mobile": {
+          "title": "Navegación Principal"
+        }
     },
     "dashboard": {
         "welcome": "Bienvenido a CodeAlchemist",
         "description": "Tu plataforma de desarrollo asistido por IA, diseñada para optimizar y agilizar el ciclo de vida del desarrollo de software mediante la generación, análisis, refactorización y gestión de versiones de código.",
-        "features.title": "Características Principales",
-        "features.generateCode.title": "Generar Código",
-        "features.generateCode.description": "Crea fragmentos de código desde descripciones en lenguaje natural.",
-        "features.generateProject.title": "Generar Proyecto",
-        "features.generateProject.description": "Inicia estructuras de proyecto completas a partir de especificaciones.",
-        "features.refactorProject.title": "Refactorizar Proyecto",
-        "features.refactorProject.description": "Analiza y refactoriza proyectos existentes con sugerencias de IA.",
-        "features.analyzeCode.title": "Analizar Código",
-        "features.analyzeCode.description": "Obtén análisis detallados y sugerencias para fragmentos o archivos.",
-        "features.analyzeProject.title": "Analizar Proyecto",
-        "features.analyzeProject.description": "Realiza un análisis completo de un proyecto desde un archivo o Git.",
-        "features.autoupdate.title": "AutoUpdate",
-        "features.autoupdate.description": "Permite que CodeAlchemist analice y mejore su propio código fuente.",
-        "features.snapshots.title": "Versiones Guardadas",
-        "features.snapshots.description": "Gestiona instantáneas de código generadas o del estado de la aplicación.",
-        "features.chat.title": "Chat con IA",
-        "features.chat.description": "Interactúa con un asistente IA para consultas, ideas y más.",
-        "features.agents.title": "Agentes IA",
-        "features.agents.description": "Crea, configura y gestiona agentes IA individuales.",
-        "features.groups.title": "Grupos de Trabajo IA",
-        "features.groups.description": "Define y ejecuta equipos de agentes IA colaborativos.",
-        "features.settings.title": "Configuración",
-        "features.settings.description": "Ajusta proveedores LLM, Git y otras opciones de la aplicación.",
-        "quickstart.title": "Guía Rápida de Inicio",
-        "quickstart.description": "Sigue estos pasos para comenzar a utilizar CodeAlchemist de manera efectiva:",
-        "quickstart.step1.link": "Configura tus ajustes del proveedor LLM",
-        "quickstart.step1.text": " en la sección 'Configuración'.",
-        "quickstart.step2.link": "Explora la generación de código",
-        "quickstart.step2.text": " con un prompt sencillo en 'Generar Código'.",
-        "quickstart.step3.link": "Prueba el análisis de un fragmento de código",
-        "quickstart.step3.text": " en 'Analizar Código'.",
-        "quickstart.step4.link": "Interactúa con el Chat con IA",
-        "quickstart.step4.text": " para consultas rápidas.",
-        "quickstart.step5.link": "Experimenta con AutoUpdate",
-        "quickstart.step5.text": " para ver cómo CodeAlchemist se analiza a sí mismo.",
-        "quickstart.ctaButton": "Ir a Configuración"
+        "features": {
+            "title": "Características Principales",
+            "generateCode": {
+                "title": "Generar Código",
+                "description": "Crea fragmentos de código desde descripciones en lenguaje natural."
+            },
+            "generateProject": {
+                "title": "Generar Proyecto",
+                "description": "Inicia estructuras de proyecto completas a partir de especificaciones."
+            },
+            "refactorProject": {
+                "title": "Refactorizar Proyecto",
+                "description": "Analiza y refactoriza proyectos existentes con sugerencias de IA."
+            },
+            "analyzeCode": {
+                "title": "Analizar Código",
+                "description": "Obtén análisis detallados y sugerencias para fragmentos o archivos."
+            },
+            "analyzeProject": {
+                "title": "Analizar Proyecto",
+                "description": "Realiza un análisis completo de un proyecto desde un archivo o Git."
+            },
+            "autoupdate": {
+                "title": "AutoUpdate",
+                "description": "Permite que CodeAlchemist analice y mejore su propio código fuente."
+            },
+            "snapshots": {
+                "title": "Versiones Guardadas",
+                "description": "Gestiona instantáneas de código generadas o del estado de la aplicación."
+            },
+            "chat": {
+                "title": "Chat con IA",
+                "description": "Interactúa con un asistente IA para consultas, ideas y más."
+            },
+            "agents": {
+                "title": "Agentes IA",
+                "description": "Crea, configura y gestiona agentes IA individuales."
+            },
+            "groups": {
+                "title": "Grupos de Trabajo IA",
+                "description": "Define y ejecuta equipos de agentes IA colaborativos."
+            },
+            "settings": {
+                "title": "Configuración",
+                "description": "Ajusta proveedores LLM, Git y otras opciones de la aplicación."
+            }
+        },
+        "quickstart": {
+            "title": "Guía Rápida de Inicio",
+            "description": "Sigue estos pasos para comenzar a utilizar CodeAlchemist de manera efectiva:",
+            "step1": {
+                "link": "Configura tus ajustes del proveedor LLM",
+                "text": " en la sección 'Configuración'."
+            },
+            "step2": {
+                "link": "Explora la generación de código",
+                "text": " con un prompt sencillo en 'Generar Código'."
+            },
+            "step3": {
+                "link": "Prueba el análisis de un fragmento de código",
+                "text": " en 'Analizar Código'."
+            },
+            "step4": {
+                "link": "Interactúa con el Chat con IA",
+                "text": " para consultas rápidas."
+            },
+            "step5": {
+                "link": "Experimenta con AutoUpdate",
+                "text": " para ver cómo CodeAlchemist se analiza a sí mismo."
+            },
+            "ctaButton": "Ir a Configuración"
+        }
     },
     "settings": {
         "title": "Configuración General",
@@ -116,7 +156,7 @@ const translationsData = {
             "modelNamePlaceholderDefault": "Selecciona un proveedor primero",
             "modelNameDescriptionLocal": "Para {provider}, los modelos comunes se listan aquí pero también puedes escribir uno directamente si no aparece.",
             "testConnectionButton": "Probar Conexión LLM",
-            "testConnectionButton.testing": "Probando..."
+            "testingConnectionButton": "Probando..."
         },
         "git": {
             "title": "Configuración de Git (Opcional)",
@@ -128,7 +168,7 @@ const translationsData = {
             "patLabel": "Token de Acceso Personal (PAT)",
             "patPlaceholder": "Introduce tu PAT de Git",
             "testConnectionButton": "Probar Conexión Git",
-            "testConnectionButton.testing": "Probando..."
+            "testingConnectionButton": "Probando..."
         },
         "language": {
             "title": "Idioma de la Aplicación",
@@ -214,115 +254,175 @@ const translationsData = {
     "autoupdate": {
         "title": "AutoUpdate (Análisis del Propio Código)",
         "description": "Permite que CodeAlchemist analice su propio código fuente.",
-        "config.llmSourceLabel": "Usar Configuración LLM De:",
-        "config.codeSourceLabel": "Fuente del Código para Auto-Análisis",
-        "config.sourceLocal": "Local (código actual de la app)",
-        "config.sourceGit": "URL del Repositorio Git",
-        "config.gitUrlLabel": "URL del Repositorio Git",
-        "config.gitUrlPlaceholder": "URL HTTPS del repo CodeAlchemist",
-        "config.analysisParamsLabel": "Parámetros de Auto-Análisis",
-        "config.analysisPrefsLabel": "Preferencias de Análisis / Campo de Enfoque (opcional)",
-        "config.analysisPrefsPlaceholder": "Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano.",
-        "config.startButton": "Iniciar Auto-Análisis",
-        "config.startButton.loading": "Analizando...",
-        "results.title": "Resultados del Auto-Análisis",
-        "results.downloadSuggestionsJson": "Descargar Sugerencias (JSON)",
-        "results.downloadProjectZip": "Descargar Código Actual (ZIP)",
-        "results.uploadToGit": "Subir a Git",
-        "results.noResults": "Inicia un análisis para ver los resultados.",
-        "results.analysisTitleLabel": "Título del Análisis:",
-        "results.generalAssessmentLabel": "Evaluación General:",
-        "results.overallImprovementIdeasLabel": "Ideas Generales de Mejora Sugeridas por IA:",
-        "results.detailedSuggestionsLabel": "Sugerencias Detalladas:",
-        "results.noDetailedSuggestions": "No hay sugerencias detalladas.",
-        "results.unifiedPromptLabel": "Prompt Unificado para Implementar Todas las Sugerencias:",
-        "suggestionCard.priorityLabel": "Prioridad:",
-        "suggestionCard.promptLabel": "Prompt:",
-        "suggestionCard.testInVenvButton": "Testear en Ent. Virtual",
-        "suggestionCard.saveEditButton": "Guardar Edición",
-        "suggestionCard.statusApplied": "Sugerencia Aplicada (marcada)",
-        "suggestionCard.statusDiscarded": "Sugerencia Descartada",
-        "suggestionCard.editContentLabel": "Editar Contenido Sugerido:",
-        "logs.executingAnalysis": "Ejecutando análisis para AutoUpdate...",
-        "logs.analysisStarting": "Iniciando Auto-Análisis...",
-        "logs.groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestador del grupo seleccionado para guiar el proceso de la IA.",
-        "logs.analysisProcessingComplete": "Procesamiento del análisis de AutoUpdate completado.",
-        "logs.localCodeObtained": "Código local obtenido del servidor.",
-        "logs.analysisSuccessNonGroup": "Análisis de AutoUpdate (no-grupo) exitoso.",
-        "logs.analysisSuccessGroup": "Análisis de AutoUpdate (grupo) exitoso.",
-        "logs.suggestionMarkedApplied": "Sugerencia marcada como aplicada para {area}. (Modificación directa de archivo no es factible desde el navegador).",
-        "logs.downloadRequested": "Descarga solicitada: {format}",
-        "logs.suggestionsDownloadedJson": "Sugerencias de AutoUpdate descargadas como JSON.",
-        "logs.applyingSuggestionToZip": "Aplicando contenido de sugerencia a {fileName} para ZIP.",
-        "logs.appliedSuggestionsToZip": "Sugerencias 'applied' incorporadas conceptualmente para el ZIP.",
-        "logs.projectZipDownloaded": "Descarga de Proyecto ZIP ({filename}) iniciada. Contiene un archivo JSON con el contenido de los archivos del proyecto obtenidos del servidor, con las sugerencias 'aplicadas' conceptualmente. No es un ZIP del proyecto ejecutable directamente.",
-        "logs.zipGenerationFailed": "Generación de ZIP fallida: {error}",
-        "logs.gitUploadFailedConfig": "Subida a Git fallida: Configuración incompleta.",
-        "logs.commitMessageMissing": "Subida a Git fallida: Mensaje de commit requerido.",
-        "logs.initiatingGitUpload": "Iniciando subida a Git...",
-        "logs.gitUploadInProgress": "Subiendo a Git con mensaje: \"{message}\"",
-        "logs.gitUploadSuccess": "Subida a Git exitosa.",
-        "logs.gitUploadError": "Error en subida a Git: {error}",
-        "logs.gitUploadException": "Excepción durante subida a Git: {error}",
-        "logs.attemptingAutofix": "Intentando Auto-Fix para error: {error}",
-        "logs.venvSim": "Prueba simulada en entorno virtual para {area}.",
-        "logs.detailedExecutionLogsTitle": "Logs de Ejecución Detallados (AutoUpdate)",
-        "logs.analyzingWithGroup": "Analizando con grupo...",
-        "logs.waitingForGroup": "Esperando resultados del grupo...",
-        "analysis.fileMarker": "Archivo",
-        "analysis.general": "Análisis general",
-        "prompts.unifiedHeader": "// --- INICIO: Prompt para mejorar el archivo: {area} ---",
-        "prompts.unifiedFooter": "// --- FIN: Prompt para mejorar el archivo: {area} ---",
-        "toast.gettingLocalCode.title": "Obteniendo Código Local...",
-        "toast.gettingLocalCode.description": "Contactando al servidor para el código fuente.",
-        "toast.analysisComplete.title": "Auto-Análisis Completado",
-        "toast.analysisComplete.description": "Se han generado sugerencias para el código.",
-        "toast.analysisError.title": "Error de Auto-Análisis",
-        "toast.noContentToApply.title": "Sin Contenido",
-        "toast.noContentToApply.description": "Esta sugerencia no tiene contenido de archivo para aplicar.",
-        "toast.suggestionApplied.title": "Sugerencia Marcada como Aplicada",
-        "toast.suggestionApplied.description": "Cambios para {area} marcados. La modificación real de archivos no es posible desde el navegador.",
-        "toast.noSuggestionsToDownload.title": "Sin Sugerencias",
-        "toast.noSuggestionsToDownload.description": "No hay sugerencias para descargar.",
-        "toast.noContentToDownload.title": "Sin Contenido",
-        "toast.noContentToDownload.description": "Ninguna de las sugerencias tiene contenido de archivo para descargar.",
-        "toast.downloadComplete.title": "Descarga Completada",
-        "toast.downloadComplete.suggestionsJsonDescription": "Sugerencias descargadas como {filename}.",
-        "toast.downloadComplete.projectZipDescription": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios). Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA.",
-        "toast.preparingProjectZip.title": "Preparando Descarga del Proyecto (ZIP)...",
-        "toast.preparingProjectZip.description": "Obteniendo código del servidor...",
-        "toast.projectZipDownloadInitiated.title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
-        "toast.projectZipDownloadInitiated.description": "Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA.",
-        "toast.zipError.title": "Error al Generar ZIP",
-        "toast.gitConfigIncomplete.title": "Configuración Git Incompleta",
-        "toast.gitConfigIncomplete.description": "Completa la configuración en Ajustes antes de subir a Git.",
-        "toast.commitMessageRequired.title": "Mensaje de Commit Requerido",
-        "toast.uploadingToGit.title": "Subiendo a Git...",
-        "toast.uploadingToGit.description": "Intentando subir a {repo}",
-        "toast.gitUploadSuccess.title": "Subida a Git Exitosa",
-        "toast.gitUploadError.title": "Error en Subida a Git",
-        "toast.autofixSuggestion.title": "Sugerencia de Auto-Fix",
-        "toast.autofixError.title": "Error en Auto-Fix",
-        "toast.editSaved.title": "Edición Guardada",
-        "toast.editSaved.description": "El contenido sugerido ha sido actualizado localmente.",
-        "toast.venvSim.title": "Simulación: Prueba en Entorno Virtual",
-        "toast.venvSim.description": "Se simula el inicio de pruebas para {area}.",
-        "downloads.suggestionsJsonFilename": "autoupdate_sugerencias.json",
-        "downloads.projectZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip",
-        "errors.getLocalSourceFailed": "No se pudo obtener el código fuente local para análisis.",
-        "errors.getLocalSourceBundleFailed": "Fallo al obtener el paquete de código fuente local",
-        "errors.analysisFailedUI": "Análisis de AutoUpdate fallido en la UI",
-        "errors.unknownAnalysisError": "Ocurrió un error desconocido durante el auto-análisis.",
-        "errors.getServerSourceFailedZip": "No se pudo obtener el código fuente del servidor para el ZIP.",
-        "errors.unknownZipError": "Error desconocido al generar ZIP.",
-        "errors.unknownGitUploadError": "Error desconocido durante la subida a Git.",
-        "errors.autofixHelperFailed": "No se pudo obtener ayuda de la IA para este error.",
+        "config": {
+            "llmSourceLabel": "Usar Configuración LLM De:",
+            "codeSourceLabel": "Fuente del Código para Auto-Análisis",
+            "sourceLocal": "Local (código actual de la app)",
+            "sourceGit": "URL del Repositorio Git",
+            "gitUrlLabel": "URL del Repositorio Git",
+            "gitUrlPlaceholder": "URL HTTPS del repo CodeAlchemist",
+            "analysisParamsLabel": "Parámetros de Auto-Análisis",
+            "analysisPrefsLabel": "Preferencias de Análisis / Campo de Enfoque (opcional)",
+            "analysisPrefsPlaceholder": "Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano.",
+            "startButton": "Iniciar Auto-Análisis",
+            "startButtonLoading": "Analizando..."
+        },
+        "results": {
+            "title": "Resultados del Auto-Análisis",
+            "downloadSuggestionsJson": "Descargar Sugerencias (JSON)",
+            "downloadProjectZip": "Descargar Código Actual (ZIP)",
+            "uploadToGit": "Subir a Git",
+            "noResults": "Inicia un análisis para ver los resultados.",
+            "analysisTitleLabel": "Título del Análisis:",
+            "generalAssessmentLabel": "Evaluación General:",
+            "overallImprovementIdeasLabel": "Ideas Generales de Mejora Sugeridas por IA:",
+            "detailedSuggestionsLabel": "Sugerencias Detalladas:",
+            "noDetailedSuggestions": "No hay sugerencias detalladas.",
+            "unifiedPromptLabel": "Prompt Unificado para Implementar Todas las Sugerencias:"
+        },
+        "suggestionCard": {
+            "priorityLabel": "Prioridad:",
+            "promptLabel": "Prompt:",
+            "testInVenvButton": "Testear en Ent. Virtual",
+            "saveEditButton": "Guardar Edición",
+            "statusApplied": "Sugerencia Aplicada (marcada)",
+            "statusDiscarded": "Sugerencia Descartada",
+            "editContentLabel": "Editar Contenido Sugerido:"
+        },
+        "logs": {
+            "executingAnalysis": "Ejecutando análisis para AutoUpdate...",
+            "analysisStarting": "Iniciando Auto-Análisis...",
+            "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+            "analysisProcessingComplete": "Procesamiento del análisis de AutoUpdate completado.",
+            "localCodeObtained": "Código local obtenido del servidor.",
+            "analysisSuccessNonGroup": "Análisis de AutoUpdate (no-grupo) exitoso.",
+            "analysisSuccessGroup": "Análisis de AutoUpdate (grupo) exitoso.",
+            "suggestionMarkedApplied": "Sugerencia marcada como aplicada para {area}. (Modificación directa de archivo no es factible desde el navegador).",
+            "downloadRequested": "Descarga solicitada: {format}",
+            "suggestionsDownloadedJson": "Sugerencias de AutoUpdate descargadas como JSON.",
+            "applyingSuggestionToZip": "Aplicando contenido de sugerencia a {fileName} para ZIP.",
+            "appliedSuggestionsToZip": "Sugerencias 'applied' incorporadas conceptualmente para el ZIP.",
+            "projectZipDownloaded": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios). Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA.",
+            "zipGenerationFailed": "Generación de ZIP fallida: {error}",
+            "gitUploadFailedConfig": "Subida a Git fallida: Configuración incompleta.",
+            "commitMessageMissing": "Subida a Git fallida: Mensaje de commit requerido.",
+            "initiatingGitUpload": "Iniciando subida a Git...",
+            "gitUploadInProgress": "Subiendo a Git con mensaje: \"{message}\"",
+            "gitUploadSuccess": "Subida a Git exitosa.",
+            "gitUploadError": "Error en subida a Git: {error}",
+            "gitUploadException": "Excepción durante subida a Git: {error}",
+            "attemptingAutofix": "Intentando Auto-Fix para error: {error}",
+            "venvSim": "Prueba simulada en entorno virtual para {area}.",
+            "detailedExecutionLogsTitle": "Logs de Ejecución Detallados (AutoUpdate)",
+            "analyzingWithGroup": "Analizando con grupo...",
+            "waitingForGroup": "Esperando resultados del grupo..."
+        },
+        "analysis": {
+            "fileMarker": "Archivo",
+            "general": "Análisis general"
+        },
+        "prompts": {
+            "unifiedHeader": "// --- INICIO: Prompt para mejorar el archivo: {area} ---",
+            "unifiedFooter": "// --- FIN: Prompt para mejorar el archivo: {area} ---"
+        },
+        "toast": {
+            "gettingLocalCode": {
+                "title": "Obteniendo Código Local...",
+                "description": "Contactando al servidor para el código fuente."
+            },
+            "analysisComplete": {
+                "title": "Auto-Análisis Completado",
+                "description": "Se han generado sugerencias para el código."
+            },
+            "analysisError": {
+                "title": "Error de Auto-Análisis"
+            },
+            "noContentToApply": {
+                "title": "Sin Contenido",
+                "description": "Esta sugerencia no tiene contenido de archivo para aplicar."
+            },
+            "suggestionApplied": {
+                "title": "Sugerencia Marcada como Aplicada",
+                "description": "Cambios para {area} marcados. La modificación real de archivos no es posible desde el navegador."
+            },
+            "noSuggestionsToDownload": {
+                "title": "Sin Sugerencias",
+                "description": "No hay sugerencias para descargar."
+            },
+            "noContentToDownload": {
+                "title": "Sin Contenido",
+                "description": "Ninguna de las sugerencias tiene contenido de archivo para descargar."
+            },
+            "downloadComplete": {
+                "title": "Descarga Completada",
+                "suggestionsJsonDescription": "Sugerencias descargadas como {filename}.",
+                "projectZipDescription": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios). Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
+            },
+            "preparingProjectZip": {
+                "title": "Preparando Descarga del Proyecto (ZIP)...",
+                "description": "Obteniendo código del servidor..."
+            },
+            "projectZipDownloadInitiated": {
+                "title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
+                "description": "Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
+            },
+            "zipError": {
+                "title": "Error al Generar ZIP"
+            },
+            "gitConfigIncomplete": {
+                "title": "Configuración Git Incompleta",
+                "description": "Completa la configuración en Ajustes antes de subir a Git."
+            },
+            "commitMessageRequired": {
+                "title": "Mensaje de Commit Requerido"
+            },
+            "uploadingToGit": {
+                "title": "Subiendo a Git...",
+                "description": "Intentando subir a {repo}"
+            },
+            "gitUploadSuccess": {
+                "title": "Subida a Git Exitosa"
+            },
+            "gitUploadError": {
+                "title": "Error en Subida a Git"
+            },
+            "autofixSuggestion": {
+                "title": "Sugerencia de Auto-Fix"
+            },
+            "autofixError": {
+                "title": "Error en Auto-Fix"
+            },
+            "editSaved": {
+                "title": "Edición Guardada",
+                "description": "El contenido sugerido ha sido actualizado localmente."
+            },
+            "venvSim": {
+                "title": "Simulación: Prueba en Entorno Virtual",
+                "description": "Se simula el inicio de pruebas para {area}."
+            }
+        },
+        "downloads": {
+            "suggestionsJsonFilename": "autoupdate_sugerencias.json",
+            "projectZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip"
+        },
+        "errors": {
+            "getLocalSourceFailed": "No se pudo obtener el código fuente local para análisis.",
+            "getLocalSourceBundleFailed": "Fallo al obtener el paquete de código fuente local",
+            "analysisFailedUI": "Análisis de AutoUpdate fallido en la UI",
+            "unknownAnalysisError": "Ocurrió un error desconocido durante el auto-análisis.",
+            "getServerSourceFailedZip": "No se pudo obtener el código fuente del servidor para el ZIP.",
+            "unknownZipError": "Error desconocido al generar ZIP.",
+            "unknownGitUploadError": "Error desconocido durante la subida a Git.",
+            "autofixHelperFailed": "No se pudo obtener ayuda de la IA para este error."
+        },
         "dialogs": {
             "applySuggestion": {
                 "title": "Aplicar Sugerencia a {area}",
                 "confirmText": "Sí, Marcar como Aplicada",
-                "description.p1": "Se marcará como aplicada la sugerencia para {area}.",
-                "description.p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:"
+                "description": {
+                    "p1": "Se marcará como aplicada la sugerencia para {area}.",
+                    "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:"
+                }
             },
             "noContentToShow": "Error: No hay contenido para mostrar.",
             "testSuggestion": {
@@ -343,8 +443,10 @@ const translationsData = {
                 "description": "Esta acción intentará realizar un commit y push al repositorio configurado. Asegúrate de que las credenciales en 'Configuración' son correctas."
             }
         },
-        "autofix.errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
-        "autofix.focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
+        "autofix": {
+            "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
+            "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
+        }
     },
     "refactorProject": {
         "title": "Refactorizar Proyecto",
@@ -367,40 +469,68 @@ const translationsData = {
         "focusLabel": "Campo de Enfoque del Análisis (opcional)",
         "focusPlaceholder": "Ej: Seguridad, UI, Módulo de pagos",
         "analyzeButton": "Analizar para Refactorizar",
-        "results.title": "Resultados y Sugerencias",
-        "results.applyAllButton": "Marcar Todas como Aplicadas",
-        "results.noSuggestions": "Aún no hay sugerencias. Realiza un análisis para comenzar.",
-        "results.projectSummaryCard.title": "Resumen del Proyecto",
-        "results.projectSummaryCard.noSummary": "No se proporcionó un resumen del proyecto.",
-        "results.suggestionsTitle": "Sugerencias de Refactorización:",
-        "results.noSpecificSuggestions": "No se generaron sugerencias específicas de refactorización.",
-        "suggestion.priorityLabel": "Prioridad:",
-        "suggestion.snippetLabel": "Snippet Sugerido:",
-        "suggestion.snippetOriginal": "Original:",
-        "suggestion.snippetModified": "Modificado:",
-        "suggestion.viewDiffButton": "Ver Diff",
-        "suggestion.discardButton": "Descartar",
-        "suggestion.applyButton": "Marcar como Aplicada",
-        "suggestion.revertStateButton": "Revertir Estado",
-        "diffModal.title": "Comparación de Código (Diff)",
-        "diffModal.originalLabel": "Original:",
-        "diffModal.suggestedLabel": "Sugerido:",
-        "diffModal.noContent": "N/A",
-        "logs.groupLogTitle": "Log de Ejecución del Grupo",
-        "toast.invalidFile.title": "Archivo Inválido",
-        "toast.invalidFile.description": "Tipo de archivo no admitido o tamaño excede 10MB.",
-        "toast.sourceRequired.title": "Fuente del Proyecto Requerida",
-        "toast.sourceRequired.description": "Sube un archivo o proporciona una URL de Git.",
-        "toast.analysisComplete.title": "Análisis Completado",
-        "toast.analysisComplete.description": "Sugerencias de refactorización generadas.",
-        "toast.analysisError.title": "Error de Análisis",
-        "toast.suggestionApplied.title": "Sugerencia Marcada como Aplicada",
-        "toast.suggestionApplied.description": "La sugerencia para \"{area}\" ha sido marcada. Recuerda aplicar los cambios manualmente en tu código si es necesario.",
-        "toast.noDiff.title": "Sin Diff Disponible",
-        "toast.noDiff.description": "Esta sugerencia no tiene un snippet de código para comparar.",
-        "toast.suggestionDiscarded.title": "Sugerencia Descartada",
-        "toast.allApplied.title": "Todas Marcadas como Aplicadas",
-        "toast.allApplied.description": "Todas las sugerencias pendientes han sido marcadas. Aplica los cambios manualmente."
+        "results": {
+            "title": "Resultados y Sugerencias",
+            "applyAllButton": "Marcar Todas como Aplicadas",
+            "noSuggestions": "Aún no hay sugerencias. Realiza un análisis para comenzar.",
+            "projectSummaryCard": {
+                "title": "Resumen del Proyecto",
+                "noSummary": "No se proporcionó un resumen del proyecto."
+            },
+            "suggestionsTitle": "Sugerencias de Refactorización:",
+            "noSpecificSuggestions": "No se generaron sugerencias específicas de refactorización."
+        },
+        "suggestion": {
+            "priorityLabel": "Prioridad:",
+            "snippetLabel": "Snippet Sugerido:",
+            "snippetOriginal": "Original:",
+            "snippetModified": "Modificado:",
+            "viewDiffButton": "Ver Diff",
+            "discardButton": "Descartar",
+            "applyButton": "Marcar como Aplicada",
+            "revertStateButton": "Revertir Estado"
+        },
+        "diffModal": {
+            "title": "Comparación de Código (Diff)",
+            "originalLabel": "Original:",
+            "suggestedLabel": "Sugerido:",
+            "noContent": "N/A"
+        },
+        "logs": {
+            "groupLogTitle": "Log de Ejecución del Grupo"
+        },
+        "toast": {
+            "invalidFile": {
+                "title": "Archivo Inválido",
+                "description": "Tipo de archivo no admitido o tamaño excede 10MB."
+            },
+            "sourceRequired": {
+                "title": "Fuente del Proyecto Requerida",
+                "description": "Sube un archivo o proporciona una URL de Git."
+            },
+            "analysisComplete": {
+                "title": "Análisis Completado",
+                "description": "Sugerencias de refactorización generadas."
+            },
+            "analysisError": {
+                "title": "Error de Análisis"
+            },
+            "suggestionApplied": {
+                "title": "Sugerencia Marcada como Aplicada",
+                "description": "La sugerencia para \"{area}\" ha sido marcada. Recuerda aplicar los cambios manualmente en tu código si es necesario."
+            },
+            "noDiff": {
+                "title": "Sin Diff Disponible",
+                "description": "Esta sugerencia no tiene un snippet de código para comparar."
+            },
+            "suggestionDiscarded": {
+                "title": "Sugerencia Descartada"
+            },
+            "allApplied": {
+                "title": "Todas Marcadas como Aplicadas",
+                "description": "Todas las sugerencias pendientes han sido marcadas. Aplica los cambios manualmente."
+            }
+        }
     },
     "analyzeProject": {
         "title": "Análisis de Proyecto Completo",
@@ -418,26 +548,42 @@ const translationsData = {
         "focusLabel": "Campo de Enfoque del Análisis (opcional)",
         "focusPlaceholder": "Ej: Rendimiento, Seguridad de API",
         "analyzeButton": "Analizar Proyecto",
-        "results.analyzing": "Analizando proyecto...",
-        "results.noResults": "Aún no hay resultados. Realiza un análisis para comenzar.",
-        "results.overallAssessmentLabel": "Evaluación General:",
-        "results.improvementIdeasLabel": "Ideas Generales de Mejora:",
-        "results.identifiedAreasLabel": "Áreas Identificadas:",
-        "results.specificSuggestionsLabel": "Sugerencias Específicas:",
-        "results.suggestionPriorityLabel": "Prioridad:",
-        "results.suggestedPromptLabel": "Prompt Sugerido:",
-        "results.groupLogTitle": "Log Detallado del Análisis",
-        "toast.invalidFile.title": "Archivo Inválido",
-        "toast.invalidFile.description": "Sube un archivo .zip o .json de menos de 25MB.",
-        "toast.readError.title": "Error de Lectura",
-        "toast.readError.description": "No se pudo leer el archivo.",
-        "toast.unsupportedFileType.title": "Tipo de Archivo no Soportado",
-        "toast.unsupportedFileType.description": "El análisis de este tipo de archivo no está completamente implementado.",
-        "toast.sourceRequired.title": "Fuente del Proyecto Requerida",
-        "toast.sourceRequired.description": "Sube un archivo o proporciona una URL de Git.",
-        "toast.analysisComplete.title": "Análisis Completado",
-        "toast.analysisComplete.description": "El proyecto ha sido analizado.",
-        "toast.analysisError.title": "Error de Análisis"
+        "results": {
+            "analyzing": "Analizando proyecto...",
+            "noResults": "Aún no hay resultados. Realiza un análisis para comenzar.",
+            "overallAssessmentLabel": "Evaluación General:",
+            "improvementIdeasLabel": "Ideas Generales de Mejora:",
+            "identifiedAreasLabel": "Áreas Identificadas:",
+            "specificSuggestionsLabel": "Sugerencias Específicas:",
+            "suggestionPriorityLabel": "Prioridad:",
+            "suggestedPromptLabel": "Prompt Sugerido:",
+            "groupLogTitle": "Log Detallado del Análisis"
+        },
+        "toast": {
+            "invalidFile": {
+                "title": "Archivo Inválido",
+                "description": "Sube un archivo .zip o .json de menos de 25MB."
+            },
+            "readError": {
+                "title": "Error de Lectura",
+                "description": "No se pudo leer el archivo."
+            },
+            "unsupportedFileType": {
+                "title": "Tipo de Archivo no Soportado",
+                "description": "El análisis de este tipo de archivo no está completamente implementado."
+            },
+            "sourceRequired": {
+                "title": "Fuente del Proyecto Requerida",
+                "description": "Sube un archivo o proporciona una URL de Git."
+            },
+            "analysisComplete": {
+                "title": "Análisis Completado",
+                "description": "El proyecto ha sido analizado."
+            },
+            "analysisError": {
+                "title": "Error de Análisis"
+            }
+        }
     },
     "generateCode": {
       "title": "Generar Código",
@@ -445,15 +591,21 @@ const translationsData = {
       "describeNeedLabel": "Describe tu necesidad",
       "describeNeedPlaceholder": "Ej: Una función en Python que sume dos números y maneje errores de tipo.",
       "generateButton": "Generar Código",
-      "results.explanationLabel": "Explicación:",
-      "results.codeSnippetLabel": "Fragmento de Código:",
-      "results.groupLogTitle": "Log Detallado del Grupo",
-      "confirmDialog.title": "Confirmar Generación de Código",
-      "confirmDialog.llmSource": "Fuente LLM:",
-      "confirmDialog.promptLabel": "Prompt:",
-      "toast.descriptionEmpty": "Por favor, describe tu necesidad.",
-      "toast.codeGenerated": "El fragmento de código ha sido generado exitosamente.",
-      "toast.generationError": "Error de Generación"
+      "results": {
+        "explanationLabel": "Explicación:",
+        "codeSnippetLabel": "Fragmento de Código:",
+        "groupLogTitle": "Log Detallado del Grupo"
+      },
+      "confirmDialog": {
+        "title": "Confirmar Generación de Código",
+        "llmSource": "Fuente LLM:",
+        "promptLabel": "Prompt:"
+      },
+      "toast": {
+        "descriptionEmpty": "Por favor, describe tu necesidad.",
+        "codeGenerated": "El fragmento de código ha sido generado exitosamente.",
+        "generationError": "Error de Generación"
+      }
     },
     "generateProject": {
       "title": "Generar Proyecto",
@@ -461,24 +613,30 @@ const translationsData = {
       "describeProjectLabel": "Describe tu proyecto",
       "describeProjectPlaceholder": "Ej: Un API REST con Node.js y Express, con rutas para usuarios y productos, y una base de datos PostgreSQL.",
       "generateButton": "Generar Proyecto",
-      "results.suggestedNameLabel": "Nombre Sugerido:",
-      "results.aiNotesLabel": "Notas de la IA:",
-      "results.generatedFilesLabel": "Archivos Generados:",
-      "results.downloadButton": "Descargar Proyecto (ZIP)",
-      "results.downloadNote": "Nota: La descarga será un archivo ZIP con la estructura y contenido del proyecto.",
-      "results.groupLogTitle": "Log Detallado del Grupo",
-      "confirmDialog.title": "Confirmar Generación de Proyecto",
-      "confirmDialog.currentPromptLabel": "Prompt Actual:",
-      "confirmDialog.redefinePromptLabel": "Redefinir Prompt (opcional):",
-      "confirmDialog.llmConfigInfo": "Configuración LLM a usar:",
-      "confirmDialog.confirmButton": "Sí, Generar Proyecto",
-      "toast.descriptionEmpty": "Por favor, describe tu proyecto.",
-      "toast.projectGenerated": "La estructura base del proyecto ha sido generada.",
-      "toast.generationError": "Error de Generación",
-      "toast.downloadError": "Sin Resultados",
-      "toast.downloadErrorDescription": "No hay estructura de proyecto para descargar.",
-      "toast.downloadSuccess": "Proyecto Descargado (ZIP)",
-      "toast.downloadSuccessDescription": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
+      "results": {
+        "suggestedNameLabel": "Nombre Sugerido:",
+        "aiNotesLabel": "Notas de la IA:",
+        "generatedFilesLabel": "Archivos Generados:",
+        "downloadButton": "Descargar Proyecto (ZIP)",
+        "downloadNote": "Nota: La descarga será un archivo ZIP con la estructura y contenido del proyecto.",
+        "groupLogTitle": "Log Detallado del Grupo"
+      },
+      "confirmDialog": {
+        "title": "Confirmar Generación de Proyecto",
+        "currentPromptLabel": "Prompt Actual:",
+        "redefinePromptLabel": "Redefinir Prompt (opcional):",
+        "llmConfigInfo": "Configuración LLM a usar:",
+        "confirmButton": "Sí, Generar Proyecto"
+      },
+      "toast": {
+        "descriptionEmpty": "Por favor, describe tu proyecto.",
+        "projectGenerated": "La estructura base del proyecto ha sido generada.",
+        "generationError": "Error de Generación",
+        "downloadError": "Sin Resultados",
+        "downloadErrorDescription": "No hay estructura de proyecto para descargar.",
+        "downloadSuccess": "Proyecto Descargado (ZIP)",
+        "downloadSuccessDescription": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
+      }
     },
     "analyzeCode": {
       "title": "Analizar Código",
@@ -493,39 +651,63 @@ const translationsData = {
       "additionalInstructionsLabel": "Instrucciones Adicionales para el Análisis (opcional)",
       "additionalInstructionsPlaceholder": "Ej: Enfócate en la seguridad, o sugiere alternativas más performantes.",
       "analyzeButton": "Analizar Código",
-      "results.explanationLabel": "Explicación:",
-      "results.originalCodeLabel": "Código Original:",
-      "results.suggestedCodeLabel": "Código Sugerido:",
-      "results.saveOriginalButton": "Guardar Original",
-      "results.saveSuggestedButton": "Guardar Sugerido",
-      "toast.invalidFile.title": "Archivo Inválido",
-      "toast.invalidFile.description": "Sube un archivo de texto de menos de 5MB.",
-      "toast.emptyUrl.title": "URL Vacía",
-      "toast.emptyUrl.description": "Introduce una URL de archivo Git.",
-      "toast.fetchError.title": "Error de Obtención",
-      "toast.codeFetched.title": "Código Obtenido",
-      "toast.codeFetched.description": "Contenido de la URL cargado.",
-      "toast.emptyCode.title": "Código Vacío",
-      "toast.emptyCode.description": "Introduce o carga código para analizar.",
-      "toast.analysisComplete.title": "Análisis Completado",
-      "toast.analysisComplete.description": "El código ha sido analizado.",
-      "toast.analysisError.title": "Error de Análisis",
-      "toast.snapshotError.title": "Error",
-      "toast.snapshotError.description": "No hay código {type} para guardar."
+      "results": {
+        "explanationLabel": "Explicación:",
+        "originalCodeLabel": "Código Original:",
+        "suggestedCodeLabel": "Código Sugerido:",
+        "saveOriginalButton": "Guardar Original",
+        "saveSuggestedButton": "Guardar Sugerido"
+      },
+      "toast": {
+        "invalidFile": {
+            "title": "Archivo Inválido",
+            "description": "Sube un archivo de texto de menos de 5MB."
+        },
+        "emptyUrl": {
+            "title": "URL Vacía",
+            "description": "Introduce una URL de archivo Git."
+        },
+        "fetchError": {
+            "title": "Error de Obtención"
+        },
+        "codeFetched": {
+            "title": "Código Obtenido",
+            "description": "Contenido de la URL cargado."
+        },
+        "emptyCode": {
+            "title": "Código Vacío",
+            "description": "Introduce o carga código para analizar."
+        },
+        "analysisComplete": {
+            "title": "Análisis Completado",
+            "description": "El código ha sido analizado."
+        },
+        "analysisError": {
+            "title": "Error de Análisis"
+        },
+        "snapshotError": {
+            "title": "Error",
+            "description": "No hay código {type} para guardar."
+        }
+      }
     },
     "errorDisplay": {
       "title": "Error Detectado",
       "copyButton": "Copiar Error",
       "autofixButton": "Auto-Fix con IA",
       "autofixingButton": "Analizando...",
-      "toast.copied": "Error Copiado",
-      "toast.copiedDescription": "El mensaje de error ha sido copiado al portapapeles.",
-      "autofixModal.title": "Sugerencia de Auto-Corrección del Equipo de Software",
-      "autofixModal.description": "El grupo 'EquipoDesarrolloSoftware' ha analizado el error y propone lo siguiente:",
-      "autofixModal.originalErrorLabel": "Mensaje de Error Original:",
-      "autofixModal.diagnosisLabel": "Diagnóstico del Grupo:",
-      "autofixModal.solutionLabel": "Solución Sugerida:",
-      "autofixModal.invocationLogLabel": "Log de Invocación del Grupo (para depuración)"
+      "toast": {
+        "copied": "Error Copiado",
+        "copiedDescription": "El mensaje de error ha sido copiado al portapapeles."
+      },
+      "autofixModal": {
+        "title": "Sugerencia de Auto-Corrección del Equipo de Software",
+        "description": "El grupo 'EquipoDesarrolloSoftware' ha analizado el error y propone lo siguiente:",
+        "originalErrorLabel": "Mensaje de Error Original:",
+        "diagnosisLabel": "Diagnóstico del Grupo:",
+        "solutionLabel": "Solución Sugerida:",
+        "invocationLogLabel": "Log de Invocación del Grupo (para depuración)"
+      }
     },
      "versions": {
         "title": "Versiones Guardadas (Snapshots)",
@@ -537,45 +719,63 @@ const translationsData = {
         "compareButton": "Comparar A y B",
         "compareButtonDisabledTooltip": "Selecciona dos versiones (A y B) para comparar.",
         "deleteAllButton": "Eliminar Todas",
-        "table.colA": "A",
-        "table.colB": "B",
-        "table.colName": "Nombre",
-        "table.colCreatedAt": "Fecha de Creación",
-        "table.colSource": "Origen",
-        "table.colActions": "Acciones",
-        "table.noVersions": "No hay versiones guardadas.",
-        "action.view": "Ver",
-        "action.downloadOriginal": "Descargar como {format}",
-        "action.downloadZip": "Descargar como ZIP",
-        "action.delete": "Eliminar",
-        "action.selectA": "Seleccionar para A",
-        "action.selectB": "Seleccionar para B",
-        "source.original": "Original (Análisis)",
-        "source.suggested": "Sugerido (Análisis)",
-        "source.codealchemist-app-state": "Estado App",
-        "source.codealchemist-current": "Código Actual (AutoUpdate)",
-        "source.unknown": "Desconocido",
-        "viewModal.title": "Viendo Snapshot: {name}",
-        "viewModal.noCode": "Error: Sin código para mostrar.",
-        "compareModal.title": "Comparar Versiones (A vs B)",
-        "compareModal.versionA": "Versión A: {name}",
-        "compareModal.versionB": "Versión B: {name}",
-        "compareModal.noDiffLib": "La comparación visual detallada (diff) no está implementada. Se muestran los contenidos lado a lado.",
-        "deleteAllModal.title": "Confirmar Eliminación Total",
-        "deleteAllModal.description": "¿Estás seguro de que quieres eliminar TODOS los snapshots guardados? Esta acción no se puede deshacer.",
-        "deleteAllModal.confirm": "Sí, Eliminar Todos",
-        "deleteSingleModal.title": "Confirmar Eliminación: {name}",
-        "deleteSingleModal.description": "¿Estás seguro de que quieres eliminar este snapshot? Esta acción no se puede deshacer.",
-        "deleteSingleModal.confirm": "Sí, Eliminar",
-        "toast.snapshotSaved": "Snapshot Guardado",
-        "toast.snapshotSavedDescription": "Snapshot \"{name}\" creado.",
-        "toast.snapshotDownloaded": "Snapshot Descargado",
-        "toast.snapshotDownloadedDescription": "Snapshot \"{name}\" descargado como {filename}.",
-        "toast.snapshotDeleted": "Snapshot Eliminado",
-        "toast.snapshotDeletedDescription": "Snapshot \"{name}\" eliminado.",
-        "toast.compareError.notFound": "No se encontraron los snapshots seleccionados.",
-        "toast.compareError.selectionIncomplete": "Selecciona dos versiones (A y B) para comparar.",
-        "toast.allSnapshotsDeleted": "Todos los Snapshots Eliminados"
+        "table": {
+            "colA": "A",
+            "colB": "B",
+            "colName": "Nombre",
+            "colCreatedAt": "Fecha de Creación",
+            "colSource": "Origen",
+            "colActions": "Acciones",
+            "noVersions": "No hay versiones guardadas."
+        },
+        "action": {
+            "view": "Ver",
+            "downloadOriginal": "Descargar como {format}",
+            "downloadZip": "Descargar como ZIP",
+            "delete": "Eliminar",
+            "selectA": "Seleccionar para A",
+            "selectB": "Seleccionar para B"
+        },
+        "source": {
+            "original": "Original (Análisis)",
+            "suggested": "Sugerido (Análisis)",
+            "codealchemist-app-state": "Estado App",
+            "codealchemist-current": "Código Actual (AutoUpdate)",
+            "unknown": "Desconocido"
+        },
+        "viewModal": {
+            "title": "Viendo Snapshot: {name}",
+            "noCode": "Error: Sin código para mostrar."
+        },
+        "compareModal": {
+            "title": "Comparar Versiones (A vs B)",
+            "versionA": "Versión A: {name}",
+            "versionB": "Versión B: {name}",
+            "noDiffLib": "La comparación visual detallada (diff) no está implementada. Se muestran los contenidos lado a lado."
+        },
+        "deleteAllModal": {
+            "title": "Confirmar Eliminación Total",
+            "description": "¿Estás seguro de que quieres eliminar TODOS los snapshots guardados? Esta acción no se puede deshacer.",
+            "confirm": "Sí, Eliminar Todos"
+        },
+        "deleteSingleModal": {
+            "title": "Confirmar Eliminación: {name}",
+            "description": "¿Estás seguro de que quieres eliminar este snapshot? Esta acción no se puede deshacer.",
+            "confirm": "Sí, Eliminar"
+        },
+        "toast": {
+            "snapshotSaved": "Snapshot Guardado",
+            "snapshotSavedDescription": "Snapshot \"{name}\" creado.",
+            "snapshotDownloaded": "Snapshot Descargado",
+            "snapshotDownloadedDescription": "Snapshot \"{name}\" descargado como {filename}.",
+            "snapshotDeleted": "Snapshot Eliminado",
+            "snapshotDeletedDescription": "Snapshot \"{name}\" eliminado.",
+            "compareError": {
+                "notFound": "No se encontraron los snapshots seleccionados.",
+                "selectionIncomplete": "Selecciona dos versiones (A y B) para comparar."
+            },
+            "allSnapshotsDeleted": "Todos los Snapshots Eliminados"
+        }
     },
     "chat": {
         "title": "Chat con IA",
@@ -584,16 +784,24 @@ const translationsData = {
         "sendButton": "Enviar",
         "clearButton": "Borrar Chat",
         "thinking": "Pensando...",
-        "systemMessage.errorPrefix": "Error: ",
-        "systemMessage.autofixErrorPrefix": "Error durante el Auto-Fix: ",
-        "agent.assistant": "Asistente IA",
-        "agent.user": "Usuario",
-        "agent.system": "Sistema",
-        "toast.chatCleared": "Chat Limpiado",
-        "toast.chatClearedDescription": "El historial de la conversación ha sido borrado.",
-        "toast.chatError": "Error de Chat",
-        "toast.autofixError": "Error en Auto-Fix",
-        "autofix.userRequest": "Por favor, analiza este error y sugiere una solución: {errorMsg}"
+        "systemMessage": {
+            "errorPrefix": "Error: ",
+            "autofixErrorPrefix": "Error durante el Auto-Fix: "
+        },
+        "agent": {
+            "assistant": "Asistente IA",
+            "user": "Usuario",
+            "system": "Sistema"
+        },
+        "toast": {
+            "chatCleared": "Chat Limpiado",
+            "chatClearedDescription": "El historial de la conversación ha sido borrado.",
+            "chatError": "Error de Chat",
+            "autofixError": "Error en Auto-Fix"
+        },
+        "autofix": {
+            "userRequest": "Por favor, analiza este error y sugiere una solución: {errorMsg}"
+        }
     },
     "agents": {
         "title": "Gestión de Agentes IA",
@@ -610,76 +818,116 @@ const translationsData = {
         "llmNotApplicable": "N/A",
         "capabilitiesLabel": "Capacidades:",
         "noCapabilities": "Ninguna",
-        "action.test": "Probar Agente",
-        "action.export": "Exportar Agente",
-        "action.edit": "Editar Agente",
-        "action.delete": "Eliminar Agente",
-        "toast.form.nameUneditableError": "El nombre del agente \"{name}\" no puede ser editado.",
-        "toast.form.deleteError": "El agente \"{name}\" no se puede eliminar.",
-        "toast.import.success": "Agentes Importados",
-        "toast.import.successDescription": "{count} agentes importados y/o actualizados.",
-        "toast.import.invalidFormat": "Formato JSON inválido para agentes.",
-        "toast.import.error": "Error de Importación",
-        "toast.exportAll.success": "Agentes Exportados",
-        "toast.exportAll.description": "Todos los agentes han sido exportados.",
-        "toast.exportSingle.success": "Agente Exportado",
-        "toast.exportSingle.description": "Agente \"{name}\" exportado.",
-        "toast.suggestion.roleRequired": "Descripción Requerida",
-        "toast.suggestion.roleRequiredDescription": "Por favor, describe el rol del agente.",
-        "toast.suggestion.received": "Sugerencia Recibida",
-        "toast.suggestion.receivedDescription": "La IA ha sugerido una definición para el agente {name}.",
-        "toast.suggestion.error": "Error de Sugerencia",
-        "toast.suggestion.errorDescription": "No se pudo obtener la sugerencia.",
-        "toast.created": "Agente Creado",
-        "toast.createdDescription": "Agente \"{name}\" añadido.",
-        "toast.updated": "Agente Actualizado",
-        "toast.updatedDescription": "Agente \"{name}\" guardado.",
-        "toast.deleted": "Agente Eliminado",
-        "toast.deletedDescription": "Agente \"{name}\" eliminado.",
-        "form.title.edit": "Editar Agente",
-        "form.title.create": "Crear Nuevo Agente",
-        "form.title.reviewSuggestion": "Revisar Sugerencia de Agente",
-        "form.description.edit": "Modifica los detalles del agente \"{name}\".",
-        "form.description.create": "Define un nuevo agente especializado para tus tareas de IA.",
-        "form.label.name": "Nombre",
-        "form.label.description": "Descripción",
-        "form.label.systemPrompt": "Mensaje de Sistema (Prompt)",
-        "form.placeholder.systemPrompt": "Define el rol, comportamiento y directrices del agente...",
-        "form.label.capabilities": "Capacidades del Agente",
-        "form.capability.accessOwnCode": "Acceso a Código Propio",
-        "form.capability.execution": "Capacidad de Ejecución",
-        "form.capability.virtualEnv": "Capacidad de Entorno Virtual",
-        "form.capability.readWrite": "Capacidad Lectura/Escritura",
-        "form.capability.dangerousTooltip": "(Peligroso)",
-        "form.label.llmConfig": "Configuración LLM del Agente",
-        "form.llm.useGlobal": "Usar Configuración Global",
-        "form.llm.custom.providerLabel": "Proveedor LLM",
-        "form.llm.custom.modelLabel": "Modelo",
-        "form.llm.custom.modelPlaceholder.gemini": "Ej: gemini-1.5-pro-latest",
-        "form.llm.custom.modelPlaceholder.selectProvider": "Selecciona proveedor",
-        "form.llm.custom.modelPlaceholder.default": "Selecciona modelo",
-        "form.llm.custom.geminiModelDescription": "Modelos comunes listados. Puedes escribir otro si es necesario.",
-        "form.llm.custom.apiUrlLabel": "URL API (Opcional)",
-        "form.llm.custom.apiUrlPlaceholder": "Se auto-rellena al cambiar proveedor",
-        "form.llm.custom.apiUrlDescription": "Modifícala si usas un proxy o un endpoint no estándar.",
-        "form.llm.custom.apiKeyLabel": "Clave API (Opcional)",
-        "form.llm.custom.apiKeyPlaceholder": "Usar global si está vacía",
-        "form.button.saveChanges": "Guardar Cambios",
-        "form.button.createAgent": "Crear Agente",
-        "form.toast.nameRequired": "Nombre Requerido",
-        "form.toast.nameRequiredDescription": "El agente debe tener un nombre.",
-        "suggestionDialog.title": "Sugerir Definición de Agente con IA",
-        "suggestionDialog.description": "Describe el rol o la tarea principal del agente que necesitas, y la IA sugerirá una definición.",
-        "suggestionDialog.textareaLabel": "Descripción del Rol del Agente",
-        "suggestionDialog.textareaPlaceholder": "Ej: Un agente que resume textos largos en puntos clave.",
-        "suggestionDialog.submitButton": "Obtener Sugerencia",
-        "testChatDialog.title": "Probando Agente: {name}",
-        "testChatDialog.description": "Interactúa directamente con el agente. Su prompt de sistema se muestra abajo.",
-        "testChatDialog.systemMessage": "Estás probando el agente: {name}.\n--- Inicio del Prompt de Sistema del Agente ---\n{systemPrompt}\n--- Fin del Prompt de Sistema del Agente ---",
-        "testChatDialog.inputPlaceholder": "Escribe tu mensaje al agente...",
-        "testChatDialog.sendButton": "Enviar",
-        "testChatDialog.thinking": "Agente está pensando...",
-        "testChatDialog.errorPrefix": "Error: "
+        "action": {
+            "test": "Probar Agente",
+            "export": "Exportar Agente",
+            "edit": "Editar Agente",
+            "delete": "Eliminar Agente"
+        },
+        "toast": {
+            "form": {
+                "nameUneditableError": "El nombre del agente \"{name}\" no puede ser editado.",
+                "deleteError": "El agente \"{name}\" no se puede eliminar."
+            },
+            "import": {
+                "success": "Agentes Importados",
+                "successDescription": "{count} agentes importados y/o actualizados.",
+                "invalidFormat": "Formato JSON inválido para agentes.",
+                "error": "Error de Importación"
+            },
+            "exportAll": {
+                "success": "Agentes Exportados",
+                "description": "Todos los agentes han sido exportados."
+            },
+            "exportSingle": {
+                "success": "Agente Exportado",
+                "description": "Agente \"{name}\" exportado."
+            },
+            "suggestion": {
+                "roleRequired": "Descripción Requerida",
+                "roleRequiredDescription": "Por favor, describe el rol del agente.",
+                "received": "Sugerencia Recibida",
+                "receivedDescription": "La IA ha sugerido una definición para el agente {name}.",
+                "error": "Error de Sugerencia",
+                "errorDescription": "No se pudo obtener la sugerencia."
+            },
+            "created": "Agente Creado",
+            "createdDescription": "Agente \"{name}\" añadido.",
+            "updated": "Agente Actualizado",
+            "updatedDescription": "Agente \"{name}\" guardado.",
+            "deleted": "Agente Eliminado",
+            "deletedDescription": "Agente \"{name}\" eliminado."
+        },
+        "form": {
+            "title": {
+                "edit": "Editar Agente",
+                "create": "Crear Nuevo Agente",
+                "reviewSuggestion": "Revisar Sugerencia de Agente"
+            },
+            "description": {
+                "edit": "Modifica los detalles del agente \"{name}\".",
+                "create": "Define un nuevo agente especializado para tus tareas de IA."
+            },
+            "label": {
+                "name": "Nombre",
+                "description": "Descripción",
+                "systemPrompt": "Mensaje de Sistema (Prompt)",
+                "capabilities": "Capacidades del Agente",
+                "llmConfig": "Configuración LLM del Agente"
+            },
+            "placeholder": {
+                "systemPrompt": "Define el rol, comportamiento y directrices del agente..."
+            },
+            "capability": {
+                "accessOwnCode": "Acceso a Código Propio",
+                "execution": "Capacidad de Ejecución",
+                "virtualEnv": "Capacidad de Entorno Virtual",
+                "readWrite": "Capacidad Lectura/Escritura",
+                "dangerousTooltip": "(Peligroso)"
+            },
+            "llm": {
+                "useGlobal": "Usar Configuración Global",
+                "custom": {
+                    "providerLabel": "Proveedor LLM",
+                    "modelLabel": "Modelo",
+                    "modelPlaceholder": {
+                        "gemini": "Ej: gemini-1.5-pro-latest",
+                        "selectProvider": "Selecciona proveedor",
+                        "default": "Selecciona modelo"
+                    },
+                    "geminiModelDescription": "Modelos comunes listados. Puedes escribir otro si es necesario.",
+                    "apiUrlLabel": "URL API (Opcional)",
+                    "apiUrlPlaceholder": "Se auto-rellena al cambiar proveedor",
+                    "apiUrlDescription": "Modifícala si usas un proxy o un endpoint no estándar.",
+                    "apiKeyLabel": "Clave API (Opcional)",
+                    "apiKeyPlaceholder": "Usar global si está vacía"
+                }
+            },
+            "button": {
+                "saveChanges": "Guardar Cambios",
+                "createAgent": "Crear Agente"
+            },
+            "toast": {
+                "nameRequired": "Nombre Requerido",
+                "nameRequiredDescription": "El agente debe tener un nombre."
+            }
+        },
+        "suggestionDialog": {
+            "title": "Sugerir Definición de Agente con IA",
+            "description": "Describe el rol o la tarea principal del agente que necesitas, y la IA sugerirá una definición.",
+            "textareaLabel": "Descripción del Rol del Agente",
+            "textareaPlaceholder": "Ej: Un agente que resume textos largos en puntos clave.",
+            "submitButton": "Obtener Sugerencia"
+        },
+        "testChatDialog": {
+            "title": "Probando Agente: {name}",
+            "description": "Interactúa directamente con el agente. Su prompt de sistema se muestra abajo.",
+            "systemMessage": "Estás probando el agente: {name}.\n--- Inicio del Prompt de Sistema del Agente ---\n{systemPrompt}\n--- Fin del Prompt de Sistema del Agente ---",
+            "inputPlaceholder": "Escribe tu mensaje al agente...",
+            "sendButton": "Enviar",
+            "thinking": "Agente está pensando...",
+            "errorPrefix": "Error: "
+        }
     },
     "groups": {
         "title": "Gestión de Grupos de Trabajo IA",
@@ -691,86 +939,126 @@ const translationsData = {
         "agentsLabel": "Agentes:",
         "agentsCountFormat": "{count} (+ Orquestador)",
         "taskLabel": "Tarea:",
-        "action.execute": "Ejecutar Grupo",
-        "action.edit": "Editar Grupo",
-        "action.delete": "Eliminar Grupo",
-        "form.title.edit": "Editar Grupo de Trabajo",
-        "form.title.create": "Crear Nuevo Grupo de Trabajo",
-        "form.title.reviewSuggestion": "Revisar Sugerencia de Grupo",
-        "form.label.name": "Nombre",
-        "form.label.description": "Descripción",
-        "form.label.mainTask": "Tarea Principal del Grupo",
-        "form.placeholder.mainTask": "Describe el objetivo general que el grupo debe alcanzar...",
-        "form.label.selectAgents": "Seleccionar Agentes Participantes",
-        "form.orchestratorImplicitNote": "OrquestadorFlujoAgentes se añade implícitamente.",
-        "form.noAgentsToSelectError": "No hay otros agentes disponibles para seleccionar. Crea agentes primero.",
-        "form.button.saveChanges": "Guardar Cambios",
-        "form.button.createGroupWithSuggestion": "Crear Grupo con Sugerencia",
-        "form.button.createGroup": "Crear Grupo",
-        "form.toast.fieldsRequired": "Campos Requeridos",
-        "form.toast.fieldsRequiredDescription": "El nombre y la tarea principal son obligatorios.",
-        "form.toast.agentsRequired": "Agentes Requeridos",
-        "form.toast.agentsRequiredDescription": "Selecciona al menos un agente participante (además del Orquestador).",
-        "form.toast.created": "Grupo Creado",
-        "form.toast.createdDescription": "Grupo \"{name}\" añadido.",
-        "form.toast.updated": "Grupo Actualizado",
-        "form.toast.updatedDescription": "Grupo \"{name}\" guardado.",
-        "form.toast.deleted": "Grupo Eliminado",
-        "form.toast.deletedDescription": "Grupo \"{name}\" eliminado.",
-        "suggestionDialog.title": "Sugerir Definición de Grupo con IA",
-        "suggestionDialog.description": "Describe la tarea o el objetivo principal del grupo, y la IA sugerirá una definición y agentes relevantes.",
-        "suggestionDialog.textareaLabel": "Descripción de la Tarea del Grupo",
-        "suggestionDialog.textareaPlaceholder": "Ej: Desarrollar un nuevo módulo de e-commerce para la aplicación.",
-        "suggestionDialog.submitButton": "Obtener Sugerencia",
-        "suggestionDialog.submitButtonDisabled": "Crea Agentes Primero",
-        "suggestionDialog.noAgentsWarning": "Crea agentes primero para poder obtener sugerencias de grupos.",
-        "toast.suggestion.taskRequired": "Descripción Requerida",
-        "toast.suggestion.taskRequiredDescription": "Por favor, describe la tarea del grupo.",
-        "toast.suggestion.received": "Sugerencia Recibida",
-        "toast.suggestion.receivedDescription": "La IA ha sugerido una definición para el grupo {name}.",
-        "toast.suggestion.error": "Error de Sugerencia",
-        "executionModal.title": "Ejecución del Grupo: {name}",
-        "executionModal.mainTaskLabel": "Tarea Principal:",
-        "executionModal.logTitle": "Log de Ejecución Detallado",
-        "executionModal.stopButton": "Detener Ejecución",
-        "execution.starting": "Iniciando ejecución del grupo: {name}...",
-        "execution.taskPrefix": "Tarea Principal: ",
-        "execution.criticalError.orchestratorNotFound": "Agente Orquestador ('orquestador-flujo-agentes') no encontrado. No se puede ejecutar el grupo.",
-        "execution.criticalError.orchestratorParse": "Error al parsear la respuesta JSON del Orquestador.",
-        "execution.criticalError.orchestratorIncomplete": "Respuesta del Orquestador incompleta (faltan next_agent_id o instruction_for_next_agent).",
-        "execution.criticalError.agentNotFound": "Agente con ID \"{id}\" no encontrado.",
-        "execution.log.turnPrefix": "--- Turno {turn} ---",
-        "execution.log.orchestratorReceiving": "Orquestador recibiendo: \"{input}...\"",
-        "execution.log.orchestratorRawResponse": "Orquestador (raw JSON): {response}",
-        "execution.log.orchestratorDecision": "Decisión del Orquestador: Siguiente Agente: {nextAgentId}. Instrucción: \"{instruction}...\". Razón: \"{reasoning}\"",
-        "execution.log.taskCompleted": "--- Tarea Completada --- \nResultado Final del Grupo: {result}",
-        "execution.log.callingAgent": "Llamando a Agente: {name}...",
-        "execution.log.agentResponse": "Respuesta de {name}: \"{response}...\"",
-        "execution.log.errorInTurn": "Error en Turno {turn}: {errorMessage}",
-        "execution.log.maxTurnsReached": "Se alcanzó el número máximo de turnos ({maxTurns}). Ejecución detenida.",
-        "execution.log.executionStoppedOrFinished": "Ejecución del grupo finalizada o detenida.",
-        "execution.log.userStopped": "Turno {turn}: Ejecución cancelada por el usuario.",
-        "toast.execution.orchestratorError": "Error de Orquestador",
-        "toast.execution.groupError": "Error de Grupo",
-        "toast.execution.generalError": "Error de Ejecución"
+        "action": {
+            "execute": "Ejecutar Grupo",
+            "edit": "Editar Grupo",
+            "delete": "Eliminar Grupo"
+        },
+        "form": {
+            "title": {
+                "edit": "Editar Grupo de Trabajo",
+                "create": "Crear Nuevo Grupo de Trabajo",
+                "reviewSuggestion": "Revisar Sugerencia de Grupo"
+            },
+            "label": {
+                "name": "Nombre",
+                "description": "Descripción",
+                "mainTask": "Tarea Principal del Grupo",
+                "selectAgents": "Seleccionar Agentes Participantes"
+            },
+            "placeholder": {
+                "mainTask": "Describe el objetivo general que el grupo debe alcanzar..."
+            },
+            "orchestratorImplicitNote": "OrquestadorFlujoAgentes se añade implícitamente.",
+            "noAgentsToSelectError": "No hay otros agentes disponibles para seleccionar. Crea agentes primero.",
+            "button": {
+                "saveChanges": "Guardar Cambios",
+                "createGroupWithSuggestion": "Crear Grupo con Sugerencia",
+                "createGroup": "Crear Grupo"
+            },
+            "toast": {
+                "fieldsRequired": "Campos Requeridos",
+                "fieldsRequiredDescription": "El nombre y la tarea principal son obligatorios.",
+                "agentsRequired": "Agentes Requeridos",
+                "agentsRequiredDescription": "Selecciona al menos un agente participante (además del Orquestador)."
+            }
+        },
+        "toast": {
+            "created": "Grupo Creado",
+            "createdDescription": "Grupo \"{name}\" añadido.",
+            "updated": "Grupo Actualizado",
+            "updatedDescription": "Grupo \"{name}\" guardado.",
+            "deleted": "Grupo Eliminado",
+            "deletedDescription": "Grupo \"{name}\" eliminado.",
+            "suggestion": {
+                "taskRequired": "Descripción Requerida",
+                "taskRequiredDescription": "Por favor, describe la tarea del grupo.",
+                "received": "Sugerencia Recibida",
+                "receivedDescription": "La IA ha sugerido una definición para el grupo {name}.",
+                "error": "Error de Sugerencia"
+            },
+            "execution": {
+                "orchestratorError": "Error de Orquestador",
+                "groupError": "Error de Grupo",
+                "generalError": "Error de Ejecución"
+            }
+        },
+        "suggestionDialog": {
+            "title": "Sugerir Definición de Grupo con IA",
+            "description": "Describe la tarea o el objetivo principal del grupo, y la IA sugerirá una definición y agentes relevantes.",
+            "textareaLabel": "Descripción de la Tarea del Grupo",
+            "textareaPlaceholder": "Ej: Desarrollar un nuevo módulo de e-commerce para la aplicación.",
+            "submitButton": "Obtener Sugerencia",
+            "submitButtonDisabled": "Crea Agentes Primero",
+            "noAgentsWarning": "Crea agentes primero para poder obtener sugerencias de grupos."
+        },
+        "executionModal": {
+            "title": "Ejecución del Grupo: {name}",
+            "mainTaskLabel": "Tarea Principal:",
+            "logTitle": "Log de Ejecución Detallado",
+            "stopButton": "Detener Ejecución"
+        },
+        "execution": {
+            "starting": "Iniciando ejecución del grupo: {name}...",
+            "taskPrefix": "Tarea Principal: ",
+            "criticalError": {
+                "orchestratorNotFound": "Agente Orquestrador ('orquestador-flujo-agentes') no encontrado. No se puede ejecutar el grupo.",
+                "orchestratorParse": "Error al parsear la respuesta JSON del Orquestador.",
+                "orchestratorIncomplete": "Respuesta del Orquestrador incompleta (faltan next_agent_id o instruction_for_next_agent).",
+                "agentNotFound": "Agente con ID \"{id}\" no encontrado."
+            },
+            "log": {
+                "turnPrefix": "--- Turno {turn} ---",
+                "orchestratorReceiving": "Orquestrador recibiendo: \"{input}...\"",
+                "orchestratorRawResponse": "Orquestrador (raw JSON): {response}",
+                "orchestratorDecision": "Decisión del Orquestrador: Siguiente Agente: {nextAgentId}. Instrucción: \"{instruction}...\". Razón: \"{reasoning}\"",
+                "taskCompleted": "--- Tarea Completada --- \nResultado Final del Grupo: {result}",
+                "callingAgent": "Llamando a Agente: {name}...",
+                "agentResponse": "Respuesta de {name}: \"{response}...\"",
+                "errorInTurn": "Error en Turno {turn}: {errorMessage}",
+                "maxTurnsReached": "Se alcanzó el número máximo de turnos ({maxTurns}). Ejecución detenida.",
+                "executionStoppedOrFinished": "Ejecución del grupo finalizada o detenida.",
+                "userStopped": "Turno {turn}: Ejecución cancelada por el usuario."
+            }
+        }
     },
     "appLayout": {
-        "debugPanel.title": "Panel de Depuración",
-        "debugPanel.copyButton": "Copiar Logs",
-        "debugPanel.clearButton": "Borrar Logs",
-        "debugPanel.collapseButton": "Contraer",
-        "debugPanel.expandButton": "Expandir",
-        "debugPanel.noLogs": "No hay logs.",
-        "toast.unexpectedError.title": "Error Inesperado",
-        "toast.unexpectedError.description": "Ocurrió un error inesperado en la aplicación. Ya estamos trabajando en ello."
+        "debugPanel": {
+            "title": "Panel de Depuración",
+            "copyButton": "Copiar Logs",
+            "clearButton": "Borrar Logs",
+            "collapseButton": "Contraer",
+            "expandButton": "Expandir",
+            "noLogs": "No hay logs."
+        },
+        "toast": {
+            "unexpectedError": {
+                "title": "Error Inesperado",
+                "description": "Ocurrió un error inesperado en la aplicación. Ya estamos trabajando en ello."
+            }
+        }
     },
     "fileTree": {
         "isFolder": "Esto es una carpeta.",
         "emptyFile": "Archivo vacío o contenido no visualizable aquí."
     },
     "codeEditor": {
-        "toast.loadError.title": "Error de Carga",
-        "toast.loadError.description": "No se pudo cargar el estado guardado del editor para {id}."
+        "toast": {
+            "loadError": {
+                "title": "Error de Carga",
+                "description": "No se pudo cargar el estado guardado del editor para {id}."
+            }
+        }
     }
   },
   en: {
@@ -788,49 +1076,89 @@ const translationsData = {
         "agents": "AI Agents",
         "groups": "AI Workgroups",
         "settings": "Settings",
-        "toggle.hide": "Hide sidebar",
-        "toggle.show": "Show sidebar",
-        "mobile.title": "Main Navigation"
+        "toggle": {
+            "hide": "Hide sidebar",
+            "show": "Show sidebar"
+        },
+        "mobile": {
+          "title": "Main Navigation"
+        }
     },
     "dashboard": {
         "welcome": "Welcome to CodeAlchemist",
         "description": "Your AI-assisted development platform, designed to optimize and streamline the software development lifecycle through code generation, analysis, refactoring, and version management.",
-        "features.title": "Main Features",
-        "features.generateCode.title": "Generate Code",
-        "features.generateCode.description": "Create code snippets from natural language descriptions.",
-        "features.generateProject.title": "Generate Project",
-        "features.generateProject.description": "Initiate complete project structures from specifications.",
-        "features.refactorProject.title": "Refactor Project",
-        "features.refactorProject.description": "Analyze and refactor existing projects with AI suggestions.",
-        "features.analyzeCode.title": "Analyze Code",
-        "features.analyzeCode.description": "Get detailed analysis and suggestions for code snippets or files.",
-        "features.analyzeProject.title": "Analyze Project",
-        "features.analyzeProject.description": "Perform a complete analysis of a project from a file or Git.",
-        "features.autoupdate.title": "AutoUpdate",
-        "features.autoupdate.description": "Allow CodeAlchemist to analyze and improve its own source code.",
-        "features.snapshots.title": "Saved Versions",
-        "features.snapshots.description": "Manage generated code snapshots or application state.",
-        "features.chat.title": "AI Chat",
-        "features.chat.description": "Interact with an AI assistant for queries, ideas, and more.",
-        "features.agents.title": "AI Agents",
-        "features.agents.description": "Create, configure, and manage individual AI agents.",
-        "features.groups.title": "AI Workgroups",
-        "features.groups.description": "Define and execute collaborative AI agent teams.",
-        "features.settings.title": "Settings",
-        "features.settings.description": "Adjust LLM providers, Git, and other application options.",
-        "quickstart.title": "Quick Start Guide",
-        "quickstart.description": "Follow these steps to start using CodeAlchemist effectively:",
-        "quickstart.step1.link": "Configure your LLM provider settings",
-        "quickstart.step1.text": " in the 'Settings' section.",
-        "quickstart.step2.link": "Explore code generation",
-        "quickstart.step2.text": " with a simple prompt in 'Generate Code'.",
-        "quickstart.step3.link": "Try analyzing a code snippet",
-        "quickstart.step3.text": " in 'Analyze Code'.",
-        "quickstart.step4.link": "Interact with the AI Chat",
-        "quickstart.step4.text": " for quick queries.",
-        "quickstart.step5.link": "Experiment with AutoUpdate",
-        "quickstart.step5.text": " to see CodeAlchemist analyze itself.",
-        "quickstart.ctaButton": "Go to Settings"
+        "features": {
+            "title": "Main Features",
+            "generateCode": {
+                "title": "Generate Code",
+                "description": "Create code snippets from natural language descriptions."
+            },
+            "generateProject": {
+                "title": "Generate Project",
+                "description": "Initiate complete project structures from specifications."
+            },
+            "refactorProject": {
+                "title": "Refactor Project",
+                "description": "Analyze and refactor existing projects with AI suggestions."
+            },
+            "analyzeCode": {
+                "title": "Analyze Code",
+                "description": "Get detailed analysis and suggestions for code snippets or files."
+            },
+            "analyzeProject": {
+                "title": "Analyze Project",
+                "description": "Perform a complete analysis of a project from a file or Git."
+            },
+            "autoupdate": {
+                "title": "AutoUpdate",
+                "description": "Allow CodeAlchemist to analyze and improve its own source code."
+            },
+            "snapshots": {
+                "title": "Saved Versions",
+                "description": "Manage generated code snapshots or application state."
+            },
+            "chat": {
+                "title": "AI Chat",
+                "description": "Interact with an AI assistant for queries, ideas, and more."
+            },
+            "agents": {
+                "title": "AI Agents",
+                "description": "Create, configure, and manage individual AI agents."
+            },
+            "groups": {
+                "title": "AI Workgroups",
+                "description": "Define and execute collaborative AI agent teams."
+            },
+            "settings": {
+                "title": "Settings",
+                "description": "Adjust LLM providers, Git, and other application options."
+            }
+        },
+        "quickstart": {
+            "title": "Quick Start Guide",
+            "description": "Follow these steps to start using CodeAlchemist effectively:",
+            "step1": {
+                "link": "Configure your LLM provider settings",
+                "text": " in the 'Settings' section."
+            },
+            "step2": {
+                "link": "Explore code generation",
+                "text": " with a simple prompt in 'Generate Code'."
+            },
+            "step3": {
+                "link": "Try analyzing a code snippet",
+                "text": " in 'Analyze Code'."
+            },
+            "step4": {
+                "link": "Interact with the AI Chat",
+                "text": " for quick queries."
+            },
+            "step5": {
+                "link": "Experiment with AutoUpdate",
+                "text": " to see CodeAlchemist analyze itself."
+            },
+            "ctaButton": "Go to Settings"
+        }
     },
     "settings": {
         "title": "General Settings",
@@ -855,7 +1183,7 @@ const translationsData = {
             "modelNamePlaceholderDefault": "Select a provider first",
             "modelNameDescriptionLocal": "For {provider}, common models are listed, but you can also type one directly if it doesn't appear.",
             "testConnectionButton": "Test LLM Connection",
-            "testConnectionButton.testing": "Testing..."
+            "testingConnectionButton": "Testing..."
         },
         "git": {
             "title": "Git Settings (Optional)",
@@ -867,7 +1195,7 @@ const translationsData = {
             "patLabel": "Personal Access Token (PAT)",
             "patPlaceholder": "Enter your Git PAT",
             "testConnectionButton": "Test Git Connection",
-            "testConnectionButton.testing": "Testing..."
+            "testingConnectionButton": "Testing..."
         },
         "language": {
             "title": "Application Language",
@@ -917,7 +1245,7 @@ const translationsData = {
                 "title": "Import Error",
                 "description": "{error}"
             },
-            "languageChanged": {
+             "languageChanged": {
                 "title": "Language Changed",
                 "description": "Application language has been set to {langName}."
             }
@@ -953,563 +1281,811 @@ const translationsData = {
     "autoupdate": {
         "title": "AutoUpdate (Self-Code Analysis)",
         "description": "Allow CodeAlchemist to analyze its own source code.",
-        "config.llmSourceLabel": "Use LLM Configuration From:",
-        "config.codeSourceLabel": "Source Code for Self-Analysis",
-        "config.sourceLocal": "Local (current app code)",
-        "config.sourceGit": "Git Repository URL",
-        "config.gitUrlLabel": "Git Repository URL",
-        "config.gitUrlPlaceholder": "HTTPS URL of CodeAlchemist repo",
-        "config.analysisParamsLabel": "Self-Analysis Parameters",
-        "config.analysisPrefsLabel": "Analysis Preferences / Focus Area (optional)",
-        "config.analysisPrefsPlaceholder": "E.g.: Focus on UI optimization. All suggestions in English.",
-        "config.startButton": "Start Self-Analysis",
-        "config.startButton.loading": "Analyzing...",
-        "results.title": "Self-Analysis Results",
-        "results.downloadSuggestionsJson": "Download Suggestions (JSON)",
-        "results.downloadProjectZip": "Download Current Code (ZIP)",
-        "results.uploadToGit": "Upload to Git",
-        "results.noResults": "Start an analysis to see results.",
-        "results.analysisTitleLabel": "Analysis Title:",
-        "results.generalAssessmentLabel": "General Assessment:",
-        "results.overallImprovementIdeasLabel": "General Improvement Ideas Suggested by AI:",
-        "results.detailedSuggestionsLabel": "Detailed Suggestions:",
-        "results.noDetailedSuggestions": "No detailed suggestions.",
-        "results.unifiedPromptLabel": "Unified Prompt to Implement All Suggestions:",
-        "suggestionCard.priorityLabel": "Priority:",
-        "suggestionCard.promptLabel": "Prompt:",
-        "suggestionCard.testInVenvButton": "Test in Virtual Env.",
-        "suggestionCard.saveEditButton": "Save Edit",
-        "suggestionCard.statusApplied": "Suggestion Applied (marked)",
-        "suggestionCard.statusDiscarded": "Suggestion Discarded",
-        "suggestionCard.editContentLabel": "Edit Suggested Content:",
-        "logs.executingAnalysis": "Executing self-analysis for AutoUpdate...",
-        "logs.analysisStarting": "Starting Self-Analysis...",
-        "logs.groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
-        "logs.analysisProcessingComplete": "AutoUpdate analysis processing complete.",
-        "logs.localCodeObtained": "Local code obtained from server.",
-        "logs.analysisSuccessNonGroup": "AutoUpdate analysis (non-group) successful.",
-        "logs.analysisSuccessGroup": "AutoUpdate analysis (group) successful.",
-        "logs.suggestionMarkedApplied": "Suggestion marked as applied for {area}. (Direct file modification not feasible from browser).",
-        "logs.downloadRequested": "Download requested: {format}",
-        "logs.suggestionsDownloadedJson": "AutoUpdate suggestions downloaded as JSON.",
-        "logs.applyingSuggestionToZip": "Applying suggestion content to {fileName} for ZIP.",
-        "logs.appliedSuggestionsToZip": "'Applied' suggestions conceptually incorporated for ZIP.",
-        "logs.projectZipDownloaded": "Project ZIP download ({filename}) initiated. It contains a JSON file with the content of project files obtained from the server, with 'applied' suggestions conceptually included. It's not a directly executable project ZIP.",
-        "logs.zipGenerationFailed": "ZIP generation failed: {error}",
-        "logs.gitUploadFailedConfig": "Git upload failed: Configuration incomplete.",
-        "logs.commitMessageMissing": "Git upload failed: Commit message required.",
-        "logs.initiatingGitUpload": "Initiating Git upload...",
-        "logs.gitUploadInProgress": "Uploading to Git with message: \"{message}\"",
-        "logs.gitUploadSuccess": "Git upload successful.",
-        "logs.gitUploadError": "Error in Git upload: {error}",
-        "logs.gitUploadException": "Exception during Git upload: {error}",
-        "logs.attemptingAutofix": "Attempting Auto-Fix for error: {error}",
-        "logs.venvSim": "Simulated virtual environment test for {area}.",
-        "logs.detailedExecutionLogsTitle": "Detailed Execution Logs (AutoUpdate)",
-        "logs.analyzingWithGroup": "Analyzing with group...",
-        "logs.waitingForGroup": "Waiting for group results...",
-        "analysis.fileMarker": "File",
-        "analysis.general": "General analysis",
-        "prompts.unifiedHeader": "// --- START: Prompt to improve file: {area} ---",
-        "prompts.unifiedFooter": "// --- END: Prompt to improve file: {area} ---",
-        "toast.gettingLocalCode.title": "Getting Local Code...",
-        "toast.gettingLocalCode.description": "Contacting server for source code.",
-        "toast.analysisComplete.title": "Self-Analysis Complete",
-        "toast.analysisComplete.description": "Suggestions for the code have been generated.",
-        "toast.analysisError.title": "Self-Analysis Error",
-        "toast.noContentToApply.title": "No Content",
-        "toast.noContentToApply.description": "This suggestion has no file content to apply.",
-        "toast.suggestionApplied.title": "Suggestion Marked as Applied",
-        "toast.suggestionApplied.description": "Changes for {area} marked. Actual file modification is not possible from the browser.",
-        "toast.noSuggestionsToDownload.title": "No Suggestions",
-        "toast.noSuggestionsToDownload.description": "There are no suggestions to download.",
-        "toast.noContentToDownload.title": "No Content",
-        "toast.noContentToDownload.description": "None of the suggestions have file content to download.",
-        "toast.downloadComplete.title": "Download Complete",
-        "toast.downloadComplete.suggestionsJsonDescription": "Suggestions downloaded as {filename}.",
-        "toast.downloadComplete.projectZipDescription": "Download of Project with Suggestions (ZIP containing JSON of changes) initiated. This ZIP file ({filename}) contains a JSON file detailing which files would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI.",
-        "toast.preparingProjectZip.title": "Preparing Project Download (ZIP)...",
-        "toast.preparingProjectZip.description": "Getting code from server...",
-        "toast.projectZipDownloadInitiated.title": "Download of Project with Suggestions (ZIP containing JSON of changes)",
-        "toast.projectZipDownloadInitiated.description": "This ZIP file ({filename}) contains a JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI.",
-        "toast.zipError.title": "Error Generating ZIP",
-        "toast.gitConfigIncomplete.title": "Git Configuration Incomplete",
-        "toast.gitConfigIncomplete.description": "Complete Git settings in Configuration before uploading.",
-        "toast.commitMessageRequired.title": "Commit Message Required",
-        "toast.uploadingToGit.title": "Uploading to Git...",
-        "toast.uploadingToGit.description": "Attempting to upload to {repo}",
-        "toast.gitUploadSuccess.title": "Git Upload Successful",
-        "toast.gitUploadError.title": "Git Upload Error",
-        "toast.autofixSuggestion.title": "Auto-Fix Suggestion",
-        "toast.autofixError.title": "Auto-Fix Error",
-        "toast.editSaved.title": "Edit Saved",
-        "toast.editSaved.description": "Suggested content has been updated locally.",
-        "toast.venvSim.title": "Simulation: Test in Virtual Env",
-        "toast.venvSim.description": "Simulating test start for {area}.",
-        "downloads.suggestionsJsonFilename": "autoupdate_suggestions.json",
-        "downloads.projectZipFilename": "CodeAlchemist_CurrentCode_With_Suggestions.zip",
-        "errors.getLocalSourceFailed": "Could not get local source code for analysis.",
-        "errors.getLocalSourceBundleFailed": "Failed to get local source bundle",
-        "errors.analysisFailedUI": "AutoUpdate analysis failed in UI",
-        "errors.unknownAnalysisError": "An unknown error occurred during self-analysis.",
-        "errors.getServerSourceFailedZip": "Could not get server source code for ZIP.",
-        "errors.unknownZipError": "Unknown error generating ZIP.",
-        "errors.unknownGitUploadError": "Unknown error during Git upload.",
-        "errors.autofixHelperFailed": "Could not get AI help for this error.",
-        "dialogs": {
-            "applySuggestion": {
-                "title": "Apply Suggestion to {area}",
-                "confirmText": "Yes, Mark as Applied",
-                "description.p1": "The suggestion for {area} will be marked as applied.",
-                "description.p2": "Actual file modification is not possible from the browser. Review the suggested (or edited) content and apply it manually in your development environment:"
+        "config": {
+            "llmSourceLabel": "Use LLM Configuration From:",
+            "codeSourceLabel": "Source Code for Self-Analysis",
+            "sourceLocal": "Local (current app code)",
+            "sourceGit": "Git Repository URL",
+            "gitUrlLabel": "Git Repository URL",
+            "gitUrlPlaceholder": "HTTPS URL of CodeAlchemist repo",
+            "analysisParamsLabel": "Self-Analysis Parameters",
+            "analysisPrefsLabel": "Analysis Preferences / Focus Area (optional)",
+            "analysisPrefsPlaceholder": "E.g.: Focus on UI optimization. All suggestions in English.",
+            "startButton": "Start Self-Analysis",
+            "startButtonLoading": "Analyzing..."
+        },
+        "results": {
+            "title": "Self-Analysis Results",
+            "downloadSuggestionsJson": "Download Suggestions (JSON)",
+            "downloadProjectZip": "Download Current Code (ZIP)",
+            "uploadToGit": "Upload to Git",
+            "noResults": "Start an analysis to see results.",
+            "analysisTitleLabel": "Analysis Title:",
+            "generalAssessmentLabel": "General Assessment:",
+            "overallImprovementIdeasLabel": "General Improvement Ideas Suggested by AI:",
+            "detailedSuggestionsLabel": "Detailed Suggestions:",
+            "noDetailedSuggestions": "No detailed suggestions.",
+            "unifiedPromptLabel": "Unified Prompt to Implement All Suggestions:"
+        },
+        "suggestionCard": {
+            "priorityLabel": "Priority:",
+            "promptLabel": "Prompt:",
+            "testInVenvButton": "Test in Virtual Env.",
+            "saveEditButton": "Save Edit",
+            "statusApplied": "Suggestion Applied (marked)",
+            "statusDiscarded": "Suggestion Discarded",
+            "editContentLabel": "Edit Suggested Content:"
+        },
+        "logs": {
+            "executingAnalysis": "Executing self-analysis for AutoUpdate...",
+            "analysisStarting": "Starting Self-Analysis...",
+            "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+            "analysisProcessingComplete": "AutoUpdate analysis processing complete.",
+            "localCodeObtained": "Local code obtained from server.",
+            "analysisSuccessNonGroup": "AutoUpdate analysis (non-group) successful.",
+            "analysisSuccessGroup": "AutoUpdate analysis (group) successful.",
+            "suggestionMarkedApplied": "Suggestion marked as applied for {area}. (Direct file modification not feasible from browser).",
+            "downloadRequested": "Download requested: {format}",
+            "suggestionsDownloadedJson": "AutoUpdate suggestions downloaded as JSON.",
+            "applyingSuggestionToZip": "Applying suggestion content to {fileName} for ZIP.",
+            "appliedSuggestionsToZip": "'Applied' suggestions conceptually incorporated for ZIP.",
+            "projectZipDownloaded": "Project ZIP download ({filename}) initiated. It contains a JSON file with the content of project files obtained from the server, with 'applied' suggestions conceptually included. It's not a directly executable project ZIP.",
+            "zipGenerationFailed": "ZIP generation failed: {error}",
+            "gitUploadFailedConfig": "Git upload failed: Configuration incomplete.",
+            "commitMessageMissing": "Git upload failed: Commit message required.",
+            "initiatingGitUpload": "Initiating Git upload...",
+            "gitUploadInProgress": "Uploading to Git with message: \"{message}\"",
+            "gitUploadSuccess": "Git upload successful.",
+            "gitUploadError": "Error in Git upload: {error}",
+            "gitUploadException": "Exception during Git upload: {error}",
+            "attemptingAutofix": "Attempting Auto-Fix for error: {error}",
+            "venvSim": "Simulated virtual environment test for {area}.",
+            "detailedExecutionLogsTitle": "Detailed Execution Logs (AutoUpdate)",
+            "analyzingWithGroup": "Analyzing with group...",
+            "waitingForGroup": "Waiting for group results..."
+        },
+        "analysis": {
+            "fileMarker": "File",
+            "general": "General analysis"
+        },
+        "prompts": {
+            "unifiedHeader": "// --- START: Prompt to improve file: {area} ---",
+            "unifiedFooter": "// --- END: Prompt to improve file: {area} ---"
+        },
+        "toast": {
+            "gettingLocalCode": {
+                "title": "Getting Local Code...",
+                "description": "Contacting server for source code."
             },
-            "noContentToShow": "Error: No content to display.",
-            "testSuggestion": {
-                "title": "Test Suggestion: {area}",
-                "description": "Review the suggested or edited code. Actual testing must be done in your development environment."
+            "analysisComplete": {
+                "title": "Self-Analysis Complete",
+                "description": "Suggestions for the code have been generated."
             },
-            "noContentToTest": "No content to test.",
-            "testInVenv": {
-                "title": "Test Suggestion in Virtual Environment: {area}",
-                "description": "This feature would simulate running the suggested code in an isolated virtual environment (e.g., Python venv, Node.js NVM). Actual execution requires local infrastructure or backend.",
-                "actionNote": "Action: It would attempt to create a virtual environment, install dependencies (if inferable), and run the code/tests.",
-                "simulateButton": "Simulate Test Start"
+            "analysisError": {
+                "title": "Self-Analysis Error"
             },
-            "commitToGit": {
-                "title": "Upload Changes to Git",
-                "confirmText": "Commit and Push",
-                "placeholder": "E.g.: Applied AutoUpdate suggestions",
-                "description": "This action will attempt a commit and push to the configured repository. Ensure credentials in 'Settings' are correct."
+            "noContentToApply": {
+                "title": "No Content",
+                "description": "This suggestion has no file content to apply."
+            },
+            "suggestionApplied": {
+                "title": "Suggestion Marked as Applied",
+                "description": "Changes for {area} marked. Actual file modification is not possible from the browser."
+            },
+            "noSuggestionsToDownload": {
+                "title": "No Suggestions",
+                "description": "There are no suggestions to download."
+            },
+            "noContentToDownload": {
+                "title": "No Content",
+                "description": "None of the suggestions have file content to download."
+            },
+            "downloadComplete": {
+                "title": "Download Complete",
+                "suggestionsJsonDescription": "Suggestions downloaded as {filename}.",
+                "projectZipDescription": "Download of Project with Suggestions (ZIP containing JSON of changes) initiated. This ZIP file ({filename}) contains a JSON file detailing which files would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
+            },
+            "preparingProjectZip": {
+                "title": "Preparing Project Download (ZIP)...",
+                "description": "Getting code from server..."
+            },
+            "projectZipDownloadInitiated": {
+                "title": "Download of Project with Suggestions (ZIP containing JSON of changes)",
+                "description": "This ZIP file ({filename}) contains a JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
+            },
+            "zipError": {
+                "title": "Error Generating ZIP"
+            },
+            "gitConfigIncomplete": {
+                "title": "Git Configuration Incomplete",
+                "description": "Complete Git settings in Configuration before uploading."
+            },
+            "commitMessageRequired": {
+                "title": "Commit Message Required"
+            },
+            "uploadingToGit": {
+                "title": "Uploading to Git...",
+                "description": "Attempting to upload to {repo}"
+            },
+            "gitUploadSuccess": {
+                "title": "Git Upload Successful"
+            },
+            "gitUploadError": {
+                "title": "Git Upload Error"
+            },
+            "autofixSuggestion": {
+                "title": "Auto-Fix Suggestion"
+            },
+            "autofixError": {
+                "title": "Auto-Fix Error"
+            },
+            "editSaved": {
+                "title": "Edit Saved",
+                "description": "Suggested content has been updated locally."
+            },
+            "venvSim": {
+                "title": "Simulation: Test in Virtual Env",
+                "description": "Simulating test start for {area}."
             }
         },
-        "autofix.errorContext": "Error to analyze: {error}\n\nContext: Error occurred in CodeAlchemist's AutoUpdate feature.",
-        "autofix.focusArea": "Explain the following error and propose a solution or debugging steps: \"{error}\""
+        "downloads": {
+            "suggestionsJsonFilename": "autoupdate_sugerencias.json",
+            "projectZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip"
+        },
+        "errors": {
+            "getLocalSourceFailed": "No se pudo obtener el código fuente local para análisis.",
+            "getLocalSourceBundleFailed": "Failed to get local source bundle",
+            "analysisFailedUI": "AutoUpdate analysis failed in UI",
+            "unknownAnalysisError": "An unknown error occurred during self-analysis.",
+            "getServerSourceFailedZip": "No se pudo obtener el código fuente del servidor para el ZIP.",
+            "unknownZipError": "Unknown error generating ZIP.",
+            "unknownGitUploadError": "Unknown error during Git upload.",
+            "autofixHelperFailed": "Could not get AI help for this error."
+        },
+        "dialogs": {
+            "applySuggestion": {
+                "title": "Aplicar Sugerencia a {area}",
+                "confirmText": "Sí, Marcar como Aplicada",
+                "description": {
+                    "p1": "Se marcará como aplicada la sugerencia para {area}.",
+                    "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:"
+                }
+            },
+            "noContentToShow": "Error: No hay contenido para mostrar.",
+            "testSuggestion": {
+                "title": "Testear Sugerencia: {area}",
+                "description": "Revisa el código sugerido o editado. La prueba real debe realizarse en tu entorno de desarrollo."
+            },
+            "noContentToTest": "No hay contenido para testear.",
+            "testInVenv": {
+                "title": "Testear Sugerencia en Entorno Virtual: {area}",
+                "description": "Esta funcionalidad simularía la ejecución del código sugerido en un entorno virtual aislado (ej. Python venv, Node.js NVM). La ejecución real requiere una infraestructura local o backend.",
+                "actionNote": "Acción: Se intentaría crear un entorno virtual, instalar dependencias (si se pudieran inferir) y ejecutar el código/pruebas.",
+                "simulateButton": "Simular Inicio de Prueba"
+            },
+            "commitToGit": {
+                "title": "Subir Cambios a Git",
+                "confirmText": "Commit y Push",
+                "placeholder": "Ej: Aplicadas sugerencias de AutoUpdate",
+                "description": "Esta acción intentará realizar un commit y push al repositorio configurado. Asegúrate de que las credenciales en 'Configuración' son correctas."
+            }
+        },
+        "autofix": {
+            "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
+            "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
+        }
     },
     "refactorProject": {
-        "title": "Refactor Project",
-        "description": "Analyze a project to get refactoring suggestions and apply them.",
-        "llmSourceLabel": "Use LLM Configuration From:",
-        "projectSourceLabel": "Project Source",
-        "sourceUpload": "Upload File",
-        "sourceGit": "Git URL",
-        "uploadLabel": "Upload File (.zip, .json, .py, .js, etc.)",
-        "gitUrlLabel": "Git URL",
-        "gitUrlPlaceholder": "https://github.com/user/repo.git",
-        "paramsLabel": "Refactoring Parameters",
-        "goalsLabel": "Goals (optional)",
-        "goalsPlaceholder": "E.g.: Improve UI performance, simplify logic X...",
-        "priorityLabel": "General Priority (optional)",
-        "priorityPlaceholder": "Select priority...",
-        "priorityNone": "None",
-        "depthLabel": "Search Depth (optional)",
-        "depthPlaceholder": "E.g.: 3 (levels)",
-        "focusLabel": "Analysis Focus Area (optional)",
-        "focusPlaceholder": "E.g.: Security, UI, Payments module",
-        "analyzeButton": "Analyze for Refactoring",
-        "results.title": "Results and Suggestions",
-        "results.applyAllButton": "Mark All as Applied",
-        "results.noSuggestions": "No suggestions yet. Perform an analysis to begin.",
-        "results.projectSummaryCard.title": "Project Overview",
-        "results.projectSummaryCard.noSummary": "No project overview was provided.",
-        "results.suggestionsTitle": "Refactoring Suggestions:",
-        "results.noSpecificSuggestions": "No specific refactoring suggestions were generated.",
-        "suggestion.priorityLabel": "Priority:",
-        "suggestion.snippetLabel": "Suggested Snippet:",
-        "suggestion.snippetOriginal": "Original:",
-        "suggestion.snippetModified": "Modified:",
-        "suggestion.viewDiffButton": "View Diff",
-        "suggestion.discardButton": "Discard",
-        "suggestion.applyButton": "Mark as Applied",
-        "suggestion.revertStateButton": "Revert Status",
-        "diffModal.title": "Code Comparison (Diff)",
-        "diffModal.originalLabel": "Original:",
-        "diffModal.suggestedLabel": "Suggested:",
-        "diffModal.noContent": "N/A",
-        "logs.groupLogTitle": "Group Execution Log",
-        "toast.invalidFile.title": "Invalid File",
-        "toast.invalidFile.description": "Unsupported file type or size exceeds 10MB.",
-        "toast.sourceRequired.title": "Project Source Required",
-        "toast.sourceRequired.description": "Upload a file or provide a Git URL.",
-        "toast.analysisComplete.title": "Analysis Complete",
-        "toast.analysisComplete.description": "Refactoring suggestions generated.",
-        "toast.analysisError.title": "Analysis Error",
-        "toast.suggestionApplied.title": "Suggestion Marked as Applied",
-        "toast.suggestionApplied.description": "The suggestion for \"{area}\" has been marked. Remember to apply changes manually to your code if needed.",
-        "toast.noDiff.title": "No Diff Available",
-        "toast.noDiff.description": "This suggestion does not have a code snippet to compare.",
-        "toast.suggestionDiscarded.title": "Suggestion Discarded",
-        "toast.allApplied.title": "All Marked as Applied",
-        "toast.allApplied.description": "All pending suggestions have been marked. Apply changes manually."
+        "title": "Refactorizar Proyecto",
+        "description": "Analiza un proyecto para obtener sugerencias de refactorización y aplícalas.",
+        "llmSourceLabel": "Usar Configuración LLM De:",
+        "projectSourceLabel": "Fuente del Proyecto",
+        "sourceUpload": "Subir Archivo",
+        "sourceGit": "URL de Git",
+        "uploadLabel": "Subir Archivo (.zip, .json, .py, .js, etc.)",
+        "gitUrlLabel": "URL de Git",
+        "gitUrlPlaceholder": "https://github.com/usuario/repo.git",
+        "paramsLabel": "Parámetros de Refactorización",
+        "goalsLabel": "Metas (opcional)",
+        "goalsPlaceholder": "Ej: Mejorar rendimiento UI, simplificar lógica X...",
+        "priorityLabel": "Prioridad General (opcional)",
+        "priorityPlaceholder": "Seleccionar prioridad...",
+        "priorityNone": "Ninguna",
+        "depthLabel": "Profundidad de Búsqueda (opcional)",
+        "depthPlaceholder": "Ej: 3 (niveles)",
+        "focusLabel": "Campo de Enfoque del Análisis (opcional)",
+        "focusPlaceholder": "Ej: Seguridad, UI, Módulo de pagos",
+        "analyzeButton": "Analizar para Refactorizar",
+        "results": {
+            "title": "Resultados y Sugerencias",
+            "applyAllButton": "Marcar Todas como Aplicadas",
+            "noSuggestions": "Aún no hay sugerencias. Realiza un análisis para comenzar.",
+            "projectSummaryCard": {
+                "title": "Resumen del Proyecto",
+                "noSummary": "No se proporcionó un resumen del proyecto."
+            },
+            "suggestionsTitle": "Sugerencias de Refactorización:",
+            "noSpecificSuggestions": "No se generaron sugerencias específicas de refactorización."
+        },
+        "suggestion": {
+            "priorityLabel": "Prioridad:",
+            "snippetLabel": "Snippet Sugerido:",
+            "snippetOriginal": "Original:",
+            "snippetModified": "Modificado:",
+            "viewDiffButton": "Ver Diff",
+            "discardButton": "Descartar",
+            "applyButton": "Marcar como Aplicada",
+            "revertStateButton": "Revertir Estado"
+        },
+        "diffModal": {
+            "title": "Comparación de Código (Diff)",
+            "originalLabel": "Original:",
+            "suggestedLabel": "Sugerido:",
+            "noContent": "N/A"
+        },
+        "logs": {
+            "groupLogTitle": "Log de Ejecución del Grupo"
+        },
+        "toast": {
+            "invalidFile": {
+                "title": "Archivo Inválido",
+                "description": "Tipo de archivo no admitido o tamaño excede 10MB."
+            },
+            "sourceRequired": {
+                "title": "Fuente del Proyecto Requerida",
+                "description": "Sube un archivo o proporciona una URL de Git."
+            },
+            "analysisComplete": {
+                "title": "Análisis Completado",
+                "description": "Sugerencias de refactorización generadas."
+            },
+            "analysisError": {
+                "title": "Error de Análisis"
+            },
+            "suggestionApplied": {
+                "title": "Sugerencia Marcada como Aplicada",
+                "description": "La sugerencia para \"{area}\" ha sido marcada. Recuerda aplicar los cambios manualmente en tu código si es necesario."
+            },
+            "noDiff": {
+                "title": "Sin Diff Disponible",
+                "description": "Esta sugerencia no tiene un snippet de código para comparar."
+            },
+            "suggestionDiscarded": {
+                "title": "Sugerencia Descartada"
+            },
+            "allApplied": {
+                "title": "Todas Marcadas como Aplicadas",
+                "description": "Todas las sugerencias pendientes han sido marcadas. Aplica los cambios manualmente."
+            }
+        }
     },
     "analyzeProject": {
-        "title": "Full Project Analysis",
-        "description": "Perform a holistic analysis of an entire project, uploaded or from Git.",
-        "llmSourceLabel": "Use LLM Configuration From:",
-        "projectSourceLabel": "Project Source",
-        "sourceUpload": "Upload File (ZIP/JSON)",
-        "sourceGit": "Git URL",
-        "uploadLabel": "Upload File (.zip, .json)",
-        "gitUrlLabel": "Git URL",
-        "gitUrlPlaceholder": "https://github.com/user/repo.git",
-        "paramsLabel": "Analysis Parameters",
-        "depthLabel": "Search Depth (optional)",
-        "depthPlaceholder": "E.g.: 3 (levels)",
-        "focusLabel": "Analysis Focus Area (optional)",
-        "focusPlaceholder": "E.g.: Performance, API Security",
-        "analyzeButton": "Analyze Project",
-        "results.analyzing": "Analyzing project...",
-        "results.noResults": "No results yet. Perform an analysis to begin.",
-        "results.overallAssessmentLabel": "Overall Assessment:",
-        "results.improvementIdeasLabel": "General Improvement Ideas:",
-        "results.identifiedAreasLabel": "Identified Areas:",
-        "results.specificSuggestionsLabel": "Specific Suggestions:",
-        "results.suggestionPriorityLabel": "Priority:",
-        "results.suggestedPromptLabel": "Suggested Prompt:",
-        "results.groupLogTitle": "Detailed Analysis Log",
-        "toast.invalidFile.title": "Invalid File",
-        "toast.invalidFile.description": "Upload a .zip or .json file under 25MB.",
-        "toast.readError.title": "Read Error",
-        "toast.readError.description": "Could not read the file.",
-        "toast.unsupportedFileType.title": "Unsupported File Type",
-        "toast.unsupportedFileType.description": "Analysis for this file type is not fully implemented.",
-        "toast.sourceRequired.title": "Project Source Required",
-        "toast.sourceRequired.description": "Upload a file or provide a Git URL.",
-        "toast.analysisComplete.title": "Analysis Complete",
-        "toast.analysisComplete.description": "The project has been analyzed.",
-        "toast.analysisError.title": "Analysis Error"
+        "title": "Análisis de Proyecto Completo",
+        "description": "Realiza un análisis holístico de un proyecto entero, subido o desde Git.",
+        "llmSourceLabel": "Usar Configuración LLM De:",
+        "projectSourceLabel": "Fuente del Proyecto",
+        "sourceUpload": "Subir Archivo (ZIP/JSON)",
+        "sourceGit": "URL de Git",
+        "uploadLabel": "Subir Archivo (.zip, .json)",
+        "gitUrlLabel": "URL de Git",
+        "gitUrlPlaceholder": "https://github.com/usuario/repo.git",
+        "paramsLabel": "Parámetros de Análisis",
+        "depthLabel": "Profundidad de Búsqueda (opcional)",
+        "depthPlaceholder": "Ej: 3 (niveles)",
+        "focusLabel": "Campo de Enfoque del Análisis (opcional)",
+        "focusPlaceholder": "Ej: Rendimiento, Seguridad de API",
+        "analyzeButton": "Analizar Proyecto",
+        "results": {
+            "analyzing": "Analizando proyecto...",
+            "noResults": "Aún no hay resultados. Realiza un análisis para comenzar.",
+            "overallAssessmentLabel": "Evaluación General:",
+            "improvementIdeasLabel": "Ideas Generales de Mejora:",
+            "identifiedAreasLabel": "Áreas Identificadas:",
+            "specificSuggestionsLabel": "Sugerencias Específicas:",
+            "suggestionPriorityLabel": "Prioridad:",
+            "suggestedPromptLabel": "Prompt Sugerido:",
+            "groupLogTitle": "Log Detallado del Análisis"
+        },
+        "toast": {
+            "invalidFile": {
+                "title": "Archivo Inválido",
+                "description": "Sube un archivo .zip o .json de menos de 25MB."
+            },
+            "readError": {
+                "title": "Error de Lectura",
+                "description": "No se pudo leer el archivo."
+            },
+            "unsupportedFileType": {
+                "title": "Tipo de Archivo no Soportado",
+                "description": "El análisis de este tipo de archivo no está completamente implementado."
+            },
+            "sourceRequired": {
+                "title": "Fuente del Proyecto Requerida",
+                "description": "Sube un archivo o proporciona una URL de Git."
+            },
+            "analysisComplete": {
+                "title": "Análisis Completado",
+                "description": "El proyecto ha sido analizado."
+            },
+            "analysisError": {
+                "title": "Error de Análisis"
+            }
+        }
     },
     "generateCode": {
-      "title": "Generate Code",
-      "description": "Create code snippets from natural language descriptions.",
-      "describeNeedLabel": "Describe your need",
-      "describeNeedPlaceholder": "E.g.: A Python function that sums two numbers and handles type errors.",
-      "generateButton": "Generate Code",
-      "results.explanationLabel": "Explanation:",
-      "results.codeSnippetLabel": "Code Snippet:",
-      "results.groupLogTitle": "Detailed Group Log",
-      "confirmDialog.title": "Confirm Code Generation",
-      "confirmDialog.llmSource": "LLM Source:",
-      "confirmDialog.promptLabel": "Prompt:",
-      "toast.descriptionEmpty": "Please describe your need.",
-      "toast.codeGenerated": "The code snippet has been successfully generated.",
-      "toast.generationError": "Generation Error"
+      "title": "Generar Código",
+      "description": "Crea fragmentos de código a partir de descripciones en lenguaje natural.",
+      "describeNeedLabel": "Describe tu necesidad",
+      "describeNeedPlaceholder": "Ej: Una función en Python que sume dos números y maneje errores de tipo.",
+      "generateButton": "Generar Código",
+      "results": {
+        "explanationLabel": "Explicación:",
+        "codeSnippetLabel": "Fragmento de Código:",
+        "groupLogTitle": "Log Detallado del Grupo"
+      },
+      "confirmDialog": {
+        "title": "Confirmar Generación de Código",
+        "llmSource": "Fuente LLM:",
+        "promptLabel": "Prompt:"
+      },
+      "toast": {
+        "descriptionEmpty": "Por favor, describe tu necesidad.",
+        "codeGenerated": "El fragmento de código ha sido generado exitosamente.",
+        "generationError": "Error de Generación"
+      }
     },
     "generateProject": {
-      "title": "Generate Project",
-      "description": "Create a base structure for new projects from your specifications.",
-      "describeProjectLabel": "Describe your project",
-      "describeProjectPlaceholder": "E.g.: A REST API with Node.js and Express, with routes for users and products, and a PostgreSQL database.",
-      "generateButton": "Generate Project",
-      "results.suggestedNameLabel": "Suggested Name:",
-      "results.aiNotesLabel": "AI Notes:",
-      "results.generatedFilesLabel": "Generated Files:",
-      "results.downloadButton": "Download Project (ZIP)",
-      "results.downloadNote": "Note: The download will be a ZIP archive with the project structure and content.",
-      "results.groupLogTitle": "Detailed Group Log",
-      "confirmDialog.title": "Confirm Project Generation",
-      "confirmDialog.currentPromptLabel": "Current Prompt:",
-      "confirmDialog.redefinePromptLabel": "Redefine Prompt (optional):",
-      "confirmDialog.llmConfigInfo": "LLM configuration to use:",
-      "confirmDialog.confirmButton": "Yes, Generate Project",
-      "toast.descriptionEmpty": "Please describe your project.",
-      "toast.projectGenerated": "The base project structure has been generated.",
-      "toast.generationError": "Generation Error",
-      "toast.downloadError": "No Results",
-      "toast.downloadErrorDescription": "No project structure to download.",
-      "toast.downloadSuccess": "Project Downloaded (ZIP)",
-      "toast.downloadSuccessDescription": "A ZIP archive with the generated project structure \"{projectName}\" has been downloaded."
+      "title": "Generar Proyecto",
+      "description": "Crea una estructura base para nuevos proyectos a partir de tus especificaciones.",
+      "describeProjectLabel": "Describe tu proyecto",
+      "describeProjectPlaceholder": "Ej: Un API REST con Node.js y Express, con rutas para usuarios y productos, y una base de datos PostgreSQL.",
+      "generateButton": "Generar Proyecto",
+      "results": {
+        "suggestedNameLabel": "Nombre Sugerido:",
+        "aiNotesLabel": "Notas de la IA:",
+        "generatedFilesLabel": "Archivos Generados:",
+        "downloadButton": "Descargar Proyecto (ZIP)",
+        "downloadNote": "Nota: La descarga será un archivo ZIP con la estructura y contenido del proyecto.",
+        "groupLogTitle": "Log Detallado del Grupo"
+      },
+      "confirmDialog": {
+        "title": "Confirmar Generación de Proyecto",
+        "currentPromptLabel": "Prompt Actual:",
+        "redefinePromptLabel": "Redefinir Prompt (opcional):",
+        "llmConfigInfo": "Configuración LLM a usar:",
+        "confirmButton": "Sí, Generar Proyecto"
+      },
+      "toast": {
+        "descriptionEmpty": "Por favor, describe tu proyecto.",
+        "projectGenerated": "La estructura base del proyecto ha sido generada.",
+        "generationError": "Error de Generación",
+        "downloadError": "Sin Resultados",
+        "downloadErrorDescription": "No hay estructura de proyecto para descargar.",
+        "downloadSuccess": "Proyecto Descargado (ZIP)",
+        "downloadSuccessDescription": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
+      }
     },
     "analyzeCode": {
-      "title": "Analyze Code",
-      "description": "Get detailed analysis and improvement suggestions for code snippets or files.",
-      "codeSourceLabel": "Code Source:",
-      "uploadFileLabel": "Upload a code file (optional)",
-      "gitFileUrlLabel": "Git File URL (optional, raw content)",
-      "gitFileUrlPlaceholder": "E.g.: https://raw.githubusercontent.com/...",
-      "fetchUrlButton": "Fetch",
-      "pasteCodeInstruction": "Or paste code below",
-      "pasteCodePlaceholder": "Paste your code here to analyze...",
-      "additionalInstructionsLabel": "Additional Instructions for Analysis (optional)",
-      "additionalInstructionsPlaceholder": "E.g.: Focus on security, or suggest more performant alternatives.",
-      "analyzeButton": "Analyze Code",
-      "results.explanationLabel": "Explanation:",
-      "results.originalCodeLabel": "Original Code:",
-      "results.suggestedCodeLabel": "Suggested Code:",
-      "results.saveOriginalButton": "Save Original",
-      "results.saveSuggestedButton": "Save Suggested",
-      "toast.invalidFile.title": "Invalid File",
-      "toast.invalidFile.description": "Upload a text file under 5MB.",
-      "toast.emptyUrl.title": "Empty URL",
-      "toast.emptyUrl.description": "Enter a Git file URL.",
-      "toast.fetchError.title": "Fetch Error",
-      "toast.codeFetched.title": "Code Fetched",
-      "toast.codeFetched.description": "URL content loaded.",
-      "toast.emptyCode.title": "Empty Code",
-      "toast.emptyCode.description": "Enter or upload code to analyze.",
-      "toast.analysisComplete.title": "Analysis Complete",
-      "toast.analysisComplete.description": "The code has been analyzed.",
-      "toast.analysisError.title": "Analysis Error",
-      "toast.snapshotError.title": "Error",
-      "toast.snapshotError.description": "No {type} code to save."
+      "title": "Analizar Código",
+      "description": "Obtén análisis detallados y sugerencias de mejora para fragmentos o archivos de código.",
+      "codeSourceLabel": "Fuente del Código:",
+      "uploadFileLabel": "Subir un archivo de código (opcional)",
+      "gitFileUrlLabel": "URL de Archivo Git (opcional, raw content)",
+      "gitFileUrlPlaceholder": "Ej: https://raw.githubusercontent.com/...",
+      "fetchUrlButton": "Obtener",
+      "pasteCodeInstruction": "O pega el código abajo",
+      "pasteCodePlaceholder": "Pega tu código aquí para analizarlo...",
+      "additionalInstructionsLabel": "Instrucciones Adicionales para el Análisis (opcional)",
+      "additionalInstructionsPlaceholder": "Ej: Enfócate en la seguridad, o sugiere alternativas más performantes.",
+      "analyzeButton": "Analizar Código",
+      "results": {
+        "explanationLabel": "Explicación:",
+        "originalCodeLabel": "Código Original:",
+        "suggestedCodeLabel": "Código Sugerido:",
+        "saveOriginalButton": "Guardar Original",
+        "saveSuggestedButton": "Guardar Sugerido"
+      },
+      "toast": {
+        "invalidFile": {
+            "title": "Archivo Inválido",
+            "description": "Sube un archivo de texto de menos de 5MB."
+        },
+        "emptyUrl": {
+            "title": "URL Vacía",
+            "description": "Introduce una URL de archivo Git."
+        },
+        "fetchError": {
+            "title": "Error de Obtención"
+        },
+        "codeFetched": {
+            "title": "Código Obtenido",
+            "description": "Contenido de la URL cargado."
+        },
+        "emptyCode": {
+            "title": "Código Vacío",
+            "description": "Introduce o carga código para analizar."
+        },
+        "analysisComplete": {
+            "title": "Análisis Completado",
+            "description": "El código ha sido analizado."
+        },
+        "analysisError": {
+            "title": "Error de Análisis"
+        },
+        "snapshotError": {
+            "title": "Error",
+            "description": "No hay código {type} para guardar."
+        }
+      }
     },
     "errorDisplay": {
-      "title": "Error Detected",
-      "copyButton": "Copy Error",
-      "autofixButton": "Auto-Fix with AI",
-      "autofixingButton": "Analyzing...",
-      "toast.copied": "Error Copied",
-      "toast.copiedDescription": "The error message has been copied to the clipboard.",
-      "autofixModal.title": "Software Team Auto-Correction Suggestion",
-      "autofixModal.description": "The 'EquipoDesarrolloSoftware' group has analyzed the error and proposes the following:",
-      "autofixModal.originalErrorLabel": "Original Error Message:",
-      "autofixModal.diagnosisLabel": "Group Diagnosis:",
-      "autofixModal.solutionLabel": "Suggested Solution:",
-      "autofixModal.invocationLogLabel": "Group Invocation Log (for debugging)"
+      "title": "Error Detectado",
+      "copyButton": "Copiar Error",
+      "autofixButton": "Auto-Fix con IA",
+      "autofixingButton": "Analizando...",
+      "toast": {
+        "copied": "Error Copiado",
+        "copiedDescription": "El mensaje de error ha sido copiado al portapapeles."
+      },
+      "autofixModal": {
+        "title": "Sugerencia de Auto-Corrección del Equipo de Software",
+        "description": "El grupo 'EquipoDesarrolloSoftware' ha analizado el error y propone lo siguiente:",
+        "originalErrorLabel": "Mensaje de Error Original:",
+        "diagnosisLabel": "Diagnóstico del Grupo:",
+        "solutionLabel": "Solución Sugerida:",
+        "invocationLogLabel": "Log de Invocación del Grupo (para depuración)"
+      }
     },
      "versions": {
-        "title": "Saved Versions (Snapshots)",
-        "description": "Manage generated code snapshots or application state.",
-        "saveAppStateButton": "Save App State (JSON)",
-        "saveAppStateDescription": "Saves current settings, agents, and groups as a JSON snapshot.",
-        "saveAndDownloadStateButton": "Save State & Download as ZIP",
-        "saveAndDownloadStateDescription": "Saves current application state and downloads it as a .zip file (containing the state JSON).",
-        "compareButton": "Compare A & B",
-        "compareButtonDisabledTooltip": "Select two versions (A and B) to compare.",
-        "deleteAllButton": "Delete All",
-        "table.colA": "A",
-        "table.colB": "B",
-        "table.colName": "Name",
-        "table.colCreatedAt": "Creation Date",
-        "table.colSource": "Source",
-        "table.colActions": "Actions",
-        "table.noVersions": "No saved versions.",
-        "action.view": "View",
-        "action.downloadOriginal": "Download as {format}",
-        "action.downloadZip": "Download as ZIP",
-        "action.delete": "Delete",
-        "action.selectA": "Select for A",
-        "action.selectB": "Select for B",
-        "source.original": "Original (Analysis)",
-        "source.suggested": "Suggested (Analysis)",
-        "source.codealchemist-app-state": "App State",
-        "source.codealchemist-current": "Current Code (AutoUpdate)",
-        "source.unknown": "Unknown",
-        "viewModal.title": "Viewing Snapshot: {name}",
-        "viewModal.noCode": "Error: No code to display.",
-        "compareModal.title": "Compare Versions (A vs B)",
-        "compareModal.versionA": "Version A: {name}",
-        "compareModal.versionB": "Version B: {name}",
-        "compareModal.noDiffLib": "Detailed visual diff is not implemented. Contents are shown side-by-side.",
-        "deleteAllModal.title": "Confirm Total Deletion",
-        "deleteAllModal.description": "Are you sure you want to delete ALL saved snapshots? This action cannot be undone.",
-        "deleteAllModal.confirm": "Yes, Delete All",
-        "deleteSingleModal.title": "Confirm Deletion: {name}",
-        "deleteSingleModal.description": "Are you sure you want to delete this snapshot? This action cannot be undone.",
-        "deleteSingleModal.confirm": "Yes, Delete",
-        "toast.snapshotSaved": "Snapshot Saved",
-        "toast.snapshotSavedDescription": "Snapshot \"{name}\" created.",
-        "toast.snapshotDownloaded": "Snapshot Downloaded",
-        "toast.snapshotDownloadedDescription": "Snapshot \"{name}\" downloaded as {filename}.",
-        "toast.snapshotDeleted": "Snapshot Deleted",
-        "toast.snapshotDeletedDescription": "Snapshot \"{name}\" deleted.",
-        "toast.compareError.notFound": "Selected snapshots not found.",
-        "toast.compareError.selectionIncomplete": "Select two versions (A and B) to compare.",
-        "toast.allSnapshotsDeleted": "All Snapshots Deleted"
+        "title": "Versiones Guardadas (Snapshots)",
+        "description": "Gestiona instantáneas de código generadas o del estado de la aplicación.",
+        "saveAppStateButton": "Guardar Estado de App (JSON)",
+        "saveAppStateDescription": "Guarda la configuración actual, agentes y grupos como un snapshot JSON.",
+        "saveAndDownloadStateButton": "Guardar Estado y Descargar como ZIP",
+        "saveAndDownloadStateDescription": "Guarda el estado actual de la aplicación y lo descarga como un archivo .zip (conteniendo el JSON del estado).",
+        "compareButton": "Comparar A y B",
+        "compareButtonDisabledTooltip": "Selecciona dos versiones (A y B) para comparar.",
+        "deleteAllButton": "Eliminar Todas",
+        "table": {
+            "colA": "A",
+            "colB": "B",
+            "colName": "Nombre",
+            "colCreatedAt": "Fecha de Creación",
+            "colSource": "Origen",
+            "colActions": "Acciones",
+            "noVersions": "No hay versiones guardadas."
+        },
+        "action": {
+            "view": "Ver",
+            "downloadOriginal": "Descargar como {format}",
+            "downloadZip": "Descargar como ZIP",
+            "delete": "Eliminar",
+            "selectA": "Seleccionar para A",
+            "selectB": "Seleccionar para B"
+        },
+        "source": {
+            "original": "Original (Análisis)",
+            "suggested": "Sugerido (Análisis)",
+            "codealchemist-app-state": "Estado App",
+            "codealchemist-current": "Código Actual (AutoUpdate)",
+            "unknown": "Desconocido"
+        },
+        "viewModal": {
+            "title": "Viendo Snapshot: {name}",
+            "noCode": "Error: Sin código para mostrar."
+        },
+        "compareModal": {
+            "title": "Comparar Versiones (A vs B)",
+            "versionA": "Versión A: {name}",
+            "versionB": "Versión B: {name}",
+            "noDiffLib": "La comparación visual detallada (diff) no está implementada. Se muestran los contenidos lado a lado."
+        },
+        "deleteAllModal": {
+            "title": "Confirmar Eliminación Total",
+            "description": "¿Estás seguro de que quieres eliminar TODOS los snapshots guardados? Esta acción no se puede deshacer.",
+            "confirm": "Sí, Eliminar Todos"
+        },
+        "deleteSingleModal": {
+            "title": "Confirmar Eliminación: {name}",
+            "description": "¿Estás seguro de que quieres eliminar este snapshot? Esta acción no se puede deshacer.",
+            "confirm": "Sí, Eliminar"
+        },
+        "toast": {
+            "snapshotSaved": "Snapshot Guardado",
+            "snapshotSavedDescription": "Snapshot \"{name}\" creado.",
+            "snapshotDownloaded": "Snapshot Descargado",
+            "snapshotDownloadedDescription": "Snapshot \"{name}\" descargado como {filename}.",
+            "snapshotDeleted": "Snapshot Eliminado",
+            "snapshotDeletedDescription": "Snapshot \"{name}\" eliminado.",
+            "compareError": {
+                "notFound": "No se encontraron los snapshots seleccionados.",
+                "selectionIncomplete": "Selecciona dos versiones (A y B) para comparar."
+            },
+            "allSnapshotsDeleted": "Todos los Snapshots Eliminados"
+        }
     },
     "chat": {
         "title": "AI Chat",
-        "description": "Interact with an AI assistant for queries, ideas, and more.",
-        "inputPlaceholder": "Type your message here...",
-        "sendButton": "Send",
-        "clearButton": "Clear Chat",
-        "thinking": "Thinking...",
-        "systemMessage.errorPrefix": "Error: ",
-        "systemMessage.autofixErrorPrefix": "Error during Auto-Fix: ",
-        "agent.assistant": "AI Assistant",
-        "agent.user": "User",
-        "agent.system": "System",
-        "toast.chatCleared": "Chat Cleared",
-        "toast.chatClearedDescription": "The conversation history has been cleared.",
-        "toast.chatError": "Chat Error",
-        "toast.autofixError": "Auto-Fix Error",
-        "autofix.userRequest": "Please analyze this error and suggest a solution: {errorMsg}"
+        "description": "Interactúa con un asistente IA para consultas, ideas y más.",
+        "inputPlaceholder": "Escribe tu mensaje aquí...",
+        "sendButton": "Enviar",
+        "clearButton": "Borrar Chat",
+        "thinking": "Pensando...",
+        "systemMessage": {
+            "errorPrefix": "Error: ",
+            "autofixErrorPrefix": "Error durante el Auto-Fix: "
+        },
+        "agent": {
+            "assistant": "Asistente IA",
+            "user": "Usuario",
+            "system": "Sistema"
+        },
+        "toast": {
+            "chatCleared": "Chat Limpiado",
+            "chatClearedDescription": "El historial de la conversación ha sido borrado.",
+            "chatError": "Error de Chat",
+            "autofixError": "Error en Auto-Fix"
+        },
+        "autofix": {
+            "userRequest": "Por favor, analiza este error y sugiere una solución: {errorMsg}"
+        }
     },
     "agents": {
         "title": "AI Agent Management",
-        "description": "Create, configure, test, and manage individual AI agents.",
-        "createWithAIButton": "Create with AI",
-        "importButton": "Import",
-        "exportAllButton": "Export All",
-        "createAgentButton": "Create Agent",
-        "noAgentsMessage": "No agents created. Create one to get started!",
-        "defaultAgentBadge": "(Default)",
+        "description": "Crea, configura, prueba y gestiona agentes IA individuales.",
+        "createWithAIButton": "Crear con IA",
+        "importButton": "Importar",
+        "exportAllButton": "Exportar Todos",
+        "createAgentButton": "Crear Agente",
+        "noAgentsMessage": "No hay agentes creados. ¡Crea uno para empezar!",
+        "defaultAgentBadge": "(Por Defecto)",
         "llmLabel": "LLM:",
         "llmGlobalFormat": "Global ({provider})",
-        "llmCustomFormat": "Custom ({provider})",
+        "llmCustomFormat": "Personalizado ({provider})",
         "llmNotApplicable": "N/A",
-        "capabilitiesLabel": "Capabilities:",
-        "noCapabilities": "None",
-        "action.test": "Test Agent",
-        "action.export": "Export Agent",
-        "action.edit": "Edit Agent",
-        "action.delete": "Delete Agent",
-        "toast.form.nameUneditableError": "Agent name \"{name}\" cannot be edited.",
-        "toast.form.deleteError": "Agent \"{name}\" cannot be deleted.",
-        "toast.import.success": "Agents Imported",
-        "toast.import.successDescription": "{count} agents imported and/or updated.",
-        "toast.import.invalidFormat": "Invalid JSON format for agents.",
-        "toast.import.error": "Import Error",
-        "toast.exportAll.success": "Agents Exported",
-        "toast.exportAll.description": "All agents have been exported.",
-        "toast.exportSingle.success": "Agent Exported",
-        "toast.exportSingle.description": "Agent \"{name}\" exported.",
-        "toast.suggestion.roleRequired": "Description Required",
-        "toast.suggestion.roleRequiredDescription": "Please describe the agent's role.",
-        "toast.suggestion.received": "Suggestion Received",
-        "toast.suggestion.receivedDescription": "AI has suggested a definition for agent {name}.",
-        "toast.suggestion.error": "Suggestion Error",
-        "toast.suggestion.errorDescription": "Could not get suggestion.",
-        "toast.created": "Agent Created",
-        "toast.createdDescription": "Agent \"{name}\" added.",
-        "toast.updated": "Agent Updated",
-        "toast.updatedDescription": "Agent \"{name}\" saved.",
-        "toast.deleted": "Agent Deleted",
-        "toast.deletedDescription": "Agent \"{name}\" deleted.",
-        "form.title.edit": "Edit Agent",
-        "form.title.create": "Create New Agent",
-        "form.title.reviewSuggestion": "Review Agent Suggestion",
-        "form.description.edit": "Modify details for agent \"{name}\".",
-        "form.description.create": "Define a new specialized agent for your AI tasks.",
-        "form.label.name": "Name",
-        "form.label.description": "Description",
-        "form.label.systemPrompt": "System Message (Prompt)",
-        "form.placeholder.systemPrompt": "Define the agent's role, behavior, and guidelines...",
-        "form.label.capabilities": "Agent Capabilities",
-        "form.capability.accessOwnCode": "Access Own Code",
-        "form.capability.execution": "Execution Capability",
-        "form.capability.virtualEnv": "Virtual Environment Capability",
-        "form.capability.readWrite": "Read/Write Capability",
-        "form.capability.dangerousTooltip": "(Dangerous)",
-        "form.label.llmConfig": "Agent LLM Configuration",
-        "form.llm.useGlobal": "Use Global Settings",
-        "form.llm.custom.providerLabel": "LLM Provider",
-        "form.llm.custom.modelLabel": "Model",
-        "form.llm.custom.modelPlaceholder.gemini": "E.g.: gemini-1.5-pro-latest",
-        "form.llm.custom.modelPlaceholder.selectProvider": "Select provider",
-        "form.llm.custom.modelPlaceholder.default": "Select model",
-        "form.llm.custom.geminiModelDescription": "Common models listed. You can type another if needed.",
-        "form.llm.custom.apiUrlLabel": "API URL (Optional)",
-        "form.llm.custom.apiUrlPlaceholder": "Auto-fills on provider change",
-        "form.llm.custom.apiUrlDescription": "Modify if using a proxy or non-standard endpoint.",
-        "form.llm.custom.apiKeyLabel": "API Key (Optional)",
-        "form.llm.custom.apiKeyPlaceholder": "Use global if empty",
-        "form.button.saveChanges": "Save Changes",
-        "form.button.createAgent": "Create Agent",
-        "form.toast.nameRequired": "Name Required",
-        "form.toast.nameRequiredDescription": "The agent must have a name.",
-        "suggestionDialog.title": "Suggest Agent Definition with AI",
-        "suggestionDialog.description": "Describe the role or main task of the agent you need, and AI will suggest a definition.",
-        "suggestionDialog.textareaLabel": "Agent Role Description",
-        "suggestionDialog.textareaPlaceholder": "E.g.: An agent that summarizes long texts into key points.",
-        "suggestionDialog.submitButton": "Get Suggestion",
-        "testChatDialog.title": "Testing Agent: {name}",
-        "testChatDialog.description": "Interact directly with the agent. Its system prompt is shown below.",
-        "testChatDialog.systemMessage": "You are testing agent: {name}.\n--- Start of Agent System Prompt ---\n{systemPrompt}\n--- End of Agent System Prompt ---",
-        "testChatDialog.inputPlaceholder": "Type your message to the agent...",
-        "testChatDialog.sendButton": "Send",
-        "testChatDialog.thinking": "Agent is thinking...",
-        "testChatDialog.errorPrefix": "Error: "
+        "capabilitiesLabel": "Capacidades:",
+        "noCapabilities": "Ninguna",
+        "action": {
+            "test": "Probar Agente",
+            "export": "Exportar Agente",
+            "edit": "Editar Agente",
+            "delete": "Eliminar Agente"
+        },
+        "toast": {
+            "form": {
+                "nameUneditableError": "El nombre del agente \"{name}\" no puede ser editado.",
+                "deleteError": "El agente \"{name}\" no se puede eliminar."
+            },
+            "import": {
+                "success": "Agentes Importados",
+                "successDescription": "{count} agentes importados y/o actualizados.",
+                "invalidFormat": "Formato JSON inválido para agentes.",
+                "error": "Error de Importación"
+            },
+            "exportAll": {
+                "success": "Agentes Exportados",
+                "description": "Todos los agentes han sido exportados."
+            },
+            "exportSingle": {
+                "success": "Agente Exportado",
+                "description": "Agente \"{name}\" exportado."
+            },
+            "suggestion": {
+                "roleRequired": "Descripción Requerida",
+                "roleRequiredDescription": "Por favor, describe el rol del agente.",
+                "received": "Sugerencia Recibida",
+                "receivedDescription": "La IA ha sugerido una definición para el agente {name}.",
+                "error": "Error de Sugerencia",
+                "errorDescription": "No se pudo obtener la sugerencia."
+            },
+            "created": "Agente Creado",
+            "createdDescription": "Agente \"{name}\" añadido.",
+            "updated": "Agente Actualizado",
+            "updatedDescription": "Agente \"{name}\" guardado.",
+            "deleted": "Agente Eliminado",
+            "deletedDescription": "Agente \"{name}\" eliminado."
+        },
+        "form": {
+            "title": {
+                "edit": "Editar Agente",
+                "create": "Crear Nuevo Agente",
+                "reviewSuggestion": "Revisar Sugerencia de Agente"
+            },
+            "description": {
+                "edit": "Modifica los detalles del agente \"{name}\".",
+                "create": "Define un nuevo agente especializado para tus tareas de IA."
+            },
+            "label": {
+                "name": "Nombre",
+                "description": "Descripción",
+                "systemPrompt": "Mensaje de Sistema (Prompt)",
+                "capabilities": "Capacidades del Agente",
+                "llmConfig": "Configuración LLM del Agente"
+            },
+            "placeholder": {
+                "systemPrompt": "Define el rol, comportamiento y directrices del agente..."
+            },
+            "capability": {
+                "accessOwnCode": "Acceso a Código Propio",
+                "execution": "Capacidad de Ejecución",
+                "virtualEnv": "Capacidad de Entorno Virtual",
+                "readWrite": "Capacidad Lectura/Escritura",
+                "dangerousTooltip": "(Peligroso)"
+            },
+            "llm": {
+                "useGlobal": "Usar Configuración Global",
+                "custom": {
+                    "providerLabel": "Proveedor LLM",
+                    "modelLabel": "Modelo",
+                    "modelPlaceholder": {
+                        "gemini": "Ej: gemini-1.5-pro-latest",
+                        "selectProvider": "Selecciona proveedor",
+                        "default": "Selecciona modelo"
+                    },
+                    "geminiModelDescription": "Modelos comunes listados. Puedes escribir otro si es necesario.",
+                    "apiUrlLabel": "URL API (Opcional)",
+                    "apiUrlPlaceholder": "Se auto-rellena al cambiar proveedor",
+                    "apiUrlDescription": "Modifícala si usas un proxy o un endpoint no estándar.",
+                    "apiKeyLabel": "Clave API (Opcional)",
+                    "apiKeyPlaceholder": "Usar global si está vacía"
+                }
+            },
+            "button": {
+                "saveChanges": "Guardar Cambios",
+                "createAgent": "Crear Agente"
+            },
+            "toast": {
+                "nameRequired": "Nombre Requerido",
+                "nameRequiredDescription": "El agente debe tener un nombre."
+            }
+        },
+        "suggestionDialog": {
+            "title": "Sugerir Definición de Agente con IA",
+            "description": "Describe el rol o la tarea principal del agente que necesitas, y la IA sugerirá una definición.",
+            "textareaLabel": "Descripción del Rol del Agente",
+            "textareaPlaceholder": "Ej: Un agente que resume textos largos en puntos clave.",
+            "submitButton": "Obtener Sugerencia"
+        },
+        "testChatDialog": {
+            "title": "Probando Agente: {name}",
+            "description": "Interactúa directamente con el agente. Su prompt de sistema se muestra abajo.",
+            "systemMessage": "Estás probando el agente: {name}.\n--- Inicio del Prompt de Sistema del Agente ---\n{systemPrompt}\n--- Fin del Prompt de Sistema del Agente ---",
+            "inputPlaceholder": "Escribe tu mensaje al agente...",
+            "sendButton": "Enviar",
+            "thinking": "Agente está pensando...",
+            "errorPrefix": "Error: "
+        }
     },
     "groups": {
         "title": "AI Workgroup Management",
-        "description": "Define and execute collaborative AI agent teams.",
-        "createWithAIButton": "Create with AI",
-        "createGroupButton": "Create Group",
-        "noGroupsMessage": "No workgroups created.",
-        "defaultGroupBadge": "(Default)",
-        "agentsLabel": "Agents:",
+        "description": "Define y ejecuta equipos de agentes IA colaborativos.",
+        "createWithAIButton": "Crear con IA",
+        "createGroupButton": "Crear Grupo",
+        "noGroupsMessage": "No hay grupos de trabajo creados.",
+        "defaultGroupBadge": "(Por Defecto)",
+        "agentsLabel": "Agentes:",
         "agentsCountFormat": "{count} (+ Orchestrator)",
-        "taskLabel": "Task:",
-        "action.execute": "Execute Group",
-        "action.edit": "Edit Group",
-        "action.delete": "Delete Group",
-        "form.title.edit": "Edit Workgroup",
-        "form.title.create": "Create New Workgroup",
-        "form.title.reviewSuggestion": "Review Group Suggestion",
-        "form.label.name": "Name",
-        "form.label.description": "Description",
-        "form.label.mainTask": "Group Main Task",
-        "form.placeholder.mainTask": "Describe the overall goal the group should achieve...",
-        "form.label.selectAgents": "Select Participating Agents",
-        "form.orchestratorImplicitNote": "OrquestadorFlujoAgentes is added implicitly.",
-        "form.noAgentsToSelectError": "No other agents available to select. Create agents first.",
-        "form.button.saveChanges": "Save Changes",
-        "form.button.createGroupWithSuggestion": "Create Group with Suggestion",
-        "form.button.createGroup": "Create Group",
-        "form.toast.fieldsRequired": "Required Fields",
-        "form.toast.fieldsRequiredDescription": "Name and main task are mandatory.",
-        "form.toast.agentsRequired": "Agents Required",
-        "form.toast.agentsRequiredDescription": "Select at least one participating agent (besides the Orchestrator).",
-        "form.toast.created": "Group Created",
-        "form.toast.createdDescription": "Group \"{name}\" added.",
-        "form.toast.updated": "Group Updated",
-        "form.toast.updatedDescription": "Group \"{name}\" saved.",
-        "form.toast.deleted": "Group Deleted",
-        "form.toast.deletedDescription": "Group \"{name}\" deleted.",
-        "suggestionDialog.title": "Suggest Group Definition with AI",
-        "suggestionDialog.description": "Describe the main task or objective of the group, and AI will suggest a definition and relevant agents.",
-        "suggestionDialog.textareaLabel": "Group Task Description",
-        "suggestionDialog.textareaPlaceholder": "E.g.: Develop a new e-commerce module for the application.",
-        "suggestionDialog.submitButton": "Get Suggestion",
-        "suggestionDialog.submitButtonDisabled": "Create Agents First",
-        "suggestionDialog.noAgentsWarning": "Create agents first to get group suggestions.",
-        "toast.suggestion.taskRequired": "Description Required",
-        "toast.suggestion.taskRequiredDescription": "Please describe the group's task.",
-        "toast.suggestion.received": "Suggestion Received",
-        "toast.suggestion.receivedDescription": "AI has suggested a definition for group {name}.",
-        "toast.suggestion.error": "Suggestion Error",
-        "executionModal.title": "Executing Group: {name}",
-        "executionModal.mainTaskLabel": "Main Task:",
-        "executionModal.logTitle": "Detailed Execution Log",
-        "executionModal.stopButton": "Stop Execution",
-        "execution.starting": "Starting group execution: {name}...",
-        "execution.taskPrefix": "Main Task: ",
-        "execution.criticalError.orchestratorNotFound": "Orchestrator Agent ('orquestador-flujo-agentes') not found. Cannot execute group.",
-        "execution.criticalError.orchestratorParse": "Error parsing Orchestrator's JSON response.",
-        "execution.criticalError.orchestratorIncomplete": "Orchestrator response incomplete (missing next_agent_id or instruction_for_next_agent).",
-        "execution.criticalError.agentNotFound": "Agent with ID \"{id}\" not found.",
-        "execution.log.turnPrefix": "--- Turn {turn} ---",
-        "execution.log.orchestratorReceiving": "Orchestrator receiving: \"{input}...\"",
-        "execution.log.orchestratorRawResponse": "Orchestrator (raw JSON): {response}",
-        "execution.log.orchestratorDecision": "Orchestrator Decision: Next Agent: {nextAgentId}. Instruction: \"{instruction}...\". Reasoning: \"{reasoning}\"",
-        "execution.log.taskCompleted": "--- Task Completed --- \nFinal Group Result: {result}",
-        "execution.log.callingAgent": "Calling Agent: {name}...",
-        "execution.log.agentResponse": "Response from {name}: \"{response}...\"",
-        "execution.log.errorInTurn": "Error in Turn {turn}: {errorMessage}",
-        "execution.log.maxTurnsReached": "Maximum number of turns ({maxTurns}) reached. Execution stopped.",
-        "execution.log.executionStoppedOrFinished": "Group execution finished or stopped.",
-        "execution.log.userStopped": "Turn {turn}: Execution cancelled by user.",
-        "toast.execution.orchestratorError": "Orchestrator Error",
-        "toast.execution.groupError": "Group Error",
-        "toast.execution.generalError": "Execution Error"
+        "taskLabel": "Tarea:",
+        "action": {
+            "execute": "Ejecutar Grupo",
+            "edit": "Editar Grupo",
+            "delete": "Eliminar Grupo"
+        },
+        "form": {
+            "title": {
+                "edit": "Editar Grupo de Trabajo",
+                "create": "Crear Nuevo Grupo de Trabajo",
+                "reviewSuggestion": "Revisar Sugerencia de Grupo"
+            },
+            "label": {
+                "name": "Nombre",
+                "description": "Descripción",
+                "mainTask": "Tarea Principal del Grupo",
+                "selectAgents": "Seleccionar Agentes Participantes"
+            },
+            "placeholder": {
+                "mainTask": "Describe el objetivo general que el grupo debe alcanzar..."
+            },
+            "orchestratorImplicitNote": "OrquestadorFlujoAgentes se añade implícitamente.",
+            "noAgentsToSelectError": "No hay otros agentes disponibles para seleccionar. Crea agentes primero.",
+            "button": {
+                "saveChanges": "Guardar Cambios",
+                "createGroupWithSuggestion": "Crear Grupo con Sugerencia",
+                "createGroup": "Crear Grupo"
+            },
+            "toast": {
+                "fieldsRequired": "Campos Requeridos",
+                "fieldsRequiredDescription": "El nombre y la tarea principal son obligatorios.",
+                "agentsRequired": "Agentes Requeridos",
+                "agentsRequiredDescription": "Selecciona al menos un agente participante (además del Orquestador)."
+            }
+        },
+        "toast": {
+            "created": "Grupo Creado",
+            "createdDescription": "Grupo \"{name}\" añadido.",
+            "updated": "Grupo Actualizado",
+            "updatedDescription": "Grupo \"{name}\" guardado.",
+            "deleted": "Grupo Eliminado",
+            "deletedDescription": "Grupo \"{name}\" eliminado.",
+            "suggestion": {
+                "taskRequired": "Descripción Requerida",
+                "taskRequiredDescription": "Por favor, describe la tarea del grupo.",
+                "received": "Sugerencia Recibida",
+                "receivedDescription": "La IA ha sugerido una definición para el grupo {name}.",
+                "error": "Error de Sugerencia"
+            },
+            "execution": {
+                "orchestratorError": "Error de Orquestador",
+                "groupError": "Error de Grupo",
+                "generalError": "Error de Ejecución"
+            }
+        },
+        "suggestionDialog": {
+            "title": "Sugerir Definición de Grupo con IA",
+            "description": "Describe la tarea o el objetivo principal del grupo, y la IA sugerirá una definición y agentes relevantes.",
+            "textareaLabel": "Descripción de la Tarea del Grupo",
+            "textareaPlaceholder": "Ej: Desarrollar un nuevo módulo de e-commerce para la aplicación.",
+            "submitButton": "Obtener Sugerencia",
+            "submitButtonDisabled": "Crea Agentes Primero",
+            "noAgentsWarning": "Crea agentes primero para poder obtener sugerencias de grupos."
+        },
+        "executionModal": {
+            "title": "Ejecución del Grupo: {name}",
+            "mainTaskLabel": "Tarea Principal:",
+            "logTitle": "Log de Ejecución Detallado",
+            "stopButton": "Detener Ejecución"
+        },
+        "execution": {
+            "starting": "Iniciando ejecución del grupo: {name}...",
+            "taskPrefix": "Tarea Principal: ",
+            "criticalError": {
+                "orchestratorNotFound": "Agente Orquestrador ('orquestador-flujo-agentes') no encontrado. No se puede ejecutar el grupo.",
+                "orchestratorParse": "Error al parsear la respuesta JSON del Orquestrador.",
+                "orchestratorIncomplete": "Respuesta del Orquestrador incompleta (faltan next_agent_id o instruction_for_next_agent).",
+                "agentNotFound": "Agente con ID \"{id}\" no encontrado."
+            },
+            "log": {
+                "turnPrefix": "--- Turno {turn} ---",
+                "orchestratorReceiving": "Orquestrador recibiendo: \"{input}...\"",
+                "orchestratorRawResponse": "Orquestrador (raw JSON): {response}",
+                "orchestratorDecision": "Decisión del Orquestrador: Siguiente Agente: {nextAgentId}. Instrucción: \"{instruction}...\". Razón: \"{reasoning}\"",
+                "taskCompleted": "--- Tarea Completada --- \nResultado Final del Grupo: {result}",
+                "callingAgent": "Llamando a Agente: {name}...",
+                "agentResponse": "Respuesta de {name}: \"{response}...\"",
+                "errorInTurn": "Error en Turno {turn}: {errorMessage}",
+                "maxTurnsReached": "Se alcanzó el número máximo de turnos ({maxTurns}). Ejecución detenida.",
+                "executionStoppedOrFinished": "Ejecución del grupo finalizada o detenida.",
+                "userStopped": "Turno {turn}: Ejecución cancelada por el usuario."
+            }
+        }
     },
     "appLayout": {
-        "debugPanel.title": "Debug Panel",
-        "debugPanel.copyButton": "Copy Logs",
-        "debugPanel.clearButton": "Clear Logs",
-        "debugPanel.collapseButton": "Collapse",
-        "debugPanel.expandButton": "Expand",
-        "debugPanel.noLogs": "No logs.",
-        "toast.unexpectedError.title": "Unexpected Error",
-        "toast.unexpectedError.description": "An unexpected error occurred in the application. We are working on it."
+        "debugPanel": {
+            "title": "Debug Panel",
+            "copyButton": "Copy Logs",
+            "clearButton": "Clear Logs",
+            "collapseButton": "Collapse",
+            "expandButton": "Expand",
+            "noLogs": "No logs."
+        },
+        "toast": {
+            "unexpectedError": {
+                "title": "Unexpected Error",
+                "description": "An unexpected error occurred in the application. We are working on it."
+            }
+        }
     },
     "fileTree": {
         "isFolder": "This is a folder.",
         "emptyFile": "Empty file or content not viewable here."
     },
     "codeEditor": {
-        "toast.loadError.title": "Loading Error",
-        "toast.loadError.description": "Could not load saved editor state for {id}."
+        "toast": {
+            "loadError": {
+                "title": "Loading Error",
+                "description": "Could not load saved editor state for {id}."
+            }
+        }
     }
   }
 } as const;
@@ -1519,3 +2095,27 @@ const translationsData = {
  */
 export const translations: AllTranslations = translationsData;
 
+/**
+ * Utility type to extract all dot-separated keys from a nested object.
+ * This can be used to create a more type-safe `TranslationKey` type.
+ *
+ * Example:
+ * type EsKeys = DotNestedKeys<typeof translationsData['es']>;
+ * // EsKeys would be "app.title" | "sidebar.dashboard" | "sidebar.toggle.hide" | etc.
+ */
+type Dot<T extends string, U extends string> = `` extends U ? T : `${T}.${U}`;
+
+type DotNestedKeys<T> = T extends object
+  ? {
+      [K in Exclude<keyof T, symbol>]: K extends string
+        ? Dot<K, DotNestedKeys<T[K]>> | K
+        : never;
+    }[Exclude<keyof T, symbol>]
+  : '';
+
+// To use the more type-safe keys, you could define:
+// export type AppTranslationKey = DotNestedKeys<typeof translationsData['es']>;
+// And then use AppTranslationKey instead of string for the `t` function's key parameter.
+// For now, we keep TranslationKey as string for simplicity with potentially dynamic keys.
+
+    
