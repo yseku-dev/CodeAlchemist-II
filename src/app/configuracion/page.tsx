@@ -2,12 +2,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'; // Added CardHeader, CardTitle, CardDescription
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
 import { useDebug } from '@/context/DebugContext';
@@ -32,9 +32,23 @@ import { useI18n } from '@/context/I18nContext';
  * @returns {Promise<boolean>} True if connection is successful, false otherwise.
  */
 const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
+  // In a real scenario, this would make an API call or use a Genkit flow.
+  // For example, a simple Genkit flow might be:
+  // const testFlow = ai.defineFlow({ name: 'testLlmConnection', inputSchema: LLMSettingsSchema, outputSchema: z.boolean() }, async (cfg) => {
+  //   try {
+  //     const llm = getModel(cfg.modelName); // Or however Genkit accesses a specific model based on full config
+  //     await generate({ model: llm, prompt: "Test" }); // A very simple prompt
+  //     return true;
+  //   } catch (e) {
+  //     console.error("LLM Connection test failed in flow:", e);
+  //     return false;
+  //   }
+  // });
+  // return await testFlow(config);
+
   console.info("Testing LLM Connection with:", config);
   // Simulate API call
-  return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000)); 
+  return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
 };
 
 /**
@@ -43,6 +57,8 @@ const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
  * @returns {Promise<boolean>} True if connection is successful, false otherwise.
  */
 const testGitConnection = async (config: GitSettings): Promise<boolean> => {
+  // In a real scenario, this could use a Server Action calling 'simple-git'
+  // to try listing remotes or fetching from the configured repoUrl.
   console.info("Testing Git Connection with:", config);
   // Simulate API call or Git operation
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
@@ -53,24 +69,25 @@ const testGitConnection = async (config: GitSettings): Promise<boolean> => {
  * Handles display and modification of global application settings.
  * @returns {JSX.Element} The rendered configuration page.
  */
-export default function ConfiguracionPage() {
+export default function ConfiguracionPage(): JSX.Element {
   const { toast } = useToast();
   const { setDebugMode: setContextDebugMode, addLog } = useDebug();
   const { settings, updateLLMConfig, updateGitConfig, updateSettings } = useAppState();
   const { t, language: i18nLanguage, setLanguage: setI18nLanguage, supportedLanguages } = useI18n();
 
+
   // Local state for form fields, initialized from global settings
   const [currentLLMConfig, setCurrentLLMConfig] = useState<LLMSettings>(settings.llmConfig);
   const [currentGitConfig, setCurrentGitConfig] = useState<GitSettings>(settings.gitConfig);
   const [currentDebugMode, setCurrentDebugMode] = useState<boolean>(settings.debugMode);
-  
+
   const [isTestingLLM, setIsTestingLLM] = useState(false);
   const [isTestingGit, setIsTestingGit] = useState(false);
 
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const importConfigInputRef = useRef<HTMLInputElement>(null);
 
-  // Effect to sync local form state when global settings change (e.g., due to import)
+  // Effect to sync local form state when global settings change (e.g., due to import or context update)
   useEffect(() => {
     setCurrentLLMConfig(settings.llmConfig);
     setCurrentGitConfig(settings.gitConfig);
@@ -79,10 +96,10 @@ export default function ConfiguracionPage() {
     if (settings.llmConfig.provider) {
       setAvailableModels(getModelsForProvider(settings.llmConfig.provider));
     } else {
-      // Fallback if no provider is set in global settings (e.g., initial load before defaults kick in)
       setAvailableModels(getModelsForProvider(DEFAULT_LLM_SETTINGS.provider));
     }
   }, [settings]);
+
 
   /**
    * Handles changes in the LLM configuration form fields.
@@ -91,14 +108,13 @@ export default function ConfiguracionPage() {
    */
   const handleLLMConfigChange = (field: keyof LLMSettings, value: string | LLMProvider) => {
     const newConfig = { ...currentLLMConfig, [field]: value };
-    
+
     if (field === 'provider') {
       const newProvider = value as LLMProvider;
       newConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[newProvider] || ""; // Auto-fill API URL
       const modelsForNewProvider = getModelsForProvider(newProvider);
       setAvailableModels(modelsForNewProvider);
-      
-      // If current model is not in new provider's list or no model is selected, pick the first one.
+
       if (!modelsForNewProvider.includes(newConfig.model) || !newConfig.model) {
          newConfig.model = modelsForNewProvider.length > 0 ? modelsForNewProvider[0] : '';
       }
@@ -129,13 +145,14 @@ export default function ConfiguracionPage() {
   const handleSaveSettings = () => {
     updateLLMConfig(currentLLMConfig);
     updateGitConfig(currentGitConfig);
-    updateSettings({ debugMode: currentDebugMode, language: i18nLanguage }); // Persist current language as well
+    // updateSettings is for non-language settings. Language is updated via I18nContext.
+    updateSettings({ debugMode: currentDebugMode });
     setContextDebugMode(currentDebugMode); // Update debug context immediately
 
     toast({ title: t('settings.toast.saved.title'), description: t('settings.toast.saved.description') });
-    addLog("Configuration saved.");
+    addLog({source: "ConfiguracionPage", type: "INFO", message:"Configuration saved."});
   };
-  
+
   /**
    * Handles changes to the application language selection.
    * Updates the language in the I18nContext, which in turn updates AppState.
@@ -145,8 +162,9 @@ export default function ConfiguracionPage() {
     setI18nLanguage(langCode); // This updates I18nContext and AppStateContext
     const langName = supportedLanguages.find(l => l.code === langCode)?.name || langCode.toUpperCase();
     toast({ title: t('settings.toast.languageChanged.title'), description: t('settings.toast.languageChanged.description', { langName }) });
-    addLog(`Language changed to: ${langCode}`);
+    addLog({source: "ConfiguracionPage", type: "INFO", message:`Language changed to: ${langCode}`});
   };
+
 
   /**
    * Tests the LLM connection with the current LLM configuration.
@@ -154,14 +172,14 @@ export default function ConfiguracionPage() {
    */
   const handleTestLLM = async () => {
     setIsTestingLLM(true);
-    addLog(`Attempting LLM connection test for provider: ${currentLLMConfig.provider}`);
+    addLog({source: "ConfiguracionPage", type: "INFO", message:`Attempting LLM connection test for provider: ${currentLLMConfig.provider}`});
     const success = await testLLMConnection(currentLLMConfig);
     if (success) {
       toast({ title: t('settings.toast.llmConnectionSuccess.title'), description: t('settings.toast.llmConnectionSuccess.description') });
-      addLog("LLM connection test successful.");
+      addLog({source: "ConfiguracionPage", type: "SUCCESS", message:"LLM connection test successful."});
     } else {
       toast({ variant: "destructive", title: t('settings.toast.llmConnectionError.title'), description: t('settings.toast.llmConnectionError.description') });
-      addLog("LLM connection test failed.");
+      addLog({source: "ConfiguracionPage", type: "ERROR", message:"LLM connection test failed."});
     }
     setIsTestingLLM(false);
   };
@@ -172,20 +190,20 @@ export default function ConfiguracionPage() {
    */
   const handleTestGit = async () => {
     setIsTestingGit(true);
-    addLog(`Attempting Git connection test for repo: ${currentGitConfig.repoUrl}`);
+    addLog({source: "ConfiguracionPage", type: "INFO", message:`Attempting Git connection test for repo: ${currentGitConfig.repoUrl}`});
     const success = await testGitConnection(currentGitConfig);
     if (success) {
       toast({ title: t('settings.toast.gitConnectionSuccess.title'), description: t('settings.toast.gitConnectionSuccess.description') });
-      addLog("Git connection test successful.");
+      addLog({source: "ConfiguracionPage", type: "SUCCESS", message:"Git connection test successful."});
     } else {
       toast({ variant: "destructive", title: t('settings.toast.gitConnectionError.title'), description: t('settings.toast.gitConnectionError.description') });
-      addLog("Git connection test failed.");
+      addLog({source: "ConfiguracionPage", type: "ERROR", message:"Git connection test failed."});
     }
     setIsTestingGit(false);
   };
-  
+
   // Effect to ensure debug context is updated if settings.debugMode changes (e.g., from localStorage on load)
-  useEffect(() => { 
+  useEffect(() => {
     setContextDebugMode(settings.debugMode);
   }, [settings.debugMode, setContextDebugMode]);
 
@@ -199,7 +217,7 @@ export default function ConfiguracionPage() {
         llmConfig: settings.llmConfig,
         gitConfig: settings.gitConfig,
         debugMode: settings.debugMode,
-        language: settings.language, // Export the language stored in global settings
+        language: settings.language,
       };
       const jsonString = JSON.stringify(configToExport, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -212,11 +230,11 @@ export default function ConfiguracionPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast({ title: t('settings.toast.configExported.title'), description: t('settings.toast.configExported.description') });
-      addLog("Configuration exported.");
+      addLog({source: "ConfiguracionPage", type: "INFO", message:"Configuration exported."});
     } catch (error) {
       const typedError = error as Error;
       toast({ variant: "destructive", title: t('settings.toast.configExportError.title'), description: t('settings.toast.configExportError.description', {error: typedError.message}) });
-      addLog(`Configuration export failed: ${typedError.message}`);
+      addLog({source: "ConfiguracionPage", type: "ERROR", message:`Configuration export failed: ${typedError.message}`});
     }
   };
 
@@ -244,32 +262,32 @@ export default function ConfiguracionPage() {
             'language' in parsedConfig && typeof parsedConfig.language === 'string' && supportedLanguages.some(l => l.code === parsedConfig.language)
           ) {
             const importedSettings = parsedConfig as AppSettings;
-            
+
             // Update global state directly
             updateLLMConfig(importedSettings.llmConfig);
             updateGitConfig(importedSettings.gitConfig);
-            updateSettings({ debugMode: importedSettings.debugMode, language: importedSettings.language });
-            setI18nLanguage(importedSettings.language); // Ensure I18nContext also updates
+            updateSettings({ debugMode: importedSettings.debugMode }); // Update non-language settings
+            setI18nLanguage(importedSettings.language); // Update language via I18nContext's setter
 
             toast({ title: t('settings.toast.configImported.title'), description: t('settings.toast.configImported.description') });
-            addLog("Configuration imported and applied.");
+            addLog({source: "ConfiguracionPage", type: "INFO", message:"Configuration imported and applied."});
           } else {
-            throw new Error(t('settings.toast.configImportError.description', {error: "Formato de archivo de configuración inválido o idioma no soportado."}));
+            throw new Error(t('settings.toast.configImportError.invalidFormat'));
           }
         } catch (err: any) {
-          const errorDesc = err.message || "No se pudo importar el archivo de configuración.";
-          toast({ variant: "destructive", title: t('settings.toast.configImportError.title'), description: t('settings.toast.configImportError.description', {error: errorDesc}) });
-          addLog(`Configuration import failed: ${errorDesc}`);
+          const errorDesc = err.message || t('settings.toast.configImportError.readError');
+          toast({ variant: "destructive", title: t('settings.toast.configImportError.title'), description: errorDesc });
+          addLog({source: "ConfiguracionPage", type: "ERROR", message:`Configuration import failed: ${errorDesc}`});
         } finally {
-          // Reset file input to allow importing the same file again if needed
           if (importConfigInputRef.current) {
-            importConfigInputRef.current.value = ""; 
+            importConfigInputRef.current.value = "";
           }
         }
       };
       reader.readAsText(file);
     }
   };
+
 
   return (
     <Card className="max-w-3xl mx-auto">
@@ -281,13 +299,13 @@ export default function ConfiguracionPage() {
           <div className="flex flex-wrap gap-2">
             <Input type="file" id="import-config-input" ref={importConfigInputRef} className="hidden" onChange={handleImportConfig} accept=".json" />
             <Button variant="outline" onClick={() => importConfigInputRef.current?.click()}>
-              <Upload className="mr-2 h-4 w-4" /> {t('settings.importButton')}
+              <Upload className="mr-2 h-4 w-4" />{t('settings.importButton')}
             </Button>
             <Button variant="outline" onClick={handleExportConfig}>
-              <Download className="mr-2 h-4 w-4" /> {t('settings.exportButton')}
+              <Download className="mr-2 h-4 w-4" />{t('settings.exportButton')}
             </Button>
             <Button onClick={handleSaveSettings}>
-              <Save className="mr-2 h-4 w-4" /> {t('settings.saveButton')}
+              <Save className="mr-2 h-4 w-4" />{t('settings.saveButton')}
             </Button>
           </div>
         }
@@ -340,7 +358,7 @@ export default function ConfiguracionPage() {
                 placeholder={t('settings.llm.apiKeyPlaceholder')}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="llm-model">{t('settings.llm.modelNameLabel')}</Label>
               <Select
@@ -352,8 +370,8 @@ export default function ConfiguracionPage() {
                   <SelectValue placeholder={
                     (["Google Gemini", "LM Studio", "Ollama"].includes(currentLLMConfig.provider))
                     ? t('settings.llm.modelNamePlaceholderLocal', {provider: currentLLMConfig.provider})
-                    : availableModels.length === 0 
-                    ? t('settings.llm.modelNamePlaceholderDefault') 
+                    : availableModels.length === 0
+                    ? t('settings.llm.modelNamePlaceholderDefault')
                     : t('settings.llm.modelNamePlaceholder')
                   } />
                 </SelectTrigger>
@@ -435,7 +453,7 @@ export default function ConfiguracionPage() {
         </Card>
 
         <Separator />
-        
+
         {/* Language Settings Section */}
         <Card>
           <CardHeader>
