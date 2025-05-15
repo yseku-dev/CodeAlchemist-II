@@ -30,6 +30,7 @@ import type { TranslationKey } from '@/lib/i18n/translations';
  * Allows users to create, edit, delete, import, export, and test individual AI agents.
  * Includes AI-assisted agent creation via a dialog.
  * All UI text is internationalized.
+ * @module AgentesIAPage
  */
 export default function AgentesIAPage() {
   const { agents, addAgent, updateAgent, deleteAgent, settings: globalSettings, setAgents } = useAppState();
@@ -156,7 +157,7 @@ export default function AgentesIAPage() {
       const agentName = agentToDelete.name;
       deleteAgent(agentToDelete.id);
       setAgentToDelete(null);
-      // Toast is handled by deleteAgent in AppStateContext now
+      toast({ title: t('agents.toast.deleted.title'), description: t('agents.toast.deleted.description', {name: agentName}) });
     }
   };
 
@@ -318,9 +319,10 @@ export default function AgentesIAPage() {
                     <p><strong>{t('agents.llmLabel')}</strong> {agent.llmConfig.useGlobal ? t('agents.llmGlobalFormat', {provider: globalSettings.llmConfig.provider}) : t('agents.llmCustomFormat', {provider: agent.llmConfig.customConfig?.provider || t('agents.llmNotApplicable')})}</p>
                     <p><strong>{t('agents.capabilitiesLabel')}</strong>
                         {Object.entries(agent.capabilities).filter(([, val]) => val).map(([key]) => {
-                            const capabilityKey = `agents.form.capability.${key.toLowerCase()}` as TranslationKey;
+                            const capabilityKey = `agents.form.capability.${key}` as TranslationKey; // Removed .toLowerCase()
                             const translatedCap = t(capabilityKey);
-                            const displayName = translatedCap !== capabilityKey
+                            // Fallback to a formatted key if translation is missing
+                            const displayName = translatedCap !== capabilityKey 
                                 ? translatedCap
                                 : key.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase());
                             return displayName;
@@ -384,3 +386,5 @@ export default function AgentesIAPage() {
     </div>
   );
 }
+
+    

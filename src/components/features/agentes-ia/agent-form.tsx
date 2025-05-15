@@ -16,15 +16,44 @@ import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
 
+/**
+ * @fileOverview AgentForm component for creating and editing AI Agents.
+ * This component provides a dialog form with fields for agent name, description,
+ * system prompt, capabilities, and LLM configuration.
+ * It handles both creation of new agents and editing of existing ones,
+ * including pre-filling forms with AI-suggested data.
+ * All UI text is internationalized.
+ * @module AgentForm
+ */
+
+/**
+ * Props for the AgentForm component.
+ */
 interface AgentFormProps {
+  /** Whether the form dialog is open. */
   isOpen: boolean;
+  /** Callback to change the open state of the dialog. */
   onOpenChange: (open: boolean) => void;
+  /**
+   * The agent object to edit. If null or if its ID starts with 'suggested-',
+   * the form is in creation mode (potentially pre-filled with a suggestion).
+   */
   editingAgent: Agent | null;
+  /** Callback function invoked when the form is submitted with valid data. */
   onSubmit: (formData: AgentFormData) => void;
+  /**
+   * Function to get a list of available model names for a given LLM provider.
+   * @param {LLMProvider} provider - The LLM provider.
+   * @returns {string[]} An array of model names.
+   */
   getModelsForProvider: (provider: LLMProvider) => string[];
+  /** The global LLM configuration from application settings, used for defaults. */
   globalLLMConfig: LLMSettings;
 }
 
+/**
+ * Initial empty state for the agent form data.
+ */
 const initialAgentFormData: AgentFormData = {
   name: '',
   description: '',
@@ -33,6 +62,13 @@ const initialAgentFormData: AgentFormData = {
   llmConfig: { useGlobal: true, customConfig: { ...DEFAULT_LLM_SETTINGS } },
 };
 
+/**
+ * AgentForm component.
+ * Provides a dialog form for creating or editing AI agent configurations.
+ *
+ * @param {AgentFormProps} props - The props for the component.
+ * @returns {JSX.Element} The rendered agent form dialog.
+ */
 export default function AgentForm({
   isOpen,
   onOpenChange,
@@ -79,12 +115,23 @@ export default function AgentForm({
         setAvailableModels(getModelsForProvider(defaultProvider));
       }
     }
-  }, [isOpen, editingAgent, getModelsForProvider, globalLLMConfig]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingAgent, getModelsForProvider]); // GlobalLLMConfig omitted to prevent re-init if only global changes
 
+  /**
+   * Handles changes to general form fields.
+   * @param {keyof AgentFormData} field - The form field being changed.
+   * @param {any} value - The new value for the field.
+   */
   const handleFormChange = (field: keyof AgentFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  /**
+   * Handles changes to capability switches.
+   * @param {keyof AgentFormData['capabilities']} capability - The capability key.
+   * @param {boolean} value - The new boolean value for the capability.
+   */
   const handleCapabilityChange = (capability: keyof AgentFormData['capabilities'], value: boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -92,10 +139,15 @@ export default function AgentForm({
     }));
   };
 
+  /**
+   * Handles changes to the LLM configuration section of the form.
+   * @param {keyof AgentLLMConfiguration | keyof LLMSettings} field - The LLM configuration field being changed.
+   * @param {any} value - The new value for the field.
+   */
   const handleLlmConfigChange = (field: keyof AgentLLMConfiguration | keyof LLMSettings, value: any) => {
     setFormData(prev => {
       const newFormState = { ...prev };
-      let newCustomConfig = { ...(newFormState.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, apiUrl: globalLLMConfig.apiUrl }) };
+      let newCustomConfig = { ...(newFormState.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] || '' }) };
 
       if (field === 'useGlobal') {
         newFormState.llmConfig.useGlobal = !!value;
@@ -119,7 +171,7 @@ export default function AgentForm({
           newCustomConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[provider] || '';
           const models = getModelsForProvider(provider);
           setAvailableModels(models);
-          if (!models.includes(newCustomConfig.model)) {
+          if (!models.includes(newCustomConfig.model || '')) { // Ensure model is string for includes check
             newCustomConfig.model = models[0] || '';
           }
         }
@@ -130,6 +182,10 @@ export default function AgentForm({
   };
 
 
+  /**
+   * Handles the form submission.
+   * Validates the form data and calls the `onSubmit` prop.
+   */
   const handleSubmit = () => {
     if (!formData.name.trim()) {
       toast({ variant: "destructive", title: t('agents.form.toast.nameRequired.title'), description: t('agents.form.toast.nameRequired.description') });
@@ -137,8 +193,8 @@ export default function AgentForm({
     }
 
     const finalLlmConfig = formData.llmConfig.useGlobal
-      ? { useGlobal: true }
-      : { useGlobal: false, customConfig: formData.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] } };
+      ? { useGlobal: true, customConfig: undefined } // Explicitly set customConfig to undefined if global is used
+      : { useGlobal: false, customConfig: formData.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] || '' } };
 
     const agentDataToSubmit = { ...formData, llmConfig: finalLlmConfig };
     onSubmit(agentDataToSubmit);
@@ -182,7 +238,7 @@ export default function AgentForm({
                 <div key={key} className="flex items-center space-x-2">
                   <Switch id={`cap-${key}`} checked={formData.capabilities[key]} onCheckedChange={(checked) => handleCapabilityChange(key, checked)} />
                   <Label htmlFor={`cap-${key}`} className="font-normal">
-                    {t(`agents.form.capability.${key.toLowerCase()}` as TranslationKey)}
+                    {t(`agents.form.capability.${key}` as TranslationKey)} {/* Removed .toLowerCase() */}
                     {(key === 'execution' || key === 'readWrite') && <span className="text-destructive text-xs ml-1">{t('agents.form.capability.dangerousTooltip')}</span>}
                   </Label>
                 </div>
@@ -210,13 +266,13 @@ export default function AgentForm({
                   <div className="space-y-1">
                     <Label htmlFor="custom-llm-model" className="text-xs">{t('agents.form.llm.custom.modelLabel')}</Label>
                     <Select
-                      value={formData.llmConfig.customConfig.model}
+                      value={formData.llmConfig.customConfig.model || ''}
                       onValueChange={(val) => handleLlmConfigChange('model', val )}
                       disabled={availableModels.length === 0 && !["Google Gemini", "LM Studio", "Ollama"].includes(formData.llmConfig.customConfig.provider)}
                     >
                       <SelectTrigger id="custom-llm-model"><SelectValue placeholder={
                         (["Google Gemini", "LM Studio", "Ollama"].includes(formData.llmConfig.customConfig.provider))
-                          ? t('agents.form.llm.custom.modelPlaceholder.gemini', { provider: formData.llmConfig.customConfig.provider })
+                          ? t('agents.form.llm.custom.modelPlaceholder.geminiLlm', { provider: formData.llmConfig.customConfig.provider })
                           : availableModels.length === 0
                             ? t('agents.form.llm.custom.modelPlaceholder.selectProvider')
                             : t('agents.form.llm.custom.modelPlaceholder.default')
@@ -235,7 +291,7 @@ export default function AgentForm({
                       id="custom-llm-apiUrl"
                       value={formData.llmConfig.customConfig.apiUrl || ''}
                       onChange={(e) => handleLlmConfigChange('apiUrl', e.target.value )}
-                      placeholder={t('agents.form.llm.custom.apiUrlPlaceholder')}
+                      placeholder={LLM_PROVIDER_DEFAULT_API_URLS[formData.llmConfig.customConfig.provider] || t('agents.form.llm.custom.apiUrlPlaceholder')}
                     />
                      <p className="text-xs text-muted-foreground">
                         {t('agents.form.llm.custom.apiUrlDescription')}
@@ -259,10 +315,12 @@ export default function AgentForm({
         <DialogFooter className="pt-4 border-t">
           <DialogClose asChild><Button variant="outline">{t('common.cancel')}</Button></DialogClose>
           <Button onClick={handleSubmit}>
-            {editingAgent && !editingAgent.id.startsWith('suggested-') ? t('agents.form.button.saveChanges') : t('agents.form.button.createAgent')}
+            {editingAgent && !editingAgent.id.startsWith('suggested-') ? t('agents.form.button.saveChanges') : (formData.id && formData.id.startsWith('suggested-') ? t('agents.form.button.createAgentWithSuggestion') : t('agents.form.button.createAgent'))}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+    
