@@ -1,10 +1,9 @@
-
 // src/context/I18nContext.tsx
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useAppState } from './AppStateContext'; // To get the current language
-import { translations, type TranslationKey } from '@/lib/i18n/translations'; // LanguageCode is already imported via AppState types
+import { useAppState } from './AppStateContext';
+import { translations, type TranslationKey } from '@/lib/i18n/translations';
 import { DEFAULT_LANGUAGE_CODE, SUPPORTED_LANGUAGES } from '@/lib/i18n/constants';
 import type { LanguageCode } from '@/types';
 
@@ -48,9 +47,7 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
  * @returns {JSX.Element} The I18nProvider component.
  */
 export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element => {
-  const { settings, updateSettings } = useAppState();
-  // Initialize with settings.language IF settings is loaded, otherwise default.
-  // This helps prevent issues if settings is undefined on very first pass.
+  const { settings, updateLanguage: updateAppLanguage } = useAppState();
   const initialLang = settings?.language || DEFAULT_LANGUAGE_CODE;
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(initialLang);
 
@@ -69,14 +66,14 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
   const setLanguage = useCallback((lang: LanguageCode) => {
     if (SUPPORTED_LANGUAGES.some(l => l.code === lang)) {
       setCurrentLanguage(lang);
-      updateSettings({ language: lang }); // Update global state
+      updateAppLanguage(lang); // Update global state via AppStateContext
       if (typeof window !== 'undefined') {
         document.documentElement.lang = lang;
       }
     } else {
       console.warn(`[I18nProvider] Attempted to set unsupported language: ${lang}`);
     }
-  }, [updateSettings]);
+  }, [updateAppLanguage]);
 
   /**
    * Retrieves a translated string for a given key and language.

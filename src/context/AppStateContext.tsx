@@ -1,10 +1,11 @@
-
+// src/context/AppStateContext.tsx
 "use client";
 
 import React, { createContext, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import type { AppSettings, Agent, AIAgentGroup, CodeSnapshot, LLMSettings, GitSettings } from '@/types';
+import type { AppSettings, Agent, AIAgentGroup, CodeSnapshot, LLMSettings, GitSettings, LanguageCode } from '@/types';
 import { DEFAULT_LLM_SETTINGS, DEFAULT_AGENTS, DEFAULT_GROUPS, APP_NAME } from '@/lib/constants';
+import { DEFAULT_LANGUAGE_CODE } from '@/lib/i18n/constants'; // Corrected import path
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,7 +21,9 @@ interface AppStateContextType {
   /** Current application settings. */
   settings: AppSettings;
   /** Function to update partial application settings. */
-  updateSettings: (newSettings: Partial<AppSettings>) => void;
+  updateSettings: (newSettings: Partial<Omit<AppSettings, 'language'>>) => void;
+  /** Function to update the application language. */
+  updateLanguage: (newLanguage: LanguageCode) => void;
   /** Function to update partial LLM configuration settings. */
   updateLLMConfig: (newConfig: Partial<LLMSettings>) => void;
   /** Function to update partial Git configuration settings. */
@@ -56,8 +59,12 @@ interface AppStateContextType {
   snapshots: CodeSnapshot[];
   /** Setter function for the code snapshots array. */
   setSnapshots: React.Dispatch<React.SetStateAction<CodeSnapshot[]>>;
-  /** Adds a new code snapshot to the application state. */
-  addSnapshot: (snapshot: Omit<CodeSnapshot, 'id' | 'createdAt'>) => void;
+  /** 
+   * Adds a new code snapshot to the application state.
+   * @param {Omit<CodeSnapshot, 'id' | 'createdAt'>} snapshotData - The data for the new snapshot.
+   * @returns {CodeSnapshot} The newly created snapshot object.
+   */
+  addSnapshot: (snapshotData: Omit<CodeSnapshot, 'id' | 'createdAt'>) => CodeSnapshot;
   /** Deletes a code snapshot from the application state by its ID. */
   deleteSnapshot: (snapshotId: string) => void;
   /** Deletes all code snapshots from the application state. */
@@ -78,6 +85,7 @@ const initialSettings: AppSettings = {
   llmConfig: DEFAULT_LLM_SETTINGS,
   gitConfig: { repoUrl: '', username: '', email: '', pat: '' },
   debugMode: false,
+  language: DEFAULT_LANGUAGE_CODE,
 };
 
 /**
@@ -94,9 +102,14 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [groups, setGroups] = useLocalStorage<AIAgentGroup[]>(`${APP_NAME}-groups`, []);
   const [snapshots, setSnapshots] = useLocalStorage<CodeSnapshot[]>(`${APP_NAME}-snapshots`, []);
 
-  const updateSettings = useCallback((newSettings: Partial<AppSettings>) => {
+  const updateSettings = useCallback((newSettings: Partial<Omit<AppSettings, 'language'>>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
   }, [setSettings]);
+
+  const updateLanguage = useCallback((newLanguage: LanguageCode) => {
+    setSettings(prev => ({ ...prev, language: newLanguage }));
+  }, [setSettings]);
+
 
   const updateLLMConfig = useCallback((newConfig: Partial<LLMSettings>) => {
     setSettings(prev => ({ ...prev, llmConfig: { ...prev.llmConfig, ...newConfig } }));
@@ -154,7 +167,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   const getGroupById = useCallback((groupId: string) => groups.find(g => g.id === groupId), [groups]);
 
-  const addSnapshot = useCallback((snapshotData: Omit<CodeSnapshot, 'id' | 'createdAt'>) => {
+  const addSnapshot = useCallback((snapshotData: Omit<CodeSnapshot, 'id' | 'createdAt'>): CodeSnapshot => {
     const newSnapshot: CodeSnapshot = { 
       ...snapshotData, 
       id: uuidv4(), 
@@ -162,6 +175,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     };
     setSnapshots(prev => [newSnapshot, ...prev]); // Add to the beginning
     toast({ title: "Snapshot Guardado", description: `Snapshot "${newSnapshot.name}" creado.` });
+    return newSnapshot;
   }, [setSnapshots, toast]);
 
   const deleteSnapshot = useCallback((snapshotId: string) => {
@@ -183,20 +197,19 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     if (!areAgentsInitialized) {
       const agentsWithIds = DEFAULT_AGENTS.map(agent => ({...agent, id: agent.id || uuidv4()}));
       setAgents(agentsWithIds);
-      console.log("Default agents initialized.");
+      console.info("Default agents initialized.");
     }
 
     const areGroupsInitialized = groups.some(group => group.isDefault);
     if (!areGroupsInitialized) {
       const groupsWithIds = DEFAULT_GROUPS.map(group => ({...group, id: group.id || uuidv4()}));
       setGroups(groupsWithIds);
-      console.log("Default groups initialized.");
+      console.info("Default groups initialized.");
     }
   }, [agents, groups, setAgents, setGroups]);
 
-  // Initialize on mount if needed
   useEffect(() => {
-     if (typeof window !== 'undefined') { // ensure this runs client-side
+     if (typeof window !== 'undefined') { 
         const initialized = localStorage.getItem(`${APP_NAME}-initialized`);
         if (!initialized) {
             initializeDefaultData();
@@ -208,7 +221,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AppStateContext.Provider value={{
-      settings, updateSettings, updateLLMConfig, updateGitConfig,
+      settings, updateSettings, updateLanguage, updateLLMConfig, updateGitConfig,
       agents, setAgents, addAgent, updateAgent, deleteAgent, getAgentById,
       groups, setGroups, addGroup, updateGroup, deleteGroup, getGroupById,
       snapshots, setSnapshots, addSnapshot, deleteSnapshot, deleteAllSnapshots, getSnapshotById,
