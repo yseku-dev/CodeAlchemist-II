@@ -1,14 +1,11 @@
-
 // src/context/I18nContext.tsx
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useAppState } from './AppStateContext'; // Corrected relative path
-import { translations } from '@/lib/i18n/translations';
-import type { TranslationKey } from '@/lib/i18n/translations'; // Use TranslationKey from translations
-import type { LanguageCode } from '@/types'; 
+import React, { createContext, useContext, useCallback, ReactNode, useEffect } from 'react';
+import { useAppState } from './AppStateContext';
+import { translations, type TranslationKey } from '@/lib/i18n/translations';
+import type { LanguageCode } from '@/types';
 import { DEFAULT_LANGUAGE_CODE, SUPPORTED_LANGUAGES } from '@/lib/i18n/constants';
-
 
 /**
  * @fileOverview Provides internationalization (i18n) context and utilities.
@@ -51,48 +48,46 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const { settings, updateLanguage: updateAppLanguage } = useAppState();
   
-  // Initialize currentLanguage based on settings, or default if settings is not ready
-  const initialLanguageFromSettings = settings && settings.language ? settings.language : DEFAULT_LANGUAGE_CODE;
-  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(initialLanguageFromSettings);
-
-  // Effect to sync currentLanguage with settings.language from AppStateContext
-  useEffect(() => {
-    if (settings && settings.language && settings.language !== currentLanguage) {
-      setCurrentLanguage(settings.language);
-    }
-  }, [settings, currentLanguage]); // Depend on settings object
+  // The language from AppStateContext is the source of truth.
+  const activeLanguage = settings?.language || DEFAULT_LANGUAGE_CODE;
 
   /**
    * Sets the application language.
-   * Updates both the local I18nContext state and the global AppStateContext.
+   * Updates the global AppStateContext, which will trigger re-renders.
    * Also updates the HTML lang attribute.
-   * @param {LanguageCode} lang - The language code to set.
+   * @param {LanguageCode} langCode - The language code to set.
    */
-  const setLanguage = useCallback((lang: LanguageCode) => {
-    if (SUPPORTED_LANGUAGES.some(l => l.code === lang)) {
-      setCurrentLanguage(lang);
-      if (updateAppLanguage) { // Ensure updateAppLanguage is defined
-        updateAppLanguage(lang); // Update global state via AppStateContext
+  const setLanguage = useCallback((langCode: LanguageCode) => {
+    if (SUPPORTED_LANGUAGES.some(l => l.code === langCode)) {
+      if (updateAppLanguage) {
+        updateAppLanguage(langCode); // Update global state via AppStateContext
       }
       if (typeof window !== 'undefined') {
-        document.documentElement.lang = lang;
+        document.documentElement.lang = langCode;
       }
     } else {
-      console.warn(`[I18nProvider] Attempted to set unsupported language: ${lang}`);
+      console.warn(`[I18nProvider] Attempted to set unsupported language: ${langCode}`);
     }
   }, [updateAppLanguage]);
 
   /**
    * Retrieves a translated string for a given key and language.
-   * Supports basic parameter interpolation (e.g., t("greeting", { name: "User" }) for "Hello, {name}").
+   * Supports basic parameter interpolation.
    * @param {TranslationKey} key - The key of the string to translate.
-   * @param {LanguageCode} lang - The target language code.
+   * @param {LanguageCode} langToUse - The target language code.
    * @param {Record<string, string | number>} [params] - Optional parameters for interpolation.
    * @returns {string} The translated string, or the key if not found.
    */
-  const translate = useCallback((key: TranslationKey, lang: LanguageCode, params?: Record<string, string | number>): string => {
-    let translationSet = translations[lang] || translations[DEFAULT_LANGUAGE_CODE];
+  const translate = useCallback((key: TranslationKey, langToUse: LanguageCode, params?: Record<string, string | number>): string => {
+    const effectiveLang = SUPPORTED_LANGUAGES.some(l => l.code === langToUse) ? langToUse : DEFAULT_LANGUAGE_CODE;
+    let translationSet = translations[effectiveLang];
 
+    // Fallback to default language if the current language's translations are missing
+    if (!translationSet) {
+        console.warn(`[I18nProvider] No translation set for language: "${effectiveLang}", falling back to default language: "${DEFAULT_LANGUAGE_CODE}".`);
+        translationSet = translations[DEFAULT_LANGUAGE_CODE];
+    }
+    
     const keys = key.split('.');
     let text: any = translationSet;
     for (const k of keys) {
@@ -105,7 +100,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
     }
 
     if (typeof text !== 'string') {
-      console.warn(`[I18nProvider] Translation not found for key: \"${key}\" in language: \"${lang}\". Falling back to key.`);
+      console.warn(`[I18nProvider] Translation not found for key: "${key}" in language: "${effectiveLang}". Falling back to key.`);
       return key;
     }
 
@@ -118,18 +113,18 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
   }, []);
 
   const t = useCallback((key: TranslationKey, params?: Record<string, string | number>): string => {
-    return translate(key, currentLanguage, params);
-  }, [currentLanguage, translate]);
+    return translate(key, activeLanguage, params);
+  }, [activeLanguage, translate]);
 
-  // Effect to set initial HTML lang attribute and update if currentLanguage changes
+  // Effect to set initial HTML lang attribute and update if activeLanguage changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      document.documentElement.lang = currentLanguage;
+      document.documentElement.lang = activeLanguage;
     }
-  }, [currentLanguage]);
+  }, [activeLanguage]);
 
   const providerValue: I18nContextType = {
-    language: currentLanguage,
+    language: activeLanguage,
     setLanguage,
     t,
     supportedLanguages: SUPPORTED_LANGUAGES
@@ -155,5 +150,3 @@ export const useI18n = (): I18nContextType => {
   }
   return context;
 };
-
-    
