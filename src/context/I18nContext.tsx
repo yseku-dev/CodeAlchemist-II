@@ -1,11 +1,13 @@
+
 // src/context/I18nContext.tsx
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useAppState } from './AppStateContext';
-import { translations, type TranslationKey } from '@/lib/i18n/translations';
+import { useAppState } from './AppStateContext'; // Corrected relative path
+import { translations } from '@/lib/i18n/translations';
+import type { TranslationKey } from '@/lib/i18n/translations'; // Use TranslationKey from translations
+import type { LanguageCode } from '@/types'; 
 import { DEFAULT_LANGUAGE_CODE, SUPPORTED_LANGUAGES } from '@/lib/i18n/constants';
-import type { LanguageCode } from '@/types';
 
 
 /**
@@ -48,25 +50,30 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
  */
 export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const { settings, updateLanguage: updateAppLanguage } = useAppState();
-  const initialLang = settings?.language || DEFAULT_LANGUAGE_CODE;
-  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(initialLang);
+  
+  // Initialize currentLanguage based on settings, or default if settings is not ready
+  const initialLanguageFromSettings = settings && settings.language ? settings.language : DEFAULT_LANGUAGE_CODE;
+  const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(initialLanguageFromSettings);
 
-  // Update context language if global app settings language changes
+  // Effect to sync currentLanguage with settings.language from AppStateContext
   useEffect(() => {
-    if (settings?.language && settings.language !== currentLanguage) {
+    if (settings && settings.language && settings.language !== currentLanguage) {
       setCurrentLanguage(settings.language);
     }
-  }, [settings?.language, currentLanguage]);
+  }, [settings, currentLanguage]); // Depend on settings object
 
   /**
    * Sets the application language.
    * Updates both the local I18nContext state and the global AppStateContext.
+   * Also updates the HTML lang attribute.
    * @param {LanguageCode} lang - The language code to set.
    */
   const setLanguage = useCallback((lang: LanguageCode) => {
     if (SUPPORTED_LANGUAGES.some(l => l.code === lang)) {
       setCurrentLanguage(lang);
-      updateAppLanguage(lang); // Update global state via AppStateContext
+      if (updateAppLanguage) { // Ensure updateAppLanguage is defined
+        updateAppLanguage(lang); // Update global state via AppStateContext
+      }
       if (typeof window !== 'undefined') {
         document.documentElement.lang = lang;
       }
@@ -98,7 +105,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
     }
 
     if (typeof text !== 'string') {
-      console.warn(`[I18nProvider] Translation not found for key: "${key}" in language: "${lang}". Falling back to key.`);
+      console.warn(`[I18nProvider] Translation not found for key: \"${key}\" in language: \"${lang}\". Falling back to key.`);
       return key;
     }
 
@@ -127,7 +134,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
     t,
     supportedLanguages: SUPPORTED_LANGUAGES
   };
-
+  
   return (
     <I18nContext.Provider value={providerValue}>
       {children}
@@ -148,3 +155,5 @@ export const useI18n = (): I18nContextType => {
   }
   return context;
 };
+
+    

@@ -1,3 +1,4 @@
+
 // src/context/AppStateContext.tsx
 "use client";
 
@@ -5,7 +6,7 @@ import React, { createContext, useContext, ReactNode, useCallback, useEffect } f
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import type { AppSettings, Agent, AIAgentGroup, CodeSnapshot, LLMSettings, GitSettings, LanguageCode } from '@/types';
 import { DEFAULT_LLM_SETTINGS, DEFAULT_AGENTS, DEFAULT_GROUPS, APP_NAME } from '@/lib/constants';
-import { DEFAULT_LANGUAGE_CODE } from '@/lib/i18n/constants'; // Corrected import path
+import { DEFAULT_LANGUAGE_CODE } from '@/lib/i18n/constants';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,9 +21,13 @@ import { v4 as uuidv4 } from 'uuid';
 interface AppStateContextType {
   /** Current application settings. */
   settings: AppSettings;
-  /** Function to update partial application settings. */
+  /** Function to update partial application settings (excluding language). */
   updateSettings: (newSettings: Partial<Omit<AppSettings, 'language'>>) => void;
-  /** Function to update the application language. */
+  /**
+   * Function to update the application language.
+   * This is typically called by I18nProvider.
+   * @param {LanguageCode} newLanguage - The new language code.
+   */
   updateLanguage: (newLanguage: LanguageCode) => void;
   /** Function to update partial LLM configuration settings. */
   updateLLMConfig: (newConfig: Partial<LLMSettings>) => void;
@@ -80,12 +85,13 @@ const AppStateContext = createContext<AppStateContextType | undefined>(undefined
 
 /**
  * Initial default settings for the application.
+ * Ensures `language` is initialized.
  */
 const initialSettings: AppSettings = {
   llmConfig: DEFAULT_LLM_SETTINGS,
   gitConfig: { repoUrl: '', username: '', email: '', pat: '' },
   debugMode: false,
-  language: DEFAULT_LANGUAGE_CODE,
+  language: DEFAULT_LANGUAGE_CODE, // Ensure language is part of initial settings
 };
 
 /**
@@ -110,7 +116,6 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     setSettings(prev => ({ ...prev, language: newLanguage }));
   }, [setSettings]);
 
-
   const updateLLMConfig = useCallback((newConfig: Partial<LLMSettings>) => {
     setSettings(prev => ({ ...prev, llmConfig: { ...prev.llmConfig, ...newConfig } }));
   }, [setSettings]);
@@ -122,23 +127,22 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const addAgent = useCallback((agentData: Omit<Agent, 'id'>) => {
     const newAgent: Agent = { ...agentData, id: uuidv4() };
     setAgents(prev => [...prev, newAgent]);
-    toast({ title: "Agente Creado", description: `Agente "${newAgent.name}" añadido.` });
+    toast({ title: "Agente Creado", description: `Agente \"${newAgent.name}\" añadido.` });
   }, [setAgents, toast]);
 
   const updateAgent = useCallback((updatedAgent: Agent) => {
     setAgents(prev => prev.map(a => a.id === updatedAgent.id ? updatedAgent : a));
-    toast({ title: "Agente Actualizado", description: `Agente "${updatedAgent.name}" guardado.` });
+    toast({ title: "Agente Actualizado", description: `Agente \"${updatedAgent.name}\" guardado.` });
   }, [setAgents, toast]);
 
   const deleteAgent = useCallback((agentId: string) => {
     const agentToDelete = agents.find(a => a.id === agentId);
     if (agentToDelete?.isDeletable === false) {
-      toast({ variant: "destructive", title: "Error", description: `El agente "${agentToDelete.name}" no se puede eliminar.` });
+      toast({ variant: "destructive", title: "Error", description: `El agente \"${agentToDelete.name}\" no se puede eliminar.` });
       return false;
     }
     setAgents(prev => prev.filter(a => a.id !== agentId));
-    toast({ title: "Agente Eliminado", description: `Agente "${agentToDelete?.name}" eliminado.` });
-    // Also remove agent from any groups
+    toast({ title: "Agente Eliminado", description: `Agente \"${agentToDelete?.name}\" eliminado.` });
     setGroups(prevGroups => prevGroups.map(g => ({
       ...g,
       agentIds: g.agentIds.filter(id => id !== agentId)
@@ -151,18 +155,18 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const addGroup = useCallback((groupData: Omit<AIAgentGroup, 'id'>) => {
     const newGroup: AIAgentGroup = { ...groupData, id: uuidv4() };
     setGroups(prev => [...prev, newGroup]);
-    toast({ title: "Grupo Creado", description: `Grupo "${newGroup.name}" añadido.` });
+    toast({ title: "Grupo Creado", description: `Grupo \"${newGroup.name}\" añadido.` });
   }, [setGroups, toast]);
 
   const updateGroup = useCallback((updatedGroup: AIAgentGroup) => {
     setGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
-    toast({ title: "Grupo Actualizado", description: `Grupo "${updatedGroup.name}" guardado.` });
+    toast({ title: "Grupo Actualizado", description: `Grupo \"${updatedGroup.name}\" guardado.` });
   }, [setGroups, toast]);
 
   const deleteGroup = useCallback((groupId: string) => {
     const groupToDelete = groups.find(g => g.id === groupId);
     setGroups(prev => prev.filter(g => g.id !== groupId));
-    toast({ title: "Grupo Eliminado", description: `Grupo "${groupToDelete?.name}" eliminado.` });
+    toast({ title: "Grupo Eliminado", description: `Grupo \"${groupToDelete?.name}\" eliminado.` });
   }, [groups, setGroups, toast]);
 
   const getGroupById = useCallback((groupId: string) => groups.find(g => g.id === groupId), [groups]);
@@ -173,15 +177,15 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
       id: uuidv4(), 
       createdAt: new Date().toISOString() 
     };
-    setSnapshots(prev => [newSnapshot, ...prev]); // Add to the beginning
-    toast({ title: "Snapshot Guardado", description: `Snapshot "${newSnapshot.name}" creado.` });
+    setSnapshots(prev => [newSnapshot, ...prev]);
+    toast({ title: "Snapshot Guardado", description: `Snapshot \"${newSnapshot.name}\" creado.` });
     return newSnapshot;
   }, [setSnapshots, toast]);
 
   const deleteSnapshot = useCallback((snapshotId: string) => {
     const snapshotToDelete = snapshots.find(s => s.id === snapshotId);
     setSnapshots(prev => prev.filter(s => s.id !== snapshotId));
-    toast({ title: "Snapshot Eliminado", description: `Snapshot "${snapshotToDelete?.name}" eliminado.` });
+    toast({ title: "Snapshot Eliminado", description: `Snapshot \"${snapshotToDelete?.name}\" eliminado.` });
   }, [snapshots, setSnapshots, toast]);
 
   const deleteAllSnapshots = useCallback(() => {
@@ -191,29 +195,30 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   const getSnapshotById = useCallback((snapshotId: string) => snapshots.find(s => s.id === snapshotId), [snapshots]);
 
-
   const initializeDefaultData = useCallback(() => {
     const areAgentsInitialized = agents.some(agent => agent.isDefault);
-    if (!areAgentsInitialized) {
+    if (!areAgentsInitialized && agents.length === 0) { // Only init if truly empty AND not initialized
       const agentsWithIds = DEFAULT_AGENTS.map(agent => ({...agent, id: agent.id || uuidv4()}));
       setAgents(agentsWithIds);
       console.info("Default agents initialized.");
     }
 
     const areGroupsInitialized = groups.some(group => group.isDefault);
-    if (!areGroupsInitialized) {
+    if (!areGroupsInitialized && groups.length === 0) { // Only init if truly empty AND not initialized
       const groupsWithIds = DEFAULT_GROUPS.map(group => ({...group, id: group.id || uuidv4()}));
       setGroups(groupsWithIds);
       console.info("Default groups initialized.");
     }
-  }, [agents, groups, setAgents, setGroups]);
+  }, [agents, groups, setAgents, setGroups]); // Dependencies on agents & groups to re-evaluate if they are empty
 
   useEffect(() => {
      if (typeof window !== 'undefined') { 
-        const initialized = localStorage.getItem(`${APP_NAME}-initialized`);
-        if (!initialized) {
+        const initializedKey = `${APP_NAME}-data-initialized`; // More specific key
+        const isDataInitialized = localStorage.getItem(initializedKey);
+        if (!isDataInitialized) {
+            console.info("Running initial data setup (agents, groups)...");
             initializeDefaultData();
-            localStorage.setItem(`${APP_NAME}-initialized`, 'true');
+            localStorage.setItem(initializedKey, 'true');
         }
      }
   }, [initializeDefaultData]);
@@ -245,3 +250,5 @@ export const useAppState = (): AppStateContextType => {
   }
   return context;
 };
+
+    

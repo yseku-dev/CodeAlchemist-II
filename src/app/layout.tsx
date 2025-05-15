@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
@@ -6,6 +7,8 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from '@/components/ui/toaster';
 import { DebugProvider } from '@/context/DebugContext';
 import { AppStateProvider } from '@/context/AppStateContext';
+import { I18nProvider } from '@/context/I18nContext'; 
+import { DEFAULT_LANGUAGE_CODE } from '@/lib/i18n/constants'; // Import for initial lang
 
 export const metadata: Metadata = {
   title: 'CodeAlchemist',
@@ -18,11 +21,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang={DEFAULT_LANGUAGE_CODE}> {/* Use DEFAULT_LANGUAGE_CODE for initial server render */}
       <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
         <AppStateProvider>
           <DebugProvider>
-            <AppLayout>{children}</AppLayout>
+            <I18nProvider>
+              <AppLayout>{children}</AppLayout>
+            </I18nProvider>
             <Toaster />
           </DebugProvider>
         </AppStateProvider>
@@ -30,3 +35,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
