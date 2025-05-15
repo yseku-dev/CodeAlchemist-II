@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card'; // CardHeader, CardTitle, CardDescription removed
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
 import type { LLMConfigSourceOption } from '@/types';
-import { type GenerateCodeFromDescriptionOutput } from '@/ai/flows/generate-code-from-description';
+import type { GenerateCodeFromDescriptionOutput } from '@/types'; // Updated import
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AppError } from '@/utils/AppError';
@@ -22,6 +22,7 @@ import { callGenerateCodeFromDescription } from '@/utils/apiClient';
 import { useAppState } from '@/context/AppStateContext';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/context/I18nContext'; // Import useI18n
 
 /**
  * @fileOverview GenerarCodigoPage component allows users to generate code snippets
@@ -31,14 +32,15 @@ import { useRouter } from 'next/navigation';
  * and manages loading/error states.
  */
 export default function GenerarCodigoPage() {
-  const { getAgentById, groups } = useAppState(); 
+  const { getAgentById, getGroupById } = useAppState(); // getGroupById was missing from destructuring
   const router = useRouter();
+  const { t } = useI18n(); // Initialize useI18n
 
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<GenerateCodeFromDescriptionOutput & { groupLog?: string } | null>(null);
+  const [result, setResult] = useState<GenerateCodeFromDescriptionOutput | null>(null); // Ensure type includes groupLog if needed
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   const { addLog } = useDebug();
@@ -57,42 +59,46 @@ export default function GenerarCodigoPage() {
     let agentSystemPrompt: string | undefined;
     let groupLogForDisplay: string | undefined;
     let flowName = 'generateCodeFromDescription';
+    const orchestratorAgent = getAgentById('orquestador-flujo-agentes');
 
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
         const agent = getAgentById(llmConfigSource.id);
         agentSystemPrompt = agent?.systemPrompt; 
         flowName = `generateCodeFromDescription (Agent: ${agent?.name || llmConfigSource.id})`;
-        addLog({message: `Generating code with Agent: ${llmConfigSource.name}. Agent's system prompt might be used by an enhanced flow.`, flowName});
+        addLog({message: `Generating code with Agent: ${llmConfigSource.name}. Agent's system prompt: ${agentSystemPrompt?.substring(0,100)}...`, flowName});
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id && llmConfigSource.name) {
-        const group = groups.find(g => g.id === llmConfigSource.id);
-        groupLogForDisplay = `(Simulación de Log de Grupo para Generación de Código)\nTurno 1: Orquestador (usando contexto de '${llmConfigSource.name}') -> AgenteGeneradorDeCodigo. Tarea: \"${description.substring(0, 100)}...\".\nTurno 2: AgenteGeneradorDeCodigo -> Código generado.`;
-        agentSystemPrompt = group?.mainTask; 
+        const group = getGroupById(llmConfigSource.id);
+        agentSystemPrompt = orchestratorAgent?.systemPrompt;
+        groupLogForDisplay = t('autoupdate.logs.groupContextLog', { 
+            groupName: llmConfigSource.name,
+            groupTask: (group?.mainTask || 'N/A').substring(0,150),
+            userInput: description.substring(0, 100),
+            orchestratorContext: (agentSystemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
+            flowName: 'generateCodeFromDescription'
+        });
         flowName = `generateCodeFromDescription (Group: ${group?.name || llmConfigSource.id})`;
-        addLog({message: `Generating code with Group: ${llmConfigSource.name}. Group's task might be used by an enhanced flow.`, flowName});
+        addLog({message: `Generating code with Group: ${llmConfigSource.name}. Orchestrator's system prompt will be used.`, flowName});
     } else {
         addLog({message: `Generating code with Global settings. Description: ${description.substring(0,50)}...`, flowName});
     }
 
     try {
-      // The current `generateCodeFromDescription` flow only takes `description`.
-      // If it's enhanced to use agentSystemPrompt, it would be passed here.
-      // const inputForFlow = { description, agentSystemPrompt }; 
-      const aiResult = await callGenerateCodeFromDescription({ description });
-      setResult({...aiResult, groupLog: groupLogForDisplay});
+      const aiResult = await callGenerateCodeFromDescription({ description, agentSystemPrompt });
+      setResult({...aiResult, groupLog: groupLogForDisplay}); // Store potential group log
       addLog({message: "Code generation successful.", flowName});
-      toast({ title: "Código Generado", description: "El fragmento de código ha sido generado exitosamente." });
+      toast({ title: t('generateCode.toast.codeGenerated.title'), description: t('generateCode.toast.codeGenerated.description') });
     } catch (e: any) {
       addLog({ message: "Code generation failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
-        toast({ variant: "destructive", title: "Error de Generación", description: e.friendlyMessage });
+        toast({ variant: "destructive", title: t('generateCode.toast.generationError.title'), description: e.friendlyMessage });
         if (e.redirectTo) {
           router.push(e.redirectTo);
         }
       } else {
         const errorMsg = e.message || "Ocurrió un error al generar el código.";
         setError(errorMsg);
-        toast({ variant: "destructive", title: "Error de Generación", description: errorMsg });
+        toast({ variant: "destructive", title: t('generateCode.toast.generationError.title'), description: errorMsg });
       }
     } finally {
       setIsLoading(false);
@@ -105,7 +111,7 @@ export default function GenerarCodigoPage() {
    */
   const handleGenerateClick = () => {
     if (!description.trim()) {
-      toast({ variant: "destructive", title: "Descripción Vacía", description: "Por favor, describe tu necesidad."});
+      toast({ variant: "destructive", title: t('generateCode.toast.descriptionEmpty.title'), description: t('generateCode.toast.descriptionEmpty.description')});
       return;
     }
     setShowConfirmDialog(true);
@@ -118,7 +124,7 @@ export default function GenerarCodigoPage() {
   const handleAutoFixError = async (errorMsg: string) => {
     const autoFixFlowName = 'chatWithAgentOrGlobal (AutoFix Error)';
     addLog({ message: `Attempting Auto-Fix for error: ${errorMsg}`, flowName: autoFixFlowName});
-    toast({ title: "Auto-Fix (Simulado)", description: "La IA está analizando el error para proponer una solución."});
+    toast({ title: t('generateCode.toast.autofixSimulated.title'), description: t('generateCode.toast.autofixSimulated.description')});
     // Example:
     // const fixAttempt = await callChatWithAgentOrGlobal({ userMessage: `Explica este error y cómo solucionarlo: ${errorMsg}`});
     // Show fixAttempt.aiResponse in a dialog or toast.
@@ -128,19 +134,19 @@ export default function GenerarCodigoPage() {
     <Card className="max-w-3xl mx-auto">
       <PageSectionHeader
         icon={CodeXml}
-        title="Generar Código"
-        description="Crea fragmentos de código a partir de descripciones en lenguaje natural."
+        title={t('generateCode.title')}
+        description={t('generateCode.description')}
       />
       <CardContent className="space-y-6">
         <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
         
         <div className="space-y-2">
-          <Label htmlFor="description">Describe tu necesidad</Label>
+          <Label htmlFor="description">{t('generateCode.describeNeedLabel')}</Label>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ej: Una función en Python que sume dos números y maneje errores de tipo."
+            placeholder={t('generateCode.describeNeedPlaceholder')}
             rows={5}
             disabled={isLoading}
           />
@@ -148,7 +154,7 @@ export default function GenerarCodigoPage() {
         
         <Button onClick={handleGenerateClick} disabled={isLoading} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Generar Código
+          {t('generateCode.generateButton')}
         </Button>
 
         {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || "Error desconocido")} />}
@@ -157,16 +163,16 @@ export default function GenerarCodigoPage() {
           <div className="space-y-4 mt-6 p-4 border rounded-md bg-background">
             {result.explanation && (
               <div>
-                <h3 className="font-semibold text-lg mb-2">Explicación:</h3>
+                <h3 className="font-semibold text-lg mb-2">{t('generateCode.results.explanationLabel')}</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.explanation}</p>
               </div>
             )}
             <div>
-              <h3 className="font-semibold text-lg mb-2">Fragmento de Código:</h3>
+              <h3 className="font-semibold text-lg mb-2">{t('generateCode.results.codeSnippetLabel')}</h3>
               <CodeBlock code={result.code} />
             </div>
-             {result.groupLog && (
-              <LogsDisplay title="Log Detallado del Grupo" logs={result.groupLog} />
+             {result.groupLog && ( 
+              <LogsDisplay title={t('generateCode.results.groupLogTitle')} logs={result.groupLog} />
             )}
           </div>
         )}
@@ -176,13 +182,13 @@ export default function GenerarCodigoPage() {
         isOpen={showConfirmDialog}
         onClose={() => setShowConfirmDialog(false)}
         onConfirm={handleSubmit}
-        title="Confirmar Generación de Código"
+        title={t('generateCode.confirmDialog.title')}
       >
-        <p className="text-sm text-muted-foreground mb-2">Se utilizará la siguiente configuración:</p>
+        <p className="text-sm text-muted-foreground mb-2">{t('common.llmSourceLabel')}</p>
         <ul className="text-sm list-disc list-inside mb-2">
-          <li><strong>Fuente LLM:</strong> {llmConfigSource?.type} {llmConfigSource?.name ? `(${llmConfigSource.name})` : ''}</li>
+          <li><strong>{t('generateCode.confirmDialog.llmSourceLabel')}</strong> {llmConfigSource?.type} {llmConfigSource?.name ? `(${llmConfigSource.name})` : ''}</li>
         </ul>
-        <p className="text-sm text-muted-foreground mb-1"><strong>Prompt:</strong></p>
+        <p className="text-sm text-muted-foreground mb-1"><strong>{t('generateCode.confirmDialog.promptLabel')}</strong></p>
         <ScrollArea className="h-32 border rounded-md p-2 text-sm bg-muted">
           {description}
         </ScrollArea>
@@ -190,3 +196,5 @@ export default function GenerarCodigoPage() {
     </Card>
   );
 }
+
+    

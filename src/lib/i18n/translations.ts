@@ -594,7 +594,7 @@ const translationsData = {
       },
       "confirmDialog": {
         "title": "Confirmar Generación de Código",
-        "llmSource": "Fuente LLM:",
+        "llmSourceLabel": "Fuente LLM:",
         "promptLabel": "Prompt:"
       },
       "toast": {
@@ -608,6 +608,10 @@ const translationsData = {
         },
         "generationError": {
             "title": "Error de Generación"
+        },
+        "autofixSimulated": {
+            "title": "Auto-Fix (Simulado)",
+            "description": "La IA está analizando el error para proponer una solución."
         }
       }
     },
@@ -659,6 +663,10 @@ const translationsData = {
         "zipDownloadError": {
             "title": "Error de Descarga ZIP",
             "description": "No se pudo generar el archivo ZIP: {error}"
+        },
+         "autofixSimulated": {
+            "title": "Auto-Fix (Simulado)",
+            "description": "La IA está analizando el error para proponer una solución."
         }
       }
     },
@@ -712,6 +720,10 @@ const translationsData = {
         "snapshotError": {
             "title": "Error",
             "description": "No hay código {type} para guardar."
+        },
+        "autofixSimulated": {
+            "title": "Auto-Fix (Simulado)",
+            "description": "La IA está analizando el error para proponer una solución."
         }
       }
     },
@@ -1547,35 +1559,35 @@ const translationsData = {
         },
         "dialogs": {
             "applySuggestion": {
-                "title": "Aplicar Sugerencia a {area}",
-                "confirmText": "Sí, Marcar como Aplicada",
+                "title": "Apply Suggestion to {area}",
+                "confirmText": "Yes, Mark as Applied",
                 "description": {
-                    "p1": "Se marcará como aplicada la sugerencia para {area}.",
-                    "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually en tu entorno de desarrollo:"
+                    "p1": "The suggestion for {area} will be marked as applied.",
+                    "p2": "Actual file modification is not possible from the browser. Review the suggested (or edited) content and apply it manually in your development environment:"
                 }
             },
-            "noContentToShow": "Error: No hay contenido para mostrar.",
+            "noContentToShow": "Error: No content to display.",
             "testSuggestion": {
-                "title": "Testear Sugerencia: {area}",
-                "description": "Revisa el código sugerido o editado. La prueba real debe realizarse en tu entorno de desarrollo."
+                "title": "Test Suggestion: {area}",
+                "description": "Review the suggested or edited code. Actual testing must be done in your development environment."
             },
-            "noContentToTest": "No hay contenido para testear.",
+            "noContentToTest": "No content to test.",
             "testInVenv": {
-                "title": "Testear Sugerencia en Entorno Virtual: {area}",
-                "description": "Esta funcionalidad simularía la ejecución del código sugerido en un entorno virtual aislado (ej. Python venv, Node.js NVM). La ejecución real requiere una infraestructura local o backend.",
-                "actionNote": "Acción: Se intentaría crear un entorno virtual, instalar dependencias (si se pudieran inferir) y ejecutar el código/pruebas.",
-                "simulateButton": "Simular Inicio de Prueba"
+                "title": "Test Suggestion in Virtual Environment: {area}",
+                "description": "This functionality would simulate running the suggested code in an isolated virtual environment (e.g., Python venv, Node.js NVM). Actual execution requires a local setup or backend infrastructure.",
+                "actionNote": "Action: It would attempt to create a virtual environment, install dependencies (if inferable), and run the code/tests.",
+                "simulateButton": "Simulate Test Start"
             },
             "commitToGit": {
-                "title": "Subir Cambios a Git",
-                "confirmText": "Commit y Push",
-                "placeholder": "Ej: Aplicadas sugerencias de AutoUpdate",
-                "description": "Esta acción intentará realizar un commit y push al repositorio configurado. Asegúrate de que las credenciales en 'Configuración' son correctas."
+                "title": "Commit Changes to Git",
+                "confirmText": "Commit and Push",
+                "placeholder": "E.g.: Applied AutoUpdate suggestions",
+                "description": "This action will attempt to commit and push to the configured repository. Ensure credentials in 'Settings' are correct."
             }
         },
         "autofix": {
-            "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
-            "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
+            "errorContext": "Error to analyze: {error}\n\nContext: Error occurred in CodeAlchemist's AutoUpdate feature.",
+            "focusArea": "Explain the following error and propose a solution or debugging steps: \"{error}\""
         }
     },
     "refactorProject": {
@@ -1728,7 +1740,7 @@ const translationsData = {
       },
       "confirmDialog": {
         "title": "Confirm Code Generation",
-        "llmSource": "LLM Source:",
+        "llmSourceLabel": "LLM Source:",
         "promptLabel": "Prompt:"
       },
       "toast": {
@@ -1742,6 +1754,10 @@ const translationsData = {
         },
         "generationError": {
             "title": "Generation Error"
+        },
+        "autofixSimulated": {
+            "title": "Auto-Fix (Simulated)",
+            "description": "AI is analyzing the error to propose a solution."
         }
       }
     },
@@ -1793,6 +1809,10 @@ const translationsData = {
         "zipDownloadError": {
             "title": "ZIP Download Error",
             "description": "Could not generate the ZIP file: {error}"
+        },
+         "autofixSimulated": {
+            "title": "Auto-Fix (Simulated)",
+            "description": "AI is analyzing the error to propose a solution."
         }
       }
     },
@@ -1846,6 +1866,10 @@ const translationsData = {
         "snapshotError": {
             "title": "Error",
             "description": "No {type} code to save."
+        },
+        "autofixSimulated": {
+            "title": "Auto-Fix (Simulated)",
+            "description": "AI is analyzing the error to propose a solution."
         }
       }
     },
@@ -2331,6 +2355,8 @@ type DotNestedKeys<T> = T extends object
 // export type AppTranslationKey = DotNestedKeys<typeof translationsData['es']>;
 // And then use AppTranslationKey instead of string for the `t` function's key parameter.
 // For now, we keep TranslationKey as string for simplicity with potentially dynamic keys.
+
+    
 
     
 
