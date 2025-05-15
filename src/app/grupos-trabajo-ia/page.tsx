@@ -2,9 +2,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card'; // Removed CardHeader etc for PageSectionHeader
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogFooter, DialogClose } from '@/components/ui/dialog'; // Renamed DialogDescription to avoid conflict
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,8 @@ import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import AISuggestionDialog from '@/components/features/common/AISuggestionDialog';
 import { AppError } from '@/utils/AppError';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/context/I18nContext';
+import type { TranslationKey } from '@/lib/i18n/translations';
 
 
 const initialGroupFormData: GroupFormData = {
@@ -32,19 +34,21 @@ const initialGroupFormData: GroupFormData = {
   agentIds: [],
 };
 
-const MAX_EXECUTION_TURNS = 10; 
+const MAX_EXECUTION_TURNS = 10;
 
 /**
  * @fileOverview GruposTrabajoIAPage component for managing AI Agent Groups.
  * Allows users to create, edit, delete, and execute AI agent groups.
  * Execution involves a multi-turn conversation coordinated by an orchestrator agent.
  * Supports AI-assisted group definition.
+ * Internationalized using useI18n.
  */
 export default function GruposTrabajoIAPage() {
   const { groups, addGroup, updateGroup, deleteGroup, agents, getAgentById } = useAppState();
   const { toast } = useToast();
   const { addLog: addDebugLog } = useDebug();
   const router = useRouter();
+  const { t } = useI18n();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<AIAgentGroup | null>(null);
@@ -70,7 +74,7 @@ export default function GruposTrabajoIAPage() {
    * @param {AIAgentGroup | SuggestGroupDefinitionOutput} [groupOrSuggestion] - The group to edit or AI suggestion.
    */
   const handleOpenForm = (groupOrSuggestion?: AIAgentGroup | SuggestGroupDefinitionOutput) => {
-    if (groupOrSuggestion && 'id' in groupOrSuggestion && typeof groupOrSuggestion.id === 'string' && !groupOrSuggestion.id.startsWith('suggested-')) { 
+    if (groupOrSuggestion && 'id' in groupOrSuggestion && typeof groupOrSuggestion.id === 'string' && !groupOrSuggestion.id.startsWith('suggested-')) {
       const group = groupOrSuggestion as AIAgentGroup;
       setEditingGroup(group);
       setFormData({
@@ -80,17 +84,17 @@ export default function GruposTrabajoIAPage() {
         mainTask: group.mainTask,
         agentIds: [...group.agentIds],
       });
-    } else if (groupOrSuggestion) { 
+    } else if (groupOrSuggestion) {
       const suggestion = groupOrSuggestion as SuggestGroupDefinitionOutput;
-      setEditingGroup(null); 
+      setEditingGroup(null);
       setFormData({
         name: suggestion.name,
         description: suggestion.description,
         mainTask: suggestion.mainTask,
         agentIds: suggestion.agentIds,
-        id: `suggested-${uuidv4()}` 
+        id: `suggested-${uuidv4()}`
       });
-    } else { 
+    } else {
       setEditingGroup(null);
       setFormData(initialGroupFormData);
     }
@@ -126,28 +130,28 @@ export default function GruposTrabajoIAPage() {
    */
   const handleSubmitForm = () => {
     const flowName = editingGroup ? 'updateGroup' : 'addGroup';
-    addDebugLog({message: `Submitting group form: ${editingGroup ? 'Update' : 'Create'}`, data: formData, flowName});
+    addDebugLog({source: 'GruposTrabajoIAPage', type: 'INFO', message: `Submitting group form: ${editingGroup ? 'Update' : 'Create'}`, data: formData, flowName});
     if (!formData.name.trim() || !formData.mainTask.trim()) {
-      toast({ variant: "destructive", title: "Campos Requeridos", description: "El nombre y la tarea principal son obligatorios." });
+      toast({ variant: "destructive", title: t('groups.form.toast.fieldsRequired.title'), description: t('groups.form.toast.fieldsRequired.description') });
       return;
     }
     if (formData.agentIds.length === 0) {
-        toast({ variant: "destructive", title: "Agentes Requeridos", description: "Selecciona al menos un agente participante (además del Orquestador)." });
+        toast({ variant: "destructive", title: t('groups.form.toast.agentsRequired.title'), description: t('groups.form.toast.agentsRequired.description') });
         return;
     }
 
-    if (editingGroup) { 
+    if (editingGroup) {
       updateGroup({ ...editingGroup, ...formData } as AIAgentGroup);
-    } else if (formData.id && formData.id.startsWith('suggested-')) { 
-      const { id, ...newGroupData } = formData; 
+    } else if (formData.id && formData.id.startsWith('suggested-')) {
+      const { id, ...newGroupData } = formData;
       addGroup(newGroupData);
     }
-     else { 
+     else {
       addGroup(formData);
     }
     setIsFormOpen(false);
     setEditingGroup(null);
-    addDebugLog({message: `Group ${formData.id && !formData.id.startsWith('suggested-') ? 'updated' : 'created/confirmed'}: ${formData.name}`, flowName});
+    addDebugLog({source: 'GruposTrabajoIAPage', type: 'SUCCESS', message: `Group ${formData.id && !formData.id.startsWith('suggested-') ? 'updated' : 'created/confirmed'}: ${formData.name}`, flowName});
   };
 
   /**
@@ -157,13 +161,13 @@ export default function GruposTrabajoIAPage() {
   const handleDeleteGroup = (group: AIAgentGroup) => {
     setGroupToDelete(group);
   };
-  
+
   /**
    * Confirms and executes the deletion of a group.
    */
   const confirmDeleteGroup = () => {
     if (groupToDelete) {
-      addDebugLog({message: `Deleting group: ${groupToDelete.name}`, groupId: groupToDelete.id, flowName: 'deleteGroup'});
+      addDebugLog({source: 'GruposTrabajoIAPage', type: 'INFO', message: `Deleting group: ${groupToDelete.name}`, data: { groupId: groupToDelete.id }, flowName: 'deleteGroup'});
       deleteGroup(groupToDelete.id);
       setGroupToDelete(null);
     }
@@ -176,22 +180,22 @@ export default function GruposTrabajoIAPage() {
    */
   const handleExecuteGroup = async (group: AIAgentGroup) => {
     setExecutingGroup(group);
-    setExecutionLog([`Iniciando ejecución del grupo: ${group.name}...\nTarea Principal: ${group.mainTask}`]);
+    setExecutionLog([t('groups.execution.starting', { name: group.name, mainTask: group.mainTask })]);
     setIsExecutionModalOpen(true);
-    setIsGroupExecuting(true); // Set executing state
+    setIsGroupExecuting(true);
     const flowName = 'executeAIGroup';
-    addDebugLog({message: `Executing group: ${group.name}. Task: ${group.mainTask.substring(0, 50)}...`, flowName});
-    
-    executionControllerRef.current = new AbortController(); 
+    addDebugLog({source: 'GruposTrabajoIAPage', type: 'INFO', message: `Executing group: ${group.name}. Task: ${group.mainTask.substring(0, 50)}...`, flowName});
+
+    executionControllerRef.current = new AbortController();
 
     let currentTurn = 1;
-    let currentOrchestratorInput = group.mainTask; // Initial input for orchestrator is the group's main task
+    let currentOrchestratorInput = group.mainTask;
     const orchestratorAgent = agents.find(a => a.id === 'orquestador-flujo-agentes');
 
     if (!orchestratorAgent) {
-      const errorMsg = "Agente Orquestador ('orquestador-flujo-agentes') no encontrado. No se puede ejecutar el grupo.";
-      setExecutionLog(prev => [...prev, `Error Crítico: ${errorMsg}`]);
-      toast({ variant: "destructive", title: "Error de Configuración", description: errorMsg });
+      const errorMsg = t('groups.toast.execution.orchestratorNotFound');
+      setExecutionLog(prev => [...prev, t('groups.execution.log.criticalErrorHeader') + errorMsg]);
+      toast({ variant: "destructive", title: t('groups.toast.execution.orchestratorError'), description: errorMsg });
       setIsGroupExecuting(false);
       return;
     }
@@ -200,18 +204,16 @@ export default function GruposTrabajoIAPage() {
       .map(id => getAgentById(id))
       .filter(Boolean) as Agent[];
 
-    // Execution loop
-    while (isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) { // Check isGroupExecuting flag
+    while (isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) {
       if (executionControllerRef.current.signal.aborted) {
-        setExecutionLog(prev => [...prev, `Turno ${currentTurn}: Ejecución cancelada por el usuario.`]);
+        setExecutionLog(prev => [...prev, t('groups.execution.log.userStopped', {turn: currentTurn})]);
         break;
       }
 
-      setExecutionLog(prev => [...prev, `\n--- Turno ${currentTurn} ---`]);
-      setExecutionLog(prev => [...prev, `Orquestador recibiendo: "${currentOrchestratorInput.substring(0, 200)}${currentOrchestratorInput.length > 200 ? "..." : ""}"`]);
+      setExecutionLog(prev => [...prev, t('groups.execution.log.turnPrefix', {turn: currentTurn})]);
+      setExecutionLog(prev => [...prev, t('groups.execution.log.orchestratorReceiving', {input: currentOrchestratorInput.substring(0, 200) + (currentOrchestratorInput.length > 200 ? "..." : "")})]);
 
       try {
-        // 1. Call Orchestrator
         const orchestratorResponse = await callChatWithAIGroup({
           userMessage: currentOrchestratorInput,
           groupMainTask: group.mainTask,
@@ -221,120 +223,116 @@ export default function GruposTrabajoIAPage() {
           })),
           orchestratorAgentSystemPrompt: orchestratorAgent.systemPrompt,
         });
-        setExecutionLog(prev => [...prev, `Orquestador (raw JSON): ${orchestratorResponse.orchestratorResponse}`]);
-        
-        // 2. Parse Orchestrator's Decision
+        setExecutionLog(prev => [...prev, t('groups.execution.log.orchestratorRawResponse', {response: orchestratorResponse.orchestratorResponse})]);
+
         let decision;
         try {
           decision = JSON.parse(orchestratorResponse.orchestratorResponse);
         } catch (parseError) {
-          const errorMsg = "Error al parsear la respuesta JSON del Orquestador.";
-          setExecutionLog(prev => [...prev, `Error Crítico: ${errorMsg} Respuesta: ${orchestratorResponse.orchestratorResponse}`]);
-          toast({ variant: "destructive", title: "Error de Orquestador", description: errorMsg });
-          setIsGroupExecuting(false); 
+          const errorMsg = t('groups.execution.criticalError.orchestratorParse');
+          setExecutionLog(prev => [...prev, t('groups.execution.log.criticalErrorHeader') + `${errorMsg} Response: ${orchestratorResponse.orchestratorResponse}`]);
+          toast({ variant: "destructive", title: t('groups.toast.execution.orchestratorError'), description: errorMsg });
+          setIsGroupExecuting(false);
           break;
         }
 
         if (!decision.next_agent_id || !decision.instruction_for_next_agent) {
-          const errorMsg = "Respuesta del Orquestador incompleta (faltan next_agent_id o instruction_for_next_agent).";
-          setExecutionLog(prev => [...prev, `Error Crítico: ${errorMsg}`]);
-          toast({ variant: "destructive", title: "Error de Orquestador", description: errorMsg });
+          const errorMsg = t('groups.execution.criticalError.orchestratorIncomplete');
+          setExecutionLog(prev => [...prev, t('groups.execution.log.criticalErrorHeader') + errorMsg]);
+          toast({ variant: "destructive", title: t('groups.toast.execution.orchestratorError'), description: errorMsg });
           setIsGroupExecuting(false);
           break;
         }
-        
-        setExecutionLog(prev => [...prev, `Decisión del Orquestador: Siguiente Agente: ${decision.next_agent_id}. Instrucción: "${decision.instruction_for_next_agent.substring(0,100)}...". Razón: "${decision.reasoning || 'N/A'}"`]);
 
-        // 3. Handle Next Step
+        setExecutionLog(prev => [...prev, t('groups.execution.log.orchestratorDecision', {nextAgentId: decision.next_agent_id, instruction: decision.instruction_for_next_agent.substring(0,100) + "...", reasoning: decision.reasoning || 'N/A'})]);
+
         if (decision.next_agent_id.toUpperCase() === "COMPLETADO") {
-          setExecutionLog(prev => [...prev, `\n--- Tarea Completada --- \nResultado Final del Grupo: ${decision.instruction_for_next_agent}`]);
-          setIsGroupExecuting(false); 
+          setExecutionLog(prev => [...prev, t('groups.execution.log.taskCompleted', {result: decision.instruction_for_next_agent})]);
+          setIsGroupExecuting(false);
           break;
         }
 
         const selectedAgent = getAgentById(decision.next_agent_id);
         if (!selectedAgent) {
-          const errorMsg = `Agente con ID "${decision.next_agent_id}" no encontrado.`;
-          setExecutionLog(prev => [...prev, `Error Crítico: ${errorMsg}`]);
-          toast({ variant: "destructive", title: "Error de Grupo", description: errorMsg });
+          const errorMsg = t('groups.execution.criticalError.agentNotFound', {id: decision.next_agent_id});
+          setExecutionLog(prev => [...prev, t('groups.execution.log.criticalErrorHeader') + errorMsg]);
+          toast({ variant: "destructive", title: t('groups.toast.execution.groupError'), description: errorMsg });
           setIsGroupExecuting(false);
           break;
         }
 
-        setExecutionLog(prev => [...prev, `Llamando a Agente: ${selectedAgent.name}...`]);
-        
-        // 4. Call Selected Agent
+        setExecutionLog(prev => [...prev, t('groups.execution.log.callingAgent', {name: selectedAgent.name})]);
+
         const agentResponse = await callChatWithAgentOrGlobal({
           userMessage: decision.instruction_for_next_agent,
           agentSystemPrompt: selectedAgent.systemPrompt,
         });
-        setExecutionLog(prev => [...prev, `Respuesta de ${selectedAgent.name}: "${agentResponse.aiResponse.substring(0, 200)}${agentResponse.aiResponse.length > 200 ? "..." : ""}"`]);
-        currentOrchestratorInput = agentResponse.aiResponse; // Prepare for next orchestrator turn
+        setExecutionLog(prev => [...prev, t('groups.execution.log.agentResponse', {name: selectedAgent.name, response: agentResponse.aiResponse.substring(0, 200) + (agentResponse.aiResponse.length > 200 ? "..." : "")})]);
+        currentOrchestratorInput = agentResponse.aiResponse;
 
       } catch (error: any) {
-        let friendlyMessage = "Ocurrió un error durante la ejecución del grupo.";
+        let friendlyMessage = t('groups.toast.execution.generalError');
         if (error instanceof AppError) {
           friendlyMessage = error.friendlyMessage;
-          if (error.redirectTo) { // Check for redirectTo property
-            setIsExecutionModalOpen(false); 
+          if (error.redirectTo) {
+            setIsExecutionModalOpen(false);
             router.push(error.redirectTo);
-            setIsGroupExecuting(false); 
-            break; 
+            setIsGroupExecuting(false);
+            break;
           }
         }
-        setExecutionLog(prev => [...prev, `Error en Turno ${currentTurn}: ${friendlyMessage}`]);
-        addDebugLog({ message: `Error during group execution turn ${currentTurn}`, errorDetails: error, friendlyMessage, flowName });
-        toast({ variant: "destructive", title: "Error de Ejecución", description: friendlyMessage });
-        setIsGroupExecuting(false); 
+        setExecutionLog(prev => [...prev, t('groups.execution.log.errorInTurn', {turn: currentTurn, errorMessage: friendlyMessage})]);
+        addDebugLog({source: 'GruposTrabajoIAPage', type: 'ERROR', message: `Error during group execution turn ${currentTurn}`, errorDetails: error, friendlyMessage, flowName });
+        toast({ variant: "destructive", title: t('groups.toast.execution.generalError'), description: friendlyMessage });
+        setIsGroupExecuting(false);
         break;
       }
       currentTurn++;
     }
 
-    if (isGroupExecuting && currentTurn > MAX_EXECUTION_TURNS) { // Still executing after max turns
-      setExecutionLog(prev => [...prev, `\nSe alcanzó el número máximo de turnos (${MAX_EXECUTION_TURNS}). Ejecución detenida.`]);
+    if (isGroupExecuting && currentTurn > MAX_EXECUTION_TURNS) {
+      setExecutionLog(prev => [...prev, t('groups.toast.execution.maxTurnsReached', {maxTurns: MAX_EXECUTION_TURNS})]);
     }
-     if (!isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) { // Stopped by user or error before max turns
-        setExecutionLog(prev => [...prev, `\nEjecución del grupo finalizada o detenida.`]);
+     if (!isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) {
+        setExecutionLog(prev => [...prev, t('groups.toast.execution.stoppedOrFinished')]);
     }
-    setIsGroupExecuting(false); // Ensure it's always false at the very end
+    setIsGroupExecuting(false);
     executionControllerRef.current = null;
   };
 
   /**
-   * Stops the currently active group execution by setting the `isGroupExecuting` flag to false.
+   * Stops the currently active group execution.
    */
   const handleStopExecution = () => {
     if (executionControllerRef.current) {
-      executionControllerRef.current.abort(); // Signal abortion if needed by flows
+      executionControllerRef.current.abort();
     }
-    setIsGroupExecuting(false); // This will terminate the loop in handleExecuteGroup
-    addDebugLog({message: `Group execution stop requested for: ${executingGroup?.name}`, flowName: 'stopAIGroupExecution'});
+    setIsGroupExecuting(false);
+    addDebugLog({source: 'GruposTrabajoIAPage', type: 'WARN', message: `Group execution stop requested for: ${executingGroup?.name}`, flowName: 'stopAIGroupExecution'});
   };
 
   /**
    * Handles the AI-assisted group definition suggestion.
-   * Calls an AI flow to get suggestions and pre-fills the form.
    */
   const handleSuggestGroup = async () => {
     if (!groupTaskDescription.trim()) {
-      toast({ variant: 'destructive', title: 'Descripción Requerida', description: 'Por favor, describe la tarea del grupo.' });
+      toast({ variant: 'destructive', title: t('groups.toast.suggestion.taskRequired.title'), description: t('groups.toast.suggestion.taskRequired.description') });
       return;
     }
     setIsSuggestingGroup(true);
     const flowName = 'suggestGroupDefinition';
-    addDebugLog({message: `Requesting AI suggestion for group task: ${groupTaskDescription}`, flowName});
+    addDebugLog({source: 'GruposTrabajoIAPage', type: 'INFO', message: `Requesting AI suggestion for group task: ${groupTaskDescription}`, flowName});
     try {
       const agentInfos: AgentInfoForGroupSuggestion[] = availableAgentsForSelection.map(a => ({ id: a.id, name: a.name, description: a.description }));
       const suggestion = await callSuggestGroupDefinition({ groupTaskDescription, availableAgents: agentInfos });
-      toast({ title: 'Sugerencia Recibida', description: `La IA ha sugerido una definición para el grupo ${suggestion.name}.` });
+      toast({ title: t('groups.toast.suggestion.received.title'), description: t('groups.toast.suggestion.received.description', { name: suggestion.name }) });
       setIsSuggestGroupDialogOpen(false);
       setGroupTaskDescription('');
       handleOpenForm(suggestion);
     } catch (error: any) {
-      addDebugLog({message: 'AI group suggestion failed', errorDetails: error.originalError || error, friendlyMessage: error.friendlyMessage, flowName});
-      const errorMsg = error instanceof AppError ? error.friendlyMessage : error.message || 'No se pudo obtener la sugerencia.';
-      toast({ variant: 'destructive', title: 'Error de Sugerencia', description: errorMsg });
+      addDebugLog({source: 'GruposTrabajoIAPage', type: 'ERROR', message: 'AI group suggestion failed', errorDetails: error.originalError || error, friendlyMessage: error.friendlyMessage, flowName});
+      const errorMsg = error instanceof AppError ? error.friendlyMessage : error.message || t('groups.toast.suggestion.error');
+      toast({ variant: 'destructive', title: t('groups.toast.suggestion.error'), description: errorMsg });
       if (error instanceof AppError && error.redirectTo) {
         router.push(error.redirectTo);
       }
@@ -343,8 +341,8 @@ export default function GruposTrabajoIAPage() {
     }
   };
 
-  const groupSuggestionExtraFooter = availableAgentsForSelection.length === 0 
-    ? <p className="text-xs text-destructive text-center">Crea agentes primero para poder obtener sugerencias de grupos.</p>
+  const groupSuggestionExtraFooter = availableAgentsForSelection.length === 0
+    ? <p className="text-xs text-destructive text-center">{t('groups.suggestionDialog.noAgentsWarning')}</p>
     : null;
 
   return (
@@ -352,36 +350,36 @@ export default function GruposTrabajoIAPage() {
       <Card>
         <PageSectionHeader
           icon={Workflow}
-          title="Gestión de Grupos de Trabajo IA"
-          description="Define y ejecuta equipos de agentes IA colaborativos."
+          title={t('groups.title')}
+          description={t('groups.description')}
           actions={
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => setIsSuggestGroupDialogOpen(true)} disabled={availableAgentsForSelection.length === 0}>
-                <SparklesIcon className="mr-2 h-4 w-4" /> Crear con IA
+                <SparklesIcon className="mr-2 h-4 w-4" /> {t('groups.createWithAIButton')}
               </Button>
-              <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />Crear Grupo</Button>
+              <Button onClick={() => handleOpenForm()}><PlusCircle className="mr-2 h-4 w-4" />{t('groups.createGroupButton')}</Button>
             </div>
           }
         />
         <CardContent>
           {groups.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No hay grupos de trabajo creados.</p>
+            <p className="text-muted-foreground text-center py-8">{t('groups.noGroupsMessage')}</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {groups.map(group => (
                 <Card key={group.id} className="flex flex-col">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{group.name} {group.isDefault && <span className="text-xs text-primary font-normal">(Por Defecto)</span>}</CardTitle>
+                    <CardTitle className="text-lg">{group.name} {group.isDefault && <span className="text-xs text-primary font-normal">{t('groups.defaultGroupBadge')}</span>}</CardTitle>
                     <CardDescription className="text-xs h-10 overflow-hidden text-ellipsis">{group.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="text-xs space-y-1 flex-grow">
-                    <p><strong>Agentes:</strong> {group.agentIds.length} (+ Orquestador)</p>
-                    <p className="truncate"><strong>Tarea:</strong> {group.mainTask}</p>
+                    <p><strong>{t('groups.agentsLabel')}</strong> {t('groups.agentsCountFormat', { count: group.agentIds.length })}</p>
+                    <p className="truncate"><strong>{t('groups.taskLabel')}</strong> {group.mainTask}</p>
                   </CardContent>
                   <CardFooter className="flex justify-end gap-1 p-2">
-                    <Button variant="ghost" size="icon" title="Ejecutar Grupo" onClick={() => handleExecuteGroup(group)} disabled={isGroupExecuting}><Play className="h-4 w-4"/></Button>
-                    <Button variant="ghost" size="icon" title="Editar Grupo" onClick={() => handleOpenForm(group)} disabled={isGroupExecuting}><Edit3 className="h-4 w-4"/></Button>
-                    <Button variant="ghost" size="icon" title="Eliminar Grupo" onClick={() => handleDeleteGroup(group)} disabled={isGroupExecuting}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                    <Button variant="ghost" size="icon" title={t('groups.action.execute')} onClick={() => handleExecuteGroup(group)} disabled={isGroupExecuting}><Play className="h-4 w-4"/></Button>
+                    <Button variant="ghost" size="icon" title={t('groups.action.edit')} onClick={() => handleOpenForm(group)} disabled={isGroupExecuting}><Edit3 className="h-4 w-4"/></Button>
+                    <Button variant="ghost" size="icon" title={t('groups.action.delete')} onClick={() => handleDeleteGroup(group)} disabled={isGroupExecuting}><Trash2 className="h-4 w-4 text-destructive"/></Button>
                   </CardFooter>
                 </Card>
               ))}
@@ -392,31 +390,31 @@ export default function GruposTrabajoIAPage() {
 
       <Dialog open={isFormOpen} onOpenChange={(open) => {
         setIsFormOpen(open);
-        if (!open) setEditingGroup(null); 
+        if (!open) setEditingGroup(null);
       }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>{editingGroup ? 'Editar Grupo de Trabajo' : (formData.id && formData.id.startsWith('suggested-') ? 'Revisar Sugerencia de Grupo' : 'Crear Nuevo Grupo de Trabajo')}</DialogTitle>
+            <DialogTitle>{editingGroup ? t('groups.form.title.edit') : (formData.id && formData.id.startsWith('suggested-') ? t('groups.form.title.reviewSuggestion') : t('groups.form.title.create'))}</DialogTitle>
           </DialogHeader>
           <ScrollArea className="flex-grow pr-6 -mr-6">
             <div className="space-y-4 py-4">
               <div className="space-y-1">
-                <Label htmlFor="group-name">Nombre</Label>
+                <Label htmlFor="group-name">{t('groups.form.label.name')}</Label>
                 <Input id="group-name" value={formData.name} onChange={(e) => handleFormChange('name', e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="group-description">Descripción</Label>
+                <Label htmlFor="group-description">{t('groups.form.label.description')}</Label>
                 <Textarea id="group-description" value={formData.description} onChange={(e) => handleFormChange('description', e.target.value)} rows={2} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="group-mainTask">Tarea Principal del Grupo</Label>
-                <Textarea id="group-mainTask" value={formData.mainTask} onChange={(e) => handleFormChange('mainTask', e.target.value)} rows={4} placeholder="Describe el objetivo general que el grupo debe alcanzar..." />
+                <Label htmlFor="group-mainTask">{t('groups.form.label.mainTask')}</Label>
+                <Textarea id="group-mainTask" value={formData.mainTask} onChange={(e) => handleFormChange('mainTask', e.target.value)} rows={4} placeholder={t('groups.form.placeholder.mainTask')} />
               </div>
-              
-              <Label className="font-semibold">Seleccionar Agentes Participantes</Label>
-              <p className="text-xs text-muted-foreground">El <code className="bg-muted px-1 rounded-sm">OrquestadorFlujoAgentes</code> se añade implícitamente.</p>
+
+              <Label className="font-semibold">{t('groups.form.label.selectAgents')}</Label>
+              <p className="text-xs text-muted-foreground">{t('groups.form.orchestratorImplicitNote')}</p>
               {availableAgentsForSelection.length === 0 ? (
-                 <p className="text-sm text-destructive p-2 border border-destructive/50 rounded-md">No hay otros agentes disponibles para seleccionar. Crea agentes primero.</p>
+                 <p className="text-sm text-destructive p-2 border border-destructive/50 rounded-md">{t('groups.form.noAgentsToSelectError')}</p>
               ) : (
                 <ScrollArea className="h-40 border rounded-md p-2">
                     <div className="space-y-2">
@@ -436,32 +434,32 @@ export default function GruposTrabajoIAPage() {
             </div>
           </ScrollArea>
           <DialogFooter className="pt-4 border-t">
-            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-            <Button onClick={handleSubmitForm} disabled={availableAgentsForSelection.length === 0 && formData.agentIds.length === 0}>{editingGroup ? 'Guardar Cambios' : (formData.id && formData.id.startsWith('suggested-') ? 'Crear Grupo con Sugerencia' : 'Crear Grupo')}</Button>
+            <DialogClose asChild><Button variant="outline">{t('common.cancel')}</Button></DialogClose>
+            <Button onClick={handleSubmitForm} disabled={availableAgentsForSelection.length === 0 && formData.agentIds.length === 0}>{editingGroup ? t('groups.form.button.saveChanges') : (formData.id && formData.id.startsWith('suggested-') ? t('groups.form.button.createGroupWithSuggestion') : t('groups.form.button.createGroup'))}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       <ConfirmDialog
         isOpen={!!groupToDelete}
         onClose={() => setGroupToDelete(null)}
         onConfirm={confirmDeleteGroup}
-        title={`Eliminar Grupo: ${groupToDelete?.name}`}
-        description="¿Estás seguro de que quieres eliminar este grupo de trabajo?"
+        title={t('common.delete') + `: ${groupToDelete?.name}`}
+        description={t('groups.deleteSingleModal.description')}
       />
 
       <Dialog open={isExecutionModalOpen} onOpenChange={(open) => {if(!open) { handleStopExecution(); setIsExecutionModalOpen(false); }}}>
         <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
-                <DialogTitle>Ejecución del Grupo: {executingGroup?.name}</DialogTitle>
-                <DialogDescription>Tarea Principal: {executingGroup?.mainTask}</DialogDescription>
+                <DialogTitle>{t('groups.executionModal.title', { name: executingGroup?.name || 'N/A' })}</DialogTitle>
+                <DialogDescriptionComponent>{t('groups.executionModal.mainTaskLabel')} {executingGroup?.mainTask}</DialogDescriptionComponent> {/* Use aliased DialogDescription */}
             </DialogHeader>
-            <div className="flex-grow overflow-hidden -mx-6"> 
-                <LogsDisplay title="Log de Ejecución Detallado" logs={executionLog} defaultExpanded={true} />
+            <div className="flex-grow overflow-hidden -mx-6">
+                <LogsDisplay title={t('groups.executionModal.logTitle')} logs={executionLog} defaultExpanded={true} />
             </div>
             <DialogFooter className="pt-4 border-t">
-                <Button variant="outline" onClick={handleStopExecution} disabled={!isGroupExecuting}>Detener Ejecución</Button>
-                <DialogClose asChild><Button>Cerrar</Button></DialogClose>
+                <Button variant="outline" onClick={handleStopExecution} disabled={!isGroupExecuting}>{t('groups.executionModal.stopButton')}</Button>
+                <DialogClose asChild><Button>{t('common.close')}</Button></DialogClose>
             </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -469,16 +467,16 @@ export default function GruposTrabajoIAPage() {
       <AISuggestionDialog
         isOpen={isSuggestGroupDialogOpen}
         onOpenChange={setIsSuggestGroupDialogOpen}
-        dialogTitle="Sugerir Definición de Grupo con IA"
-        dialogDescription="Describe la tarea o el objetivo principal del grupo, y la IA sugerirá una definición y agentes relevantes."
-        textareaLabel="Descripción de la Tarea del Grupo"
-        textareaPlaceholder="Ej: Desarrollar un nuevo módulo de e-commerce para la aplicación."
+        dialogTitle={t('groups.suggestionDialog.title')}
+        dialogDescription={t('groups.suggestionDialog.description')}
+        textareaLabel={t('groups.suggestionDialog.textareaLabel')}
+        textareaPlaceholder={t('groups.suggestionDialog.textareaPlaceholder')}
         textareaValue={groupTaskDescription}
         onTextareaChange={setGroupTaskDescription}
         onSubmit={handleSuggestGroup}
         isSubmitting={isSuggestingGroup}
         extraFooterContent={groupSuggestionExtraFooter}
-        submitButtonText={availableAgentsForSelection.length > 0 ? "Obtener Sugerencia" : "Crea Agentes Primero"}
+        submitButtonText={availableAgentsForSelection.length > 0 ? t('groups.suggestionDialog.submitButton') : t('groups.suggestionDialog.submitButtonDisabled')}
       />
 
     </div>
