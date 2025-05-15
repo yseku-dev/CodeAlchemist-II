@@ -13,13 +13,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useDebug } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
 import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS, APP_NAME } from '@/lib/constants';
-import type { LLMSettings, GitSettings, LLMProvider, AppSettings } from '@/types';
+import type { LLMSettings, GitSettings, LLMProvider, AppSettings, LanguageCode } from '@/types';
 import { Upload, Download, Save, Settings as SettingsIcon, Loader2 } from 'lucide-react';
-import { getModelsForProvider } from '@/lib/utils'; // Import shared function
+import { getModelsForProvider } from '@/lib/utils';
+import { useI18n } from '@/context/I18nContext';
+import { SUPPORTED_LANGUAGES } from '@/lib/i18n/constants';
 
 /**
  * @fileOverview Page component for application configuration.
- * Allows users to configure LLM providers, Git settings, and debug mode.
+ * Allows users to configure LLM providers, Git settings, debug mode, and application language.
  * Settings are persisted to localStorage.
  * Provides functionality to import and export application settings.
  */
@@ -31,7 +33,7 @@ import { getModelsForProvider } from '@/lib/utils'; // Import shared function
  * @returns {Promise<boolean>} True if connection is successful, false otherwise.
  */
 const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
-  console.log("Testing LLM Connection with:", config);
+  console.info("Testing LLM Connection with:", config);
   // Simulate API call success/failure
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000)); 
 };
@@ -43,12 +45,10 @@ const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
  * @returns {Promise<boolean>} True if connection is successful, false otherwise.
  */
 const testGitConnection = async (config: GitSettings): Promise<boolean> => {
-  console.log("Testing Git Connection with:", config);
+  console.info("Testing Git Connection with:", config);
   // Simulate API call success/failure
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
 };
-
-// Removed local getModelsForProvider, will use imported one.
 
 /**
  * ConfigurationPage component.
@@ -59,6 +59,8 @@ export default function ConfiguracionPage() {
   const { toast } = useToast();
   const { setDebugMode: setContextDebugMode, addLog } = useDebug();
   const { settings, updateLLMConfig, updateGitConfig, updateSettings } = useAppState();
+  const { t, language: i18nLanguage, setLanguage: setI18nLanguage, supportedLanguages } = useI18n();
+
 
   /** State for the current LLM configuration being edited. */
   const [currentLLMConfig, setCurrentLLMConfig] = useState<LLMSettings>(settings.llmConfig);
@@ -131,17 +133,30 @@ export default function ConfiguracionPage() {
 
   /**
    * Saves all current configuration settings to AppState and localStorage.
-   * Also updates the DebugContext.
+   * Also updates the DebugContext and I18nContext.
    */
   const handleSaveSettings = () => {
     updateLLMConfig(currentLLMConfig);
     updateGitConfig(currentGitConfig);
-    updateSettings({ debugMode: currentDebugMode }); 
+    updateSettings({ debugMode: currentDebugMode, language: i18nLanguage }); 
     setContextDebugMode(currentDebugMode); 
 
-    toast({ title: "Configuración Guardada", description: "Tus ajustes han sido guardados localmente." });
+    toast({ title: t('settings.toast.saved.title'), description: t('settings.toast.saved.description') });
     addLog("Configuration saved.");
   };
+  
+  /**
+   * Handles change of application language.
+   * Updates the I18nContext, which in turn updates AppStateContext.
+   * @param {LanguageCode} langCode - The new language code.
+   */
+  const handleLanguageChange = (langCode: LanguageCode) => {
+    setI18nLanguage(langCode); // This updates I18nContext and AppStateContext (settings.language)
+    const langName = supportedLanguages.find(l => l.code === langCode)?.name || langCode.toUpperCase();
+    toast({ title: t('settings.toast.languageChanged.title'), description: t('settings.toast.languageChanged.description', { langName }) });
+    addLog(`Language changed to: ${langCode}`);
+  };
+
 
   /**
    * Tests the connection to the configured LLM provider.
@@ -152,10 +167,10 @@ export default function ConfiguracionPage() {
     addLog(`Attempting LLM connection test for provider: ${currentLLMConfig.provider}`);
     const success = await testLLMConnection(currentLLMConfig);
     if (success) {
-      toast({ title: "Conexión Exitosa", description: "La conexión con el proveedor LLM funciona." });
+      toast({ title: t('settings.toast.llmConnectionSuccess.title'), description: t('settings.toast.llmConnectionSuccess.description') });
       addLog("LLM connection test successful.");
     } else {
-      toast({ variant: "destructive", title: "Conexión Fallida", description: "No se pudo conectar con el proveedor LLM. Revisa la configuración." });
+      toast({ variant: "destructive", title: t('settings.toast.llmConnectionError.title'), description: t('settings.toast.llmConnectionError.description') });
       addLog("LLM connection test failed.");
     }
     setIsTestingLLM(false);
@@ -170,10 +185,10 @@ export default function ConfiguracionPage() {
     addLog(`Attempting Git connection test for repo: ${currentGitConfig.repoUrl}`);
     const success = await testGitConnection(currentGitConfig);
     if (success) {
-      toast({ title: "Conexión Git Exitosa", description: "La conexión con el repositorio Git funciona." });
+      toast({ title: t('settings.toast.gitConnectionSuccess.title'), description: t('settings.toast.gitConnectionSuccess.description') });
       addLog("Git connection test successful.");
     } else {
-      toast({ variant: "destructive", title: "Conexión Git Fallida", description: "No se pudo conectar con el repositorio Git. Revisa la URL y las credenciales." });
+      toast({ variant: "destructive", title: t('settings.toast.gitConnectionError.title'), description: t('settings.toast.gitConnectionError.description') });
       addLog("Git connection test failed.");
     }
     setIsTestingGit(false);
@@ -186,7 +201,7 @@ export default function ConfiguracionPage() {
 
   /**
    * Handles the export of the current application configuration to a JSON file.
-   * The exported configuration includes LLM settings, Git settings, and debug mode status.
+   * The exported configuration includes LLM settings, Git settings, debug mode status, and language.
    */
   const handleExportConfig = () => {
     try {
@@ -194,6 +209,7 @@ export default function ConfiguracionPage() {
         llmConfig: currentLLMConfig,
         gitConfig: currentGitConfig,
         debugMode: currentDebugMode,
+        language: i18nLanguage, // Use current language from i18n context
       };
       const jsonString = JSON.stringify(configToExport, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -205,11 +221,11 @@ export default function ConfiguracionPage() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast({ title: "Configuración Exportada", description: "La configuración actual ha sido exportada." });
+      toast({ title: t('settings.toast.configExported.title'), description: t('settings.toast.configExported.description') });
       addLog("Configuration exported.");
     } catch (error) {
       const typedError = error as Error;
-      toast({ variant: "destructive", title: "Error de Exportación", description: `No se pudo exportar la configuración: ${typedError.message}` });
+      toast({ variant: "destructive", title: t('settings.toast.configExportError.title'), description: t('settings.toast.configExportError.description', {error: typedError.message}) });
       addLog(`Configuration export failed: ${typedError.message}`);
     }
   };
@@ -233,23 +249,26 @@ export default function ConfiguracionPage() {
             typeof parsedConfig === 'object' &&
             'llmConfig' in parsedConfig && typeof parsedConfig.llmConfig === 'object' && parsedConfig.llmConfig !== null && 'provider' in parsedConfig.llmConfig &&
             'gitConfig' in parsedConfig && typeof parsedConfig.gitConfig === 'object' && parsedConfig.gitConfig !== null &&
-            'debugMode' in parsedConfig && typeof parsedConfig.debugMode === 'boolean'
+            'debugMode' in parsedConfig && typeof parsedConfig.debugMode === 'boolean' &&
+            'language' in parsedConfig && typeof parsedConfig.language === 'string' && SUPPORTED_LANGUAGES.some(l => l.code === parsedConfig.language)
           ) {
             const importedSettings = parsedConfig as AppSettings;
             
             updateLLMConfig(importedSettings.llmConfig);
             updateGitConfig(importedSettings.gitConfig);
-            updateSettings({ debugMode: importedSettings.debugMode }); 
+            updateSettings({ debugMode: importedSettings.debugMode, language: importedSettings.language }); 
+            setI18nLanguage(importedSettings.language); // Update I18nContext directly
             setContextDebugMode(importedSettings.debugMode); 
 
-            toast({ title: "Configuración Importada", description: "La configuración ha sido importada y aplicada." });
+            toast({ title: t('settings.toast.configImported.title'), description: t('settings.toast.configImported.description') });
             addLog("Configuration imported and applied.");
           } else {
-            throw new Error("Formato de archivo de configuración inválido.");
+            throw new Error("Formato de archivo de configuración inválido o idioma no soportado.");
           }
         } catch (err: any) {
-          toast({ variant: "destructive", title: "Error de Importación", description: err.message || "No se pudo importar el archivo de configuración." });
-          addLog(`Configuration import failed: ${err.message}`);
+          const errorDesc = err.message || "No se pudo importar el archivo de configuración.";
+          toast({ variant: "destructive", title: t('settings.toast.configImportError.title'), description: t('settings.toast.configImportError.description', {error: errorDesc}) });
+          addLog(`Configuration import failed: ${errorDesc}`);
         } finally {
           if (importConfigInputRef.current) {
             importConfigInputRef.current.value = ""; 
@@ -266,38 +285,38 @@ export default function ConfiguracionPage() {
         <div>
           <CardTitle className="flex items-center gap-3">
             <SettingsIcon className="h-7 w-7 text-primary" />
-            <span>Configuración General</span>
+            <span>{t('settings.title')}</span>
           </CardTitle>
-          <CardDescription>Ajusta los parámetros globales de la aplicación y gestiona tu configuración.</CardDescription>
+          <CardDescription>{t('settings.description')}</CardDescription>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
           <Input type="file" id="import-config-input" ref={importConfigInputRef} className="hidden" onChange={handleImportConfig} accept=".json" />
           <Button variant="outline" onClick={() => importConfigInputRef.current?.click()} className="w-full sm:w-auto">
-            <Upload className="mr-2 h-4 w-4" /> Importar
+            <Upload className="mr-2 h-4 w-4" /> {t('settings.importButton')}
           </Button>
           <Button variant="outline" onClick={handleExportConfig} className="w-full sm:w-auto">
-            <Download className="mr-2 h-4 w-4" /> Exportar
+            <Download className="mr-2 h-4 w-4" /> {t('settings.exportButton')}
           </Button>
           <Button onClick={handleSaveSettings} className="w-full sm:w-auto">
-            <Save className="mr-2 h-4 w-4" /> Guardar Configuración
+            <Save className="mr-2 h-4 w-4" /> {t('settings.saveButton')}
           </Button>
         </div>
       </CardHeader>
       <CardContent className="pt-6 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Configuración del Proveedor LLM</CardTitle>
-            <CardDescription>Ajusta la configuración global para la interacción con Modelos de Lenguaje Grandes.</CardDescription>
+            <CardTitle>{t('settings.llm.title')}</CardTitle>
+            <CardDescription>{t('settings.llm.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="llm-provider">Proveedor LLM</Label>
+              <Label htmlFor="llm-provider">{t('settings.llm.providerLabel')}</Label>
               <Select
                 value={currentLLMConfig.provider || DEFAULT_LLM_SETTINGS.provider}
                 onValueChange={(value) => handleLLMConfigChange('provider', value as LLMProvider)}
               >
                 <SelectTrigger id="llm-provider">
-                  <SelectValue placeholder="Selecciona un proveedor" />
+                  <SelectValue placeholder={t('settings.llm.providerPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {LLM_PROVIDERS.map(provider => (
@@ -308,44 +327,43 @@ export default function ConfiguracionPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="llm-api-url">URL del Endpoint de API</Label>
+              <Label htmlFor="llm-api-url">{t('settings.llm.apiUrlLabel')}</Label>
               <Input
                 id="llm-api-url"
                 value={currentLLMConfig.apiUrl || ''}
                 onChange={(e) => handleLLMConfigChange('apiUrl', e.target.value)}
-                placeholder="Ej: https://api.openai.com/v1"
+                placeholder={t('settings.llm.apiUrlPlaceholder')}
               />
               <p className="text-xs text-muted-foreground">
-                Se auto-rellena al cambiar de proveedor. Modifícala si usas un proxy o un endpoint no estándar.
+                {t('settings.llm.apiUrlDescription')}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="llm-api-key">Clave API</Label>
+              <Label htmlFor="llm-api-key">{t('settings.llm.apiKeyLabel')}</Label>
               <Input
                 id="llm-api-key"
                 type="password"
                 value={currentLLMConfig.apiKey || ''}
                 onChange={(e) => handleLLMConfigChange('apiKey', e.target.value)}
-                placeholder="Introduce tu clave API (si es requerida)"
+                placeholder={t('settings.llm.apiKeyPlaceholder')}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="llm-model">Nombre del Modelo</Label>
+              <Label htmlFor="llm-model">{t('settings.llm.modelNameLabel')}</Label>
               <Select
                 value={currentLLMConfig.model || ''}
                 onValueChange={(value) => handleLLMConfigChange('model', value)}
-                // Allow manual input for Google Gemini, LM Studio, Ollama by not disabling if models list is empty
                 disabled={availableModels.length === 0 && !["Google Gemini", "LM Studio", "Ollama"].includes(currentLLMConfig.provider)}
               >
                 <SelectTrigger id="llm-model">
                   <SelectValue placeholder={
                     (["Google Gemini", "LM Studio", "Ollama"].includes(currentLLMConfig.provider))
-                    ? `Selecciona o escribe un modelo (ej: ${currentLLMConfig.provider === "Google Gemini" ? "gemini-1.5-pro-latest" : "nombre-modelo-local"})`
+                    ? t('settings.llm.modelNamePlaceholderLocal', {provider: currentLLMConfig.provider})
                     : availableModels.length === 0 
-                    ? "Selecciona un proveedor primero" 
-                    : "Selecciona un modelo"
+                    ? t('settings.llm.modelNamePlaceholderDefault') 
+                    : t('settings.llm.modelNamePlaceholder')
                   } />
                 </SelectTrigger>
                 <SelectContent>
@@ -356,7 +374,7 @@ export default function ConfiguracionPage() {
               </Select>
               {(["Google Gemini", "LM Studio", "Ollama"].includes(currentLLMConfig.provider)) && (
                   <p className="text-xs text-muted-foreground">
-                      Para {currentLLMConfig.provider}, los modelos comunes se listan aquí pero también puedes escribir uno directamente si no aparece.
+                      {t('settings.llm.modelNameDescriptionLocal', {provider: currentLLMConfig.provider})}
                   </p>
               )}
             </div>
@@ -364,7 +382,7 @@ export default function ConfiguracionPage() {
           <CardFooter>
             <Button onClick={handleTestLLM} disabled={isTestingLLM}>
               {isTestingLLM ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isTestingLLM ? "Probando..." : "Probar Conexión LLM"}
+              {isTestingLLM ? t('settings.llm.testConnectionButton.testing') : t('settings.llm.testConnectionButton')}
             </Button>
           </CardFooter>
         </Card>
@@ -373,22 +391,22 @@ export default function ConfiguracionPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Configuración de Git (Opcional)</CardTitle>
-            <CardDescription>Configura los detalles para funcionalidades que interactúan con repositorios Git.</CardDescription>
+            <CardTitle>{t('settings.git.title')}</CardTitle>
+            <CardDescription>{t('settings.git.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="git-repo-url">URL del Repositorio Git</Label>
+              <Label htmlFor="git-repo-url">{t('settings.git.repoUrlLabel')}</Label>
               <Input
                 id="git-repo-url"
                 value={currentGitConfig.repoUrl || ''}
                 onChange={(e) => handleGitConfigChange('repoUrl', e.target.value)}
-                placeholder="Ej: https://github.com/usuario/repo.git"
+                placeholder={t('settings.git.repoUrlPlaceholder')}
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="git-username">Nombre de Usuario Git</Label>
+                <Label htmlFor="git-username">{t('settings.git.usernameLabel')}</Label>
                 <Input
                   id="git-username"
                   value={currentGitConfig.username || ''}
@@ -396,7 +414,7 @@ export default function ConfiguracionPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="git-email">Email de Git</Label>
+                <Label htmlFor="git-email">{t('settings.git.emailLabel')}</Label>
                 <Input
                   id="git-email"
                   type="email"
@@ -406,30 +424,57 @@ export default function ConfiguracionPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="git-pat">Token de Acceso Personal (PAT)</Label>
+              <Label htmlFor="git-pat">{t('settings.git.patLabel')}</Label>
               <Input
                 id="git-pat"
                 type="password"
                 value={currentGitConfig.pat || ''}
                 onChange={(e) => handleGitConfigChange('pat', e.target.value)}
-                placeholder="Introduce tu PAT de Git"
+                placeholder={t('settings.git.patPlaceholder')}
               />
             </div>
           </CardContent>
           <CardFooter>
             <Button onClick={handleTestGit} disabled={isTestingGit}>
               {isTestingGit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isTestingGit ? "Probando..." : "Probar Conexión Git"}
+              {isTestingGit ? t('settings.git.testConnectionButton.testing') : t('settings.git.testConnectionButton')}
             </Button>
           </CardFooter>
+        </Card>
+
+        <Separator />
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('settings.language.title')}</CardTitle>
+            <CardDescription>{t('settings.language.description')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="language-select">{t('settings.language.selectLabel')}</Label>
+              <Select
+                value={i18nLanguage}
+                onValueChange={(value) => handleLanguageChange(value as LanguageCode)}
+              >
+                <SelectTrigger id="language-select">
+                  <SelectValue placeholder={t('settings.language.selectPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {supportedLanguages.map(lang => (
+                    <SelectItem key={lang.code} value={lang.code}>{lang.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
         </Card>
 
         <Separator />
 
         <Card>
           <CardHeader>
-            <CardTitle>Modo Depuración</CardTitle>
-            <CardDescription>Activa un panel de logs detallados en la parte inferior de la aplicación.</CardDescription>
+            <CardTitle>{t('settings.debug.title')}</CardTitle>
+            <CardDescription>{t('settings.debug.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
@@ -438,7 +483,7 @@ export default function ConfiguracionPage() {
                 checked={currentDebugMode}
                 onCheckedChange={handleDebugModeChange}
               />
-              <Label htmlFor="debug-mode">Activar modo Debug</Label>
+              <Label htmlFor="debug-mode">{t('settings.debug.switchLabel')}</Label>
             </div>
           </CardContent>
         </Card>
