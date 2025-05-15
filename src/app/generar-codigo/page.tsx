@@ -13,8 +13,7 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption } from '@/types';
-import type { GenerateCodeFromDescriptionOutput } from '@/types'; // Updated import
+import type { LLMConfigSourceOption, GenerateCodeFromDescriptionOutput } from '@/types';
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AppError } from '@/utils/AppError';
@@ -22,25 +21,25 @@ import { callGenerateCodeFromDescription } from '@/utils/apiClient';
 import { useAppState } from '@/context/AppStateContext';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
-import { useI18n } from '@/context/I18nContext'; // Import useI18n
+import { useI18n } from '@/context/I18nContext';
 
 /**
  * @fileOverview GenerarCodigoPage component allows users to generate code snippets
  * from natural language descriptions. Users can select an LLM configuration source
  * (global, specific agent, or agent group) and provide a detailed prompt.
  * The component handles the AI call, displays results (explanation and code),
- * and manages loading/error states.
+ * and manages loading/error states. All UI text is internationalized.
  */
 export default function GenerarCodigoPage() {
-  const { getAgentById, getGroupById } = useAppState(); // getGroupById was missing from destructuring
+  const { getAgentById, getGroupById } = useAppState();
   const router = useRouter();
-  const { t } = useI18n(); // Initialize useI18n
+  const { t } = useI18n();
 
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<GenerateCodeFromDescriptionOutput | null>(null); // Ensure type includes groupLog if needed
+  const [result, setResult] = useState<GenerateCodeFromDescriptionOutput | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   const { addLog } = useDebug();
@@ -69,8 +68,8 @@ export default function GenerarCodigoPage() {
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id && llmConfigSource.name) {
         const group = getGroupById(llmConfigSource.id);
         agentSystemPrompt = orchestratorAgent?.systemPrompt;
-        groupLogForDisplay = t('autoupdate.logs.groupContextLog', { 
-            groupName: llmConfigSource.name,
+        groupLogForDisplay = t('generateCode.logs.groupContextLog', { 
+            groupName: llmConfigSource.name || 'N/A',
             groupTask: (group?.mainTask || 'N/A').substring(0,150),
             userInput: description.substring(0, 100),
             orchestratorContext: (agentSystemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
@@ -84,8 +83,8 @@ export default function GenerarCodigoPage() {
 
     try {
       const aiResult = await callGenerateCodeFromDescription({ description, agentSystemPrompt });
-      setResult({...aiResult, groupLog: groupLogForDisplay}); // Store potential group log
-      addLog({message: "Code generation successful.", flowName});
+      setResult({...aiResult, groupLog: groupLogForDisplay});
+      addLog({message: "Code generation successful.", data: aiResult, flowName});
       toast({ title: t('generateCode.toast.codeGenerated.title'), description: t('generateCode.toast.codeGenerated.description') });
     } catch (e: any) {
       addLog({ message: "Code generation failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
@@ -124,10 +123,8 @@ export default function GenerarCodigoPage() {
   const handleAutoFixError = async (errorMsg: string) => {
     const autoFixFlowName = 'chatWithAgentOrGlobal (AutoFix Error)';
     addLog({ message: `Attempting Auto-Fix for error: ${errorMsg}`, flowName: autoFixFlowName});
-    toast({ title: t('generateCode.toast.autofixSimulated.title'), description: t('generateCode.toast.autofixSimulated.description')});
-    // Example:
-    // const fixAttempt = await callChatWithAgentOrGlobal({ userMessage: `Explica este error y cómo solucionarlo: ${errorMsg}`});
-    // Show fixAttempt.aiResponse in a dialog or toast.
+    toast({ title: t('common.processing'), description: t('errorDisplay.toast.autofixAttempt.description')});
+    // This functionality is now handled by ErrorDisplay component itself
   };
 
   return (
@@ -138,7 +135,7 @@ export default function GenerarCodigoPage() {
         description={t('generateCode.description')}
       />
       <CardContent className="space-y-6">
-        <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
+        <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} label={t('common.llmSourceLabel')} />
         
         <div className="space-y-2">
           <Label htmlFor="description">{t('generateCode.describeNeedLabel')}</Label>
@@ -186,7 +183,7 @@ export default function GenerarCodigoPage() {
       >
         <p className="text-sm text-muted-foreground mb-2">{t('common.llmSourceLabel')}</p>
         <ul className="text-sm list-disc list-inside mb-2">
-          <li><strong>{t('generateCode.confirmDialog.llmSourceLabel')}</strong> {llmConfigSource?.type} {llmConfigSource?.name ? `(${llmConfigSource.name})` : ''}</li>
+          <li><strong>{t('generateCode.confirmDialog.llmSourceLabel')}</strong> {llmConfigSource?.type === 'Ajustes Globales' ? t('common.globalSettings') : `${llmConfigSource?.type}: ${llmConfigSource?.name || 'N/A'}`}</li>
         </ul>
         <p className="text-sm text-muted-foreground mb-1"><strong>{t('generateCode.confirmDialog.promptLabel')}</strong></p>
         <ScrollArea className="h-32 border rounded-md p-2 text-sm bg-muted">
@@ -196,5 +193,3 @@ export default function GenerarCodigoPage() {
     </Card>
   );
 }
-
-    

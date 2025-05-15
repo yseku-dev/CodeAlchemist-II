@@ -24,7 +24,6 @@ export type AllTranslations = {
 
 /**
  * Represents a key that can be used to look up a translation.
- * Using string for broader compatibility with dotted paths.
  */
 export type TranslationKey = string;
 
@@ -286,9 +285,8 @@ const translationsData = {
             "editContentLabel": "Editar Contenido Sugerido:"
         },
         "logs": {
-            "executingAnalysis": "Ejecutando análisis para AutoUpdate...",
+            "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestador del grupo seleccionado para guiar el proceso de la IA.",
             "analysisStarting": "Iniciando Auto-Análisis...",
-            "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
             "analysisProcessingComplete": "Procesamiento del análisis de AutoUpdate completado.",
             "localCodeObtained": "Código local obtenido del servidor.",
             "analysisSuccessNonGroup": "Análisis de AutoUpdate (no-grupo) exitoso.",
@@ -493,6 +491,7 @@ const translationsData = {
             "noContent": "N/A"
         },
         "logs": {
+            "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestador del grupo seleccionado para guiar el proceso de la IA.",
             "groupLogTitle": "Log de Ejecución del Grupo"
         },
         "toast": {
@@ -553,7 +552,8 @@ const translationsData = {
             "specificSuggestionsLabel": "Sugerencias Específicas:",
             "suggestionPriorityLabel": "Prioridad:",
             "suggestedPromptLabel": "Prompt Sugerido:",
-            "groupLogTitle": "Log Detallado del Análisis"
+            "groupLogTitle": "Log Detallado del Análisis",
+            "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestador del grupo seleccionado para guiar el proceso de la IA."
         },
         "toast": {
             "invalidFile": {
@@ -592,6 +592,9 @@ const translationsData = {
         "codeSnippetLabel": "Fragmento de Código:",
         "groupLogTitle": "Log Detallado del Grupo"
       },
+      "logs": {
+        "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestador del grupo seleccionado para guiar el proceso de la IA."
+      },
       "confirmDialog": {
         "title": "Confirmar Generación de Código",
         "llmSourceLabel": "Fuente LLM:",
@@ -627,7 +630,8 @@ const translationsData = {
         "generatedFilesLabel": "Archivos Generados:",
         "downloadButton": "Descargar Proyecto (ZIP)",
         "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
-        "groupLogTitle": "Log Detallado del Grupo"
+        "groupLogTitle": "Log Detallado del Grupo",
+        "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestador del grupo seleccionado para guiar el proceso de la IA."
       },
       "confirmDialog": {
         "title": "Confirmar Generación de Proyecto",
@@ -652,11 +656,11 @@ const translationsData = {
             "title": "Sin Resultados",
             "description": "No hay estructura de proyecto para descargar."
         },
-        "downloadSuccess": {
-            "title": "Proyecto Descargado (JSON)",
-            "description": "Se ha descargado un archivo JSON con la estructura y contenido del proyecto \"{projectName}\". Puedes usar este archivo para crear los archivos y carpetas manualmente o con un script. La generación directa de archivos ZIP no es soportada por esta función en el navegador."
+        "downloadSuccess": { // For JSON download
+            "title": "Estructura Descargada (JSON)",
+            "description": "Se ha descargado un archivo JSON con la estructura y contenido del proyecto \"{projectName}\". Puedes usar este archivo para crear los archivos y carpetas manualmente o con un script."
         },
-        "zipDownloadSuccess": {
+        "zipDownloadSuccess": { // For actual ZIP download
             "title": "Proyecto Descargado (ZIP)",
             "description": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
         },
@@ -1432,9 +1436,8 @@ const translationsData = {
             "editContentLabel": "Edit Suggested Content:"
         },
         "logs": {
-            "executingAnalysis": "Executing self-analysis for AutoUpdate...",
-            "analysisStarting": "Starting Self-Analysis...",
             "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+            "analysisStarting": "Starting Self-Analysis...",
             "analysisProcessingComplete": "AutoUpdate analysis processing complete.",
             "localCodeObtained": "Local code obtained from server.",
             "analysisSuccessNonGroup": "AutoUpdate analysis (non-group) successful.",
@@ -1639,6 +1642,7 @@ const translationsData = {
             "noContent": "N/A"
         },
         "logs": {
+            "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
             "groupLogTitle": "Group Execution Log"
         },
         "toast": {
@@ -1699,7 +1703,8 @@ const translationsData = {
             "specificSuggestionsLabel": "Specific Suggestions:",
             "suggestionPriorityLabel": "Priority:",
             "suggestedPromptLabel": "Suggested Prompt:",
-            "groupLogTitle": "Detailed Analysis Log"
+            "groupLogTitle": "Detailed Analysis Log",
+            "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
         },
         "toast": {
             "invalidFile": {
@@ -1738,6 +1743,9 @@ const translationsData = {
         "codeSnippetLabel": "Code Snippet:",
         "groupLogTitle": "Detailed Group Log"
       },
+      "logs": {
+        "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
+      },
       "confirmDialog": {
         "title": "Confirm Code Generation",
         "llmSourceLabel": "LLM Source:",
@@ -1773,7 +1781,8 @@ const translationsData = {
         "generatedFilesLabel": "Generated Files:",
         "downloadButton": "Download Project (ZIP)",
         "downloadNote": "Note: The download will be a JSON file with the project structure.",
-        "groupLogTitle": "Detailed Group Log"
+        "groupLogTitle": "Detailed Group Log",
+        "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
       },
       "confirmDialog": {
         "title": "Confirm Project Generation",
@@ -1798,11 +1807,11 @@ const translationsData = {
             "title": "No Results",
             "description": "There is no project structure to download."
         },
-        "downloadSuccess": {
-            "title": "Project Downloaded (JSON)",
-            "description": "A JSON file with the project structure and content for \"{projectName}\" has been downloaded. You can use this file to create the files and folders manually or with a script. Direct ZIP file generation is not supported by this feature in the browser."
+        "downloadSuccess": { // For JSON download
+            "title": "Structure Downloaded (JSON)",
+            "description": "A JSON file with the project structure and content for \"{projectName}\" has been downloaded. You can use this file to create the files and folders manually or with a script."
         },
-        "zipDownloadSuccess": {
+        "zipDownloadSuccess": { // For actual ZIP download
             "title": "Project Downloaded (ZIP)",
             "description": "A ZIP file with the project structure and content for \"{projectName}\" has been downloaded."
         },
@@ -1896,24 +1905,24 @@ const translationsData = {
         }
       },
       "autofixModal": {
-        "title": "Auto-Fix Suggestion from Software Team",
-        "description": "The 'EquipoDesarrolloSoftware' group has analyzed the error and proposes the following:",
-        "originalErrorLabel": "Original Error Message:",
-        "diagnosisLabel": "Group Diagnosis:",
-        "solutionLabel": "Suggested Solution:",
-        "invocationLogLabel": "Group Invocation Log (for debugging)"
+        "title": "Sugerencia de Auto-Corrección del Equipo de Software",
+        "description": "El grupo 'EquipoDesarrolloSoftware' ha analizado el error y propone lo siguiente:",
+        "originalErrorLabel": "Mensaje de Error Original:",
+        "diagnosisLabel": "Diagnóstico del Grupo:",
+        "solutionLabel": "Solución Sugerida:",
+        "invocationLogLabel": "Log de Invocación del Grupo (para depuración)"
       }
     },
      "versions": {
-        "title": "Saved Versions (Snapshots)",
-        "description": "Manage generated code snapshots or application state.",
-        "saveAppStateButton": "Save App State (JSON)",
-        "saveAppStateDescription": "Saves current configuration, agents, and groups as a JSON snapshot.",
-        "saveAndDownloadStateButton": "Save State & Download as ZIP",
-        "saveAndDownloadStateDescription": "Saves the current application state and downloads it as a .zip file (containing the state JSON).",
-        "compareButton": "Compare A & B",
-        "compareButtonDisabledTooltip": "Select two versions (A and B) to compare.",
-        "deleteAllButton": "Delete All",
+        "title": "Versiones Guardadas (Snapshots)",
+        "description": "Gestiona instantáneas de código generadas o del estado de la aplicación.",
+        "saveAppStateButton": "Guardar Estado de App (JSON)",
+        "saveAppStateDescription": "Guarda la configuración actual, agentes y grupos como un snapshot JSON.",
+        "saveAndDownloadStateButton": "Guardar Estado y Descargar como ZIP",
+        "saveAndDownloadStateDescription": "Guarda el estado actual de la aplicación y lo descarga como un archivo .zip (conteniendo el JSON del estado).",
+        "compareButton": "Comparar A y B",
+        "compareButtonDisabledTooltip": "Selecciona dos versiones (A y B) para comparar.",
+        "deleteAllButton": "Eliminar Todas",
         "table": {
             "colA": "A",
             "colB": "B",
@@ -2332,32 +2341,3 @@ const translationsData = {
  * Export the translations object directly.
  */
 export const translations: AllTranslations = translationsData;
-
-/**
- * Utility type to extract all dot-separated keys from a nested object.
- * This can be used to create a more type-safe `TranslationKey` type.
- *
- * Example:
- * type EsKeys = DotNestedKeys<typeof translationsData['es']>;
- * // EsKeys would be "app.title" | "sidebar.dashboard" | "sidebar.toggle.hide" | etc.
- */
-type Dot<T extends string, U extends string> = `` extends U ? T : `${T}.${U}`;
-
-type DotNestedKeys<T> = T extends object
-  ? {
-      [K in Exclude<keyof T, symbol>]: K extends string
-        ? Dot<K, DotNestedKeys<T[K]>> | K
-        : never;
-    }[Exclude<keyof T, symbol>]
-  : '';
-
-// To use the more type-safe keys, you could define:
-// export type AppTranslationKey = DotNestedKeys<typeof translationsData['es']>;
-// And then use AppTranslationKey instead of string for the `t` function's key parameter.
-// For now, we keep TranslationKey as string for simplicity with potentially dynamic keys.
-
-    
-
-    
-
-    
