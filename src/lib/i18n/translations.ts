@@ -1,3 +1,4 @@
+
 // src/lib/i18n/translations.ts
 
 import type { LanguageCode } from '@/types';
@@ -23,8 +24,6 @@ export type AllTranslations = {
 
 /**
  * Represents a key that can be used to look up a translation.
- * For simplicity in development, it's a string. For stricter type checking,
- * this could be a union of all possible literal string paths.
  */
 export type TranslationKey = string;
 
@@ -147,7 +146,6 @@ const translationsData = {
             "apiKeyPlaceholder": "Introduce tu clave API (si es requerida)",
             "modelNameLabel": "Nombre del Modelo",
             "modelNamePlaceholder": "Selecciona un modelo",
-            "modelNamePlaceholderGemini": "Selecciona o escribe un modelo (ej: gemini-1.5-pro-latest)",
             "modelNamePlaceholderLocal": "Selecciona o escribe un modelo (ej: nombre-modelo-local) ({provider})",
             "modelNamePlaceholderDefault": "Selecciona un proveedor primero",
             "modelNameDescriptionLocal": "Para {provider}, los modelos comunes se listan aquí pero también puedes escribir uno directamente si no aparece.",
@@ -288,7 +286,7 @@ const translationsData = {
             "editContentLabel": "Editar Contenido Sugerido:"
         },
         "logs": {
-            "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestador del grupo seleccionado para guiar el proceso de la IA.",
+            "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
             "analysisStarting": "Iniciando Auto-Análisis...",
             "analysisProcessingComplete": "Procesamiento del análisis de AutoUpdate completado.",
             "localCodeObtained": "Código local obtenido del servidor.",
@@ -299,7 +297,7 @@ const translationsData = {
             "suggestionsDownloadedJson": "Sugerencias de AutoUpdate descargadas como JSON.",
             "applyingSuggestionToZip": "Aplicando contenido de sugerencia a {fileName} para ZIP.",
             "appliedSuggestionsToZip": "Sugerencias 'applied' incorporadas conceptualmente para el ZIP.",
-            "projectZipDownloaded": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios). Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manually los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA.",
+            "projectZipDownloaded": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios). Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA.",
             "zipGenerationFailed": "Generación de ZIP fallida: {error}",
             "gitUploadFailedConfig": "Subida a Git fallida: Configuración incompleta.",
             "commitMessageMissing": "Subida a Git fallida: Mensaje de commit requerido.",
@@ -353,7 +351,7 @@ const translationsData = {
             "downloadComplete": {
                 "title": "Descarga Completada",
                 "suggestionsJsonDescription": "Sugerencias descargadas como {filename}.",
-                "projectZipDescription": "Este archivo ZIP ({filename}) contiene un JSON con los cambios sugeridos por la IA. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (de Git) y aplicar manually los cambios del JSON."
+                "projectZipDescription": "Este archivo ZIP ({filename}) contiene un JSON con los cambios sugeridos por la IA. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (de Git) y aplicar manualmente los cambios del JSON."
             },
             "preparingProjectZip": {
                 "title": "Preparando Descarga del Proyecto (ZIP)...",
@@ -659,11 +657,11 @@ const translationsData = {
             "title": "Sin Resultados",
             "description": "No hay estructura de proyecto para descargar."
         },
-        "downloadSuccess": { // For JSON download
-            "title": "Estructura Descargada (JSON)",
-            "description": "Se ha descargado un archivo JSON con la estructura y contenido del proyecto \"{projectName}\". Puedes usar este archivo para crear los archivos y carpetas manualmente o con un script."
+        "downloadSuccess": {
+            "title": "Proyecto Descargado (ZIP)",
+            "description": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
         },
-        "zipDownloadSuccess": { // For actual ZIP download
+        "zipDownloadSuccess": {
             "title": "Proyecto Descargado (ZIP)",
             "description": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
         },
@@ -1019,6 +1017,10 @@ const translationsData = {
                     }
                 }
             },
+            "deleteSingleModal": {
+                "title": "Confirmar Eliminación: {name}",
+                "description": "¿Estás seguro de que quieres eliminar este agente? Esta acción no se puede deshacer."
+            },
             "suggestionDialog": {
                 "title": "Sugerir Definición de Agente con IA",
                 "description": "Describe el rol o la tarea principal del agente que necesitas, y la IA sugerirá una definición.",
@@ -1159,8 +1161,7 @@ const translationsData = {
             },
             "deleteSingleModal": {
                 "title": "Confirmar Eliminación: {name}",
-                "description": "¿Estás seguro de que quieres eliminar este grupo de trabajo? Esta acción no se puede deshacer.",
-              "confirm": "Sí, Eliminar"
+                "description": "¿Estás seguro de que quieres eliminar este grupo de trabajo? Esta acción no se puede deshacer."
             }
         },
         "appLayout": {
@@ -1305,7 +1306,6 @@ const translationsData = {
                 "apiKeyPlaceholder": "Enter your API key (if required)",
                 "modelNameLabel": "Model Name",
                 "modelNamePlaceholder": "Select a model",
-                "modelNamePlaceholderGemini": "Select or type a model (e.g: gemini-1.5-pro-latest)",
                 "modelNamePlaceholderLocal": "Select or type a model (e.g: local-model-name) ({provider})",
                 "modelNamePlaceholderDefault": "Select a provider first",
                 "modelNameDescriptionLocal": "For {provider}, common models are listed, but you can also type one directly if it doesn't appear.",
@@ -1817,11 +1817,11 @@ const translationsData = {
                     "title": "No Results",
                     "description": "There is no project structure to download."
                 },
-                "downloadSuccess": { // For JSON download
-                    "title": "Structure Downloaded (JSON)",
-                    "description": "A JSON file with the project structure and content for \"{projectName}\" has been downloaded. You can use this file to create the files and folders manually or with a script."
+                "downloadSuccess": {
+                    "title": "Project Downloaded (ZIP)",
+                    "description": "A ZIP file with the project structure and content for \"{projectName}\" has been downloaded."
                 },
-                "zipDownloadSuccess": { // For actual ZIP download
+                "zipDownloadSuccess": {
                     "title": "Project Downloaded (ZIP)",
                     "description": "A ZIP file with the project structure and content for \"{projectName}\" has been downloaded."
                 },
@@ -2177,6 +2177,10 @@ const translationsData = {
                     }
                 }
             },
+            "deleteSingleModal": {
+                "title": "Confirm Deletion: {name}",
+                "description": "Are you sure you want to delete this agent? This action cannot be undone."
+            },
             "suggestionDialog": {
                 "title": "Suggest Agent Definition with AI",
                 "description": "Describe the role or main task of the agent you need, and AI will suggest a definition.",
@@ -2317,8 +2321,7 @@ const translationsData = {
             },
             "deleteSingleModal": {
                 "title": "Confirm Deletion: {name}",
-                "description": "¿Estás seguro de que quieres eliminar este grupo de trabajo? Esta acción no se puede deshacer.",
-                "confirm": "Yes, Delete"
+                "description": "Are you sure you want to delete this workgroup? This action cannot be undone."
             }
         },
         "appLayout": {

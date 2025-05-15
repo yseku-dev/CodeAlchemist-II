@@ -318,10 +318,8 @@ export default function AgentesIAPage() {
                     <p><strong>{t('agents.llmLabel')}</strong> {agent.llmConfig.useGlobal ? t('agents.llmGlobalFormat', {provider: globalSettings.llmConfig.provider}) : t('agents.llmCustomFormat', {provider: agent.llmConfig.customConfig?.provider || t('agents.llmNotApplicable')})}</p>
                     <p><strong>{t('agents.capabilitiesLabel')}</strong>
                         {Object.entries(agent.capabilities).filter(([, val]) => val).map(([key]) => {
-                            // Assuming keys are like 'accessOwnCode', 'execution', etc.
                             const capabilityKey = `agents.form.capability.${key.toLowerCase()}` as TranslationKey;
                             const translatedCap = t(capabilityKey);
-                            // If translation exists and is not the key itself, use it. Otherwise, format the key.
                             const displayName = translatedCap !== capabilityKey
                                 ? translatedCap
                                 : key.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase());
