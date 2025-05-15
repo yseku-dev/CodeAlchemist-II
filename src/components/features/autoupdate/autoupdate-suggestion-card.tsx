@@ -6,10 +6,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type { AutoUpdateSuggestion } from '@/types';
-import { Edit3, Check, X, Play, Wand2Icon, Save, TestTubeDiagonal, Copy } from 'lucide-react'; // Added Copy
+import { Edit3, Check, X, Play, Wand2Icon, Save, TestTubeDiagonal, Copy } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useToast } from '@/hooks/use-toast'; // Added useToast
+import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/context/I18nContext';
 
 interface AutoUpdateSuggestionCardProps {
   suggestion: AutoUpdateSuggestion;
@@ -33,15 +34,16 @@ export default function AutoUpdateSuggestionCard({
   onTestInVenv,
 }: AutoUpdateSuggestionCardProps) {
   const { id, area, suggestion: descriptionText, priority, fullFileContentSuggested, suggestedPromptForImplementation, status, isEditing, userEditedContent } = suggestion;
-  const hasContentToActOn = !!(fullFileContentSuggested || userEditedContent);
+  const hasContentToActOn = !!(fullFileContentSuggested || userEditedContent !== undefined); // Check if userEditedContent is defined
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const handleCopyPrompt = () => {
     if (suggestedPromptForImplementation) {
       navigator.clipboard.writeText(suggestedPromptForImplementation);
       toast({
-        title: "Prompt Copiado",
-        description: "El prompt sugerido ha sido copiado al portapapeles.",
+        title: t('autoupdate.toast.editSaved.title'), // Re-use existing or add specific "Prompt Copied"
+        description: "El prompt sugerido ha sido copiado al portapapeles.", // TODO: i18n this
       });
     }
   };
@@ -52,7 +54,7 @@ export default function AutoUpdateSuggestionCard({
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-md font-semibold">{area}</CardTitle>
-            <CardDescription className="text-xs">Prioridad: <span className={`font-semibold ${priority === 'Alta' ? 'text-destructive' : priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{priority}</span></CardDescription>
+            <CardDescription className="text-xs">{t('autoupdate.suggestionCard.priorityLabel')} <span className={`font-semibold ${priority === 'Alta' ? 'text-destructive' : priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{priority}</span></CardDescription>
           </div>
           {status === 'applied' && <Check className="h-5 w-5 text-green-500" />}
           {status === 'discarded' && <X className="h-5 w-5 text-muted-foreground" />}
@@ -63,7 +65,7 @@ export default function AutoUpdateSuggestionCard({
         {suggestedPromptForImplementation && (
           <div className="mt-2 pt-2 border-t border-border/50">
             <div className="flex justify-between items-center mb-1">
-              <Label htmlFor={`prompt-${id}`} className="text-xs font-semibold text-muted-foreground">Prompt:</Label>
+              <Label htmlFor={`prompt-${id}`} className="text-xs font-semibold text-muted-foreground">{t('autoupdate.suggestionCard.promptLabel')}</Label>
               <Button variant="ghost" size="icon" onClick={handleCopyPrompt} title="Copiar Prompt" className="h-6 w-6">
                 <Copy className="h-3.5 w-3.5" />
               </Button>
@@ -75,12 +77,12 @@ export default function AutoUpdateSuggestionCard({
             </ScrollArea>
           </div>
         )}
-        {isEditing && (fullFileContentSuggested || userEditedContent !== undefined) && (
+        {isEditing && (fullFileContentSuggested !== undefined || userEditedContent !== undefined) && (
           <div className="space-y-2 mt-2">
-            <Label htmlFor={`edit-${id}`} className="text-xs font-medium">Editar Contenido Sugerido:</Label>
+            <Label htmlFor={`edit-${id}`} className="text-xs font-medium">{t('autoupdate.suggestionCard.editContentLabel')}</Label>
             <Textarea
               id={`edit-${id}`}
-              value={userEditedContent ?? fullFileContentSuggested ?? ''} // Ensure controlled component
+              value={userEditedContent ?? fullFileContentSuggested ?? ''} 
               onChange={(e) => onContentChange(id, e.target.value)}
               rows={8}
               className="text-xs font-mono bg-background"
@@ -94,27 +96,27 @@ export default function AutoUpdateSuggestionCard({
             {isEditing ? (
               <>
                 <Button size="xs" variant="outline" onClick={() => onCancelEdit(id)}>
-                  <X className="mr-1 h-3 w-3" /> Cancelar
+                  <X className="mr-1 h-3 w-3" /> {t('common.cancel')}
                 </Button>
                 <Button size="xs" onClick={() => onSaveEdit(id)}>
-                  <Save className="mr-1 h-3 w-3" /> Guardar Edición
+                  <Save className="mr-1 h-3 w-3" /> {t('autoupdate.suggestionCard.saveEditButton')}
                 </Button>
               </>
             ) : (
               <>
                 {hasContentToActOn && (
                    <Button size="xs" variant="outline" onClick={() => onToggleEdit(id)}>
-                    <Edit3 className="mr-1 h-3 w-3" /> Editar
+                    <Edit3 className="mr-1 h-3 w-3" /> {t('common.edit')}
                   </Button>
                 )}
                 <Button size="xs" variant="outline" onClick={() => onTest(suggestion)} disabled={!hasContentToActOn}>
-                  <Play className="mr-1 h-3 w-3" /> Testear
+                  <Play className="mr-1 h-3 w-3" /> {t('common.test')}
                 </Button>
                 <Button size="xs" variant="outline" onClick={() => onTestInVenv(suggestion)} disabled={!hasContentToActOn}>
-                  <TestTubeDiagonal className="mr-1 h-3 w-3" /> Testear en Ent. Virtual
+                  <TestTubeDiagonal className="mr-1 h-3 w-3" /> {t('autoupdate.suggestionCard.testInVenvButton')}
                 </Button>
                 <Button size="xs" onClick={() => onApply(suggestion)} disabled={!hasContentToActOn}>
-                   <Wand2Icon className="mr-1 h-3 w-3" /> Aplicar
+                   <Wand2Icon className="mr-1 h-3 w-3" /> {t('common.apply')}
                 </Button>
               </>
             )}
@@ -122,7 +124,7 @@ export default function AutoUpdateSuggestionCard({
         )}
         {status !== 'pending' && (
           <p className={`text-xs font-semibold ${status === 'applied' ? 'text-green-600' : 'text-muted-foreground'}`}>
-            {status === 'applied' ? 'Sugerencia Aplicada (marcada)' : 'Sugerencia Descartada'}
+            {status === 'applied' ? t('autoupdate.suggestionCard.statusApplied') : t('autoupdate.suggestionCard.statusDiscarded')}
           </p>
         )}
       </CardFooter>

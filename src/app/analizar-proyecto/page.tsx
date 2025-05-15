@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card'; // Removed CardHeader etc. for PageSectionHeader
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
 import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput, Agent } from '@/types'; 
-import { analyzeSelfCode as analyzeProjectFlow } from '@/ai/flows/analyze-self-code'; 
+import { callAnalyzeSelfCode as analyzeProjectFlow } from '@/utils/apiClient'; 
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -21,6 +21,7 @@ import { useAppState } from '@/context/AppStateContext';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
 import { AppError } from '@/utils/AppError';
+import { useI18n } from '@/context/I18nContext';
 
 
 type ProjectSourceType = "upload" | "git";
@@ -32,8 +33,9 @@ type ProjectSourceType = "upload" | "git";
  * displays the AI's overall assessment, identified areas, and specific suggestions.
  */
 export default function AnalizarProyectoPage() {
-  const { agents, getAgentById } = useAppState(); 
+  const { agents, groups, getAgentById, getGroupById } = useAppState(); 
   const router = useRouter();
+  const { t } = useI18n();
 
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
   const [projectSourceType, setProjectSourceType] = useState<ProjectSourceType>("upload");
@@ -50,11 +52,6 @@ export default function AnalizarProyectoPage() {
   const { addLog } = useDebug();
   const { toast } = useToast();
 
-  /**
-   * Handles changes to the file input for project source.
-   * Validates file type (ZIP/JSON) and size.
-   * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
-   */
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -63,112 +60,116 @@ export default function AnalizarProyectoPage() {
         setUploadedFile(file);
         addLog(`Project file selected for analysis: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
       } else {
-        toast({ variant: "destructive", title: "Archivo Inválido", description: "Sube un archivo .zip o .json de menos de 25MB." });
+        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title'), description: t('analyzeProject.toast.invalidFile.description') });
         setUploadedFile(null);
         if(fileInputRef.current) fileInputRef.current.value = "";
       }
     }
   };
 
-  /**
-   * Initiates the project analysis by constructing the input and calling the AI flow.
-   * This function is called by `handleAnalyze` after initial setup.
-   * @param {AnalyzeCodeInput} input - The input for the analysis flow.
-   */
   const executeAnalysis = async (input: AnalyzeCodeInput) => {
-     const flowName = 'analyzeProject (analyzeSelfCode flow)';
+     const flowName = 'analyzeProject (callAnalyzeSelfCode flow)';
      addLog({message: `Analyzing project with input: ${JSON.stringify(input).substring(0, 200)}... and config: ${JSON.stringify(llmConfigSource)}`, flowName});
     
     try {
       const aiResult = await analyzeProjectFlow(input); 
-      let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined };
+      let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined, overallImprovementIdeas: aiResult.overallImprovementIdeas || [] };
 
-      if (llmConfigSource?.type === 'Grupo') {
-         finalResult.groupLog = `(Simulación de Log de Grupo para Análisis de Proyecto)\nTurno 1: Orquestador -> AgenteAnalizadorDeProyectos (usando '${llmConfigSource.name}'). Tarea: Analizar proyecto con enfoque en '${input.focusArea || 'general'}'.\nTurno 2: AgenteAnalizadorDeProyectos -> Reporte de análisis generado.`;
+      if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name) {
+         finalResult.groupLog = t('autoupdate.logs.groupContextLog', { // Reusing autoupdate log for now
+            groupName: llmConfigSource.name,
+            groupTask: (getGroupById(llmConfigSource.id || '')?.mainTask || 'N/A').substring(0,150),
+            userInput: (input.focusArea || t('autoupdate.analysis.general')),
+            orchestratorContext: (getAgentById('orquestador-flujo-agentes')?.systemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
+            flowName: 'analyzeSelfCode (AnalyzeProject)'
+        });
       }
 
       setResult(finalResult);
-      toast({ title: "Análisis Completado", description: "El proyecto ha sido analizado." });
-      addLog({message: "Project analysis successful.", flowName});
+      toast({ title: t('analyzeProject.toast.analysisComplete.title'), description: t('analyzeProject.toast.analysisComplete.description') });
+      addLog({message: "Project analysis successful.", data: finalResult, flowName});
     } catch (e: any) {
       addLog({ message: "Project analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
-        toast({ variant: "destructive", title: "Error de Análisis", description: e.friendlyMessage });
+        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title'), description: e.friendlyMessage });
         if (e.redirectTo) {
           router.push(e.redirectTo);
         }
       } else {
         const errorMsg = e.message || "Ocurrió un error durante el análisis del proyecto.";
         setError(errorMsg);
-        toast({ variant: "destructive", title: "Error de Análisis", description: errorMsg });
+        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title'), description: errorMsg });
       }
     } finally {
       setIsLoading(false);
     }
   }
 
-  /**
-   * Prepares and triggers the project analysis process.
-   * Handles file reading for uploaded projects before calling `executeAnalysis`.
-   */
   const handleAnalyze = async () => {
     setIsLoading(true);
     setError(null);
     setResult(null);
 
-    let analysisInput: AnalyzeCodeInput;
+    let agentSystemPrompt: string | undefined;
+    if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
+        const agent = getAgentById(llmConfigSource.id);
+        agentSystemPrompt = agent?.systemPrompt;
+    } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
+        const group = getGroupById(llmConfigSource.id || '');
+        // Use group's main task as context for the analysis flow, as it's more direct than orchestrator's generic prompt
+        agentSystemPrompt = group?.mainTask;
+    }
+
+    let analysisInputBase: Omit<AnalyzeCodeInput, 'sourceCodeLocation' | 'projectContent' | 'gitRepoUrl'> = {
+        analysisPreferences: focusArea || undefined, 
+        searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
+        focusArea: focusArea || undefined,
+        agentSystemPrompt: agentSystemPrompt
+    };
 
     if (projectSourceType === "upload" && uploadedFile) {
       const reader = new FileReader();
       reader.onload = async (e) => {
           const projectContent = e.target?.result as string;
-          analysisInput = {
+          const analysisInput: AnalyzeCodeInput = {
+            ...analysisInputBase,
             sourceCodeLocation: "UploadedString",
             projectContent: projectContent, 
-            analysisPreferences: focusArea || undefined, // Legacy, use focusArea
-            searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-            focusArea: focusArea || undefined,
           };
           addLog(`Analyzing uploaded project: ${uploadedFile.name}`);
           await executeAnalysis(analysisInput);
       };
       reader.onerror = () => {
-          toast({ variant: "destructive", title: "Error de Lectura", description: "No se pudo leer el archivo."});
+          toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title'), description: t('analyzeProject.toast.readError.description')});
           setIsLoading(false);
       }
       if (uploadedFile.type === 'application/json') {
         reader.readAsText(uploadedFile);
       } else if (uploadedFile.type === 'application/zip') {
-        // For ZIP, the content will be a base64 string if read as data URL,
-        // or just a marker if not fully processed.
-        // For simplicity, for now, we'll treat it as a reference.
-        analysisInput = {
+        // Pass a reference for ZIP; the flow `analyzeSelfCode` should handle it based on projectContent.
+        const analysisInput: AnalyzeCodeInput = {
+            ...analysisInputBase,
             sourceCodeLocation: "UploadedString", 
             projectContent: `Contenido del archivo ZIP: ${uploadedFile.name}. (El flujo debe poder interpretar esto como una referencia o el contenido real si se envía).`,
-            analysisPreferences: focusArea || undefined,
-            searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-            focusArea: focusArea || undefined,
           };
         addLog(`Analyzing uploaded ZIP project: ${uploadedFile.name} (reference/placeholder content)`);
         await executeAnalysis(analysisInput);
       } else {
-          toast({ variant: "destructive", title: "Tipo de Archivo no Soportado", description: "El análisis de este tipo de archivo no está completamente implementado."});
+          toast({ variant: "destructive", title: t('analyzeProject.toast.unsupportedFileType.title'), description: t('analyzeProject.toast.unsupportedFileType.description')});
           setIsLoading(false);
       }
       return; 
     } else if (projectSourceType === "git" && gitUrl) {
-      analysisInput = {
+      const analysisInput: AnalyzeCodeInput = {
+        ...analysisInputBase,
         sourceCodeLocation: "Git",
         gitRepoUrl: gitUrl,
-        analysisPreferences: focusArea || undefined,
-        searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-        focusArea: focusArea || undefined,
       };
       addLog(`Analyzing Git project URL: ${gitUrl}`);
       await executeAnalysis(analysisInput);
     } else {
-      toast({ variant: "destructive", title: "Fuente del Proyecto Requerida", description: "Sube un archivo o proporciona una URL de Git." });
+      toast({ variant: "destructive", title: t('analyzeProject.toast.sourceRequired.title'), description: t('analyzeProject.toast.sourceRequired.description') });
       setIsLoading(false);
       return;
     }
@@ -179,26 +180,26 @@ export default function AnalizarProyectoPage() {
     <Card className="max-w-4xl mx-auto">
       <PageSectionHeader
         icon={FolderSearch}
-        title="Análisis de Proyecto Completo"
-        description="Realiza un análisis holístico de un proyecto entero, subido o desde Git."
+        title={t('analyzeProject.title')}
+        description={t('analyzeProject.description')}
       />
       <CardContent className="space-y-6">
-        <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} />
+        <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} label={t('analyzeProject.llmSourceLabel')} />
 
         <div className="space-y-2">
-          <Label>Fuente del Proyecto</Label>
+          <Label>{t('analyzeProject.projectSourceLabel')}</Label>
           <Select value={projectSourceType} onValueChange={(value) => setProjectSourceType(value as ProjectSourceType)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="upload">Subir Archivo (ZIP/JSON)</SelectItem>
-              <SelectItem value="git">URL de Git</SelectItem>
+              <SelectItem value="upload">{t('analyzeProject.sourceUpload')}</SelectItem>
+              <SelectItem value="git">{t('analyzeProject.sourceGit')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {projectSourceType === "upload" && (
           <div className="space-y-2">
-            <Label htmlFor="project-file-upload">Subir Archivo (.zip, .json)</Label>
+            <Label htmlFor="project-file-upload">{t('analyzeProject.uploadLabel')}</Label>
             <Input id="project-file-upload" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".zip,application/zip,.json,application/json" disabled={isLoading} />
             {uploadedFile && <p className="text-xs text-muted-foreground">Archivo seleccionado: {uploadedFile.name}</p>}
           </div>
@@ -206,66 +207,66 @@ export default function AnalizarProyectoPage() {
 
         {projectSourceType === "git" && (
           <div className="space-y-2">
-            <Label htmlFor="project-git-url">URL de Git</Label>
-            <Input id="project-git-url" value={gitUrl} onChange={(e) => setGitUrl(e.target.value)} placeholder="https://github.com/usuario/repo.git" disabled={isLoading} />
+            <Label htmlFor="project-git-url">{t('analyzeProject.gitUrlLabel')}</Label>
+            <Input id="project-git-url" value={gitUrl} onChange={(e) => setGitUrl(e.target.value)} placeholder={t('analyzeProject.gitUrlPlaceholder')} disabled={isLoading} />
           </div>
         )}
 
         <Separator />
-        <Label>Parámetros de Análisis</Label>
+        <Label>{t('analyzeProject.paramsLabel')}</Label>
         <div className="space-y-2">
-          <Label htmlFor="search-depth-project" className="text-sm font-normal">Profundidad de Búsqueda (opcional)</Label>
-          <Input id="search-depth-project" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder="Ej: 3 (niveles)" disabled={isLoading} min="1" />
+          <Label htmlFor="search-depth-project" className="text-sm font-normal">{t('analyzeProject.depthLabel')}</Label>
+          <Input id="search-depth-project" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder={t('analyzeProject.depthPlaceholder')} disabled={isLoading} min="1" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="focus-area-project" className="text-sm font-normal">Campo de Enfoque del Análisis (opcional)</Label>
-          <Input id="focus-area-project" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder="Ej: Rendimiento, Seguridad de API" disabled={isLoading} />
+          <Label htmlFor="focus-area-project" className="text-sm font-normal">{t('analyzeProject.focusLabel')}</Label>
+          <Input id="focus-area-project" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder={t('analyzeProject.focusPlaceholder')} disabled={isLoading} />
         </div>
         
         <Button onClick={handleAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Analizar Proyecto
+          {t('analyzeProject.analyzeButton')}
         </Button>
 
         {error && <ErrorDisplay error={error} />}
 
-        {isLoading && !result && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">Analizando proyecto...</p></div>}
+        {isLoading && !result && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{t('analyzeProject.results.analyzing')}</p></div>}
         
         {result && (
           <Card className="mt-6 bg-background">
             <PageSectionHeader icon={ListChecks} title={result.analysisTitle} />
             <CardContent className="space-y-4">
               <div>
-                <h3 className="font-semibold text-lg mb-1">Evaluación General:</h3>
+                <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.overallAssessmentLabel')}</h3>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.generalAssessment}</p>
               </div>
               {result.overallImprovementIdeas && result.overallImprovementIdeas.length > 0 && (
                  <div>
-                    <h3 className="font-semibold text-lg mb-1">Ideas Generales de Mejora:</h3>
+                    <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.improvementIdeasLabel')}</h3>
                     <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                         {result.overallImprovementIdeas.map((idea, index) => <li key={`idea-${index}`}>{idea}</li>)}
                     </ul>
                  </div>
               )}
               <div>
-                <h3 className="font-semibold text-lg mb-1">Áreas Identificadas:</h3>
+                <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.identifiedAreasLabel')}</h3>
                 <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
                   {result.identifiedAreas.map((area, index) => <li key={index}>{area}</li>)}
                 </ul>
               </div>
               {result.detailedSuggestions && result.detailedSuggestions.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-lg mb-2">Sugerencias Específicas:</h3>
+                  <h3 className="font-semibold text-lg mb-2">{t('analyzeProject.results.specificSuggestionsLabel')}</h3>
                   <ScrollArea className="h-60 border rounded-md p-2">
                     <ul className="space-y-3">
                     {result.detailedSuggestions.map((s, index) => (
                       <li key={index} className="p-2 border-b last:border-b-0">
                         <p className="font-medium text-sm">{s.area}</p>
                         <p className="text-xs text-muted-foreground">{s.suggestion}</p>
-                        <p className="text-xs">Prioridad: <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></p>
+                        <p className="text-xs">{t('analyzeProject.results.suggestionPriorityLabel')} <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></p>
                         {s.suggestedPromptForImplementation && (
                           <div className="mt-1 pt-1 border-t border-border/50">
-                            <p className="text-xs font-semibold text-muted-foreground">Prompt Sugerido:</p>
+                            <p className="text-xs font-semibold text-muted-foreground">{t('analyzeProject.results.suggestedPromptLabel')}</p>
                             <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/50 p-1 rounded-sm">{s.suggestedPromptForImplementation}</pre>
                           </div>
                         )}
@@ -275,7 +276,7 @@ export default function AnalizarProyectoPage() {
                   </ScrollArea>
                 </div>
               )}
-              {result.groupLog && <LogsDisplay title="Log Detallado del Análisis" logs={result.groupLog} />}
+              {result.groupLog && <LogsDisplay title={t('analyzeProject.results.groupLogTitle')} logs={result.groupLog} />}
             </CardContent>
           </Card>
         )}
