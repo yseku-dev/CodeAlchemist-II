@@ -4,7 +4,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Download, GitCommit, ClipboardList } from 'lucide-react';
+import { Loader2, Download, GitCommit, ClipboardList, FileArchive } from 'lucide-react'; // Added FileArchive
 import ErrorDisplay from '@/components/error-display';
 import LogsDisplay from '@/components/logs-display';
 import type { AnalyzeCodeOutput, AutoUpdateSuggestion } from '@/types';
@@ -24,7 +24,7 @@ interface AutoUpdateResultsDisplayProps {
   onCancelEdit: (suggestionId: string) => void;
   onTestSuggestion: (suggestion: AutoUpdateSuggestion) => void;
   onTestInVenv: (suggestion: AutoUpdateSuggestion) => void;
-  onDownloadSuggestions: (format: 'JSON' | 'ZIP') => void;
+  onDownloadSuggestions: (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => void; // Updated format types
   onOpenCommitDialog: () => void;
 }
 
@@ -58,8 +58,8 @@ export default function AutoUpdateResultsDisplay({
             </CardTitle>
             {analysisResult && (
                 <div className="flex flex-wrap gap-2 justify-start sm:justify-end w-full sm:w-auto">
-                    <Button variant="outline" size="sm" onClick={() => onDownloadSuggestions('JSON')} disabled={!suggestions.length}><Download className="mr-2 h-4 w-4" /> Descargar Sugerencias (JSON)</Button>
-                    <Button variant="outline" size="sm" onClick={() => onDownloadSuggestions('ZIP')} disabled={!suggestions.length}><Download className="mr-2 h-4 w-4" /> Descargar Sugerencias (ZIP)</Button>
+                    <Button variant="outline" size="sm" onClick={() => onDownloadSuggestions('JSON_SUGGESTIONS')} disabled={!suggestions.length}><Download className="mr-2 h-4 w-4" /> Descargar Sugerencias (JSON)</Button>
+                    <Button variant="outline" size="sm" onClick={() => onDownloadSuggestions('ZIP_PROJECT')} disabled={!analysisResult}><FileArchive className="mr-2 h-4 w-4" /> Descargar Código Actual (ZIP)</Button>
                     <Button variant="outline" size="sm" onClick={onOpenCommitDialog}><GitCommit className="mr-2 h-4 w-4" /> Subir a Git</Button>
                 </div>
             )}
@@ -90,7 +90,7 @@ export default function AutoUpdateResultsDisplay({
             <div className="mt-4 pt-4 border-t">
               <h4 className="font-semibold text-lg">Sugerencias Detalladas:</h4>
               {suggestions.length === 0 && <p className="text-sm text-muted-foreground">No hay sugerencias detalladas.</p>}
-              <ScrollArea className="max-h-[calc(100vh-22rem)] md:max-h-[calc(100vh-25rem)] lg:max-h-[50vh] overflow-y-auto pr-2">
+              <ScrollArea className="max-h-[calc(100vh-22rem)] md:max-h-[calc(100vh-25rem)] lg:max-h-[65vh] overflow-y-auto pr-2"> {/* Increased lg:max-h */}
                   <div className="space-y-3">
                   {suggestions.map(s => (
                       <AutoUpdateSuggestionCard

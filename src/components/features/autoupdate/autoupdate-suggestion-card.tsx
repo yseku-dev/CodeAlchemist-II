@@ -6,9 +6,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type { AutoUpdateSuggestion } from '@/types';
-import { Edit3, Check, X, Play, Wand2Icon, Save, TestTubeDiagonal } from 'lucide-react';
+import { Edit3, Check, X, Play, Wand2Icon, Save, TestTubeDiagonal, Copy } from 'lucide-react'; // Added Copy
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area'; // Import ScrollArea
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/hooks/use-toast'; // Added useToast
 
 interface AutoUpdateSuggestionCardProps {
   suggestion: AutoUpdateSuggestion;
@@ -33,6 +34,17 @@ export default function AutoUpdateSuggestionCard({
 }: AutoUpdateSuggestionCardProps) {
   const { id, area, suggestion: descriptionText, priority, fullFileContentSuggested, suggestedPromptForImplementation, status, isEditing, userEditedContent } = suggestion;
   const hasContentToActOn = !!(fullFileContentSuggested || userEditedContent);
+  const { toast } = useToast();
+
+  const handleCopyPrompt = () => {
+    if (suggestedPromptForImplementation) {
+      navigator.clipboard.writeText(suggestedPromptForImplementation);
+      toast({
+        title: "Prompt Copiado",
+        description: "El prompt sugerido ha sido copiado al portapapeles.",
+      });
+    }
+  };
 
   return (
     <Card key={id} className={`shadow-md ${status === 'applied' ? 'border-green-500' : status === 'discarded' ? 'opacity-70 bg-muted/50' : 'border-border'}`}>
@@ -50,7 +62,12 @@ export default function AutoUpdateSuggestionCard({
         <p className="text-xs">{descriptionText}</p>
         {suggestedPromptForImplementation && (
           <div className="mt-2 pt-2 border-t border-border/50">
-            <Label htmlFor={`prompt-${id}`} className="text-xs font-semibold text-muted-foreground">Prompt:</Label>
+            <div className="flex justify-between items-center mb-1">
+              <Label htmlFor={`prompt-${id}`} className="text-xs font-semibold text-muted-foreground">Prompt:</Label>
+              <Button variant="ghost" size="icon" onClick={handleCopyPrompt} title="Copiar Prompt" className="h-6 w-6">
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
             <ScrollArea className="h-20 mt-1 rounded-md border bg-muted/30 p-2">
                 <pre id={`prompt-${id}`} className="text-xs whitespace-pre-wrap font-mono">
                     {suggestedPromptForImplementation}
@@ -63,7 +80,7 @@ export default function AutoUpdateSuggestionCard({
             <Label htmlFor={`edit-${id}`} className="text-xs font-medium">Editar Contenido Sugerido:</Label>
             <Textarea
               id={`edit-${id}`}
-              value={userEditedContent || fullFileContentSuggested || ''}
+              value={userEditedContent ?? fullFileContentSuggested ?? ''} // Ensure controlled component
               onChange={(e) => onContentChange(id, e.target.value)}
               rows={8}
               className="text-xs font-mono bg-background"
