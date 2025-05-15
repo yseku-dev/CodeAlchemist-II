@@ -40,30 +40,37 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import React, { useEffect, useMemo } from 'react'; 
-import { useDebug } from '@/context/DebugContext';
+import { useDebug, type DebugLogEntry } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/hooks/use-toast'; 
+import { useI18n } from '@/context/I18nContext';
+import type { TranslationKey } from '@/lib/i18n/translations';
 
-const navItems = [
-  { href: '/', label: 'Panel de Control', icon: LayoutDashboard },
-  { href: '/generar-codigo', label: 'Generar Código', icon: CodeXml },
-  { href: '/generar-proyecto', label: 'Generar Proyecto', icon: FolderPlus },
-  { href: '/refactorizar-proyecto', label: 'Refactorizar Proyecto', icon: GitPullRequestDraft },
-  { href: '/analizar-codigo', label: 'Analizar Código', icon: ScanLine },
-  { href: '/analizar-proyecto', label: 'Analizar Proyecto', icon: FolderSearch },
-  { href: '/autoupdate', label: 'AutoUpdate', icon: Sparkles },
-  { href: '/versiones-guardadas', label: 'Versiones Guardadas', icon: GitCompareArrows },
-  { href: '/chat-ia', label: 'Chat con IA', icon: MessageCircle },
-  { href: '/agentes-ia', label: 'Agentes IA', icon: Users2 },
-  { href: '/grupos-trabajo-ia', label: 'Grupos de Trabajo IA', icon: Workflow },
-  { href: '/configuracion', label: 'Configuración', icon: SettingsIcon },
-];
 
 /**
  * @fileOverview Main application layout component.
  * Includes the collapsible sidebar, header, and debug panel.
  * Also sets up global client-side error listeners.
  */
+
+/**
+ * Data for navigation items in the sidebar.
+ * Each item has a path, a translation key for its label, and an icon.
+ */
+const navItemsData = [
+  { href: '/', labelKey: 'sidebar.dashboard', icon: LayoutDashboard },
+  { href: '/generar-codigo', labelKey: 'sidebar.generateCode', icon: CodeXml },
+  { href: '/generar-proyecto', labelKey: 'sidebar.generateProject', icon: FolderPlus },
+  { href: '/refactorizar-proyecto', labelKey: 'sidebar.refactorProject', icon: GitPullRequestDraft },
+  { href: '/analizar-codigo', labelKey: 'sidebar.analyzeCode', icon: ScanLine },
+  { href: '/analizar-proyecto', labelKey: 'sidebar.analyzeProject', icon: FolderSearch },
+  { href: '/autoupdate', labelKey: 'sidebar.autoupdate', icon: Sparkles },
+  { href: '/versiones-guardadas', labelKey: 'sidebar.snapshots', icon: GitCompareArrows },
+  { href: '/chat-ia', labelKey: 'sidebar.chat', icon: MessageCircle },
+  { href: '/agentes-ia', labelKey: 'sidebar.agents', icon: Users2 },
+  { href: '/grupos-trabajo-ia', labelKey: 'sidebar.groups', icon: Workflow },
+  { href: '/configuracion', labelKey: 'sidebar.settings', icon: SettingsIcon },
+];
 
 
 /**
@@ -82,7 +89,7 @@ function CollapsibleSidebarButton() {
       variant="ghost"
       size="icon"
       onClick={toggleSidebar}
-      aria-label={open ? 'Ocultar barra lateral' : 'Mostrar barra lateral'}
+      aria-label={open ? 'Ocultar barra lateral' : 'Mostrar barra lateral'} // TODO: i18n
     >
       {open ? <ChevronsLeft /> : <ChevronsRight />}
     </Button>
@@ -100,10 +107,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
   const pathname = usePathname();
   const { initializeDefaultData } = useAppState();
   const { toast } = useToast(); 
+  const { t, language } = useI18n();
 
   useEffect(() => {
     initializeDefaultData();
   }, [initializeDefaultData]);
+
+  // Effect to set the HTML lang attribute when the active language changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      document.documentElement.lang = language;
+    }
+  }, [language]);
 
   // Global client-side error handling
   useEffect(() => {
@@ -126,7 +141,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
         error = event.reason;
         message = event.reason instanceof Error ? event.reason.message : String(event.reason);
         stack = event.reason instanceof Error ? event.reason.stack : undefined;
-        // Source, lineno, colno are not directly available on PromiseRejectionEvent
       }
 
       console.error("Unhandled Client-Side Error:", {
@@ -150,8 +164,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
 
       toast({
         variant: "destructive",
-        title: "Error Inesperado",
-        description: "Ocurrió un error inesperado en la aplicación. Ya estamos trabajando en ello.",
+        title: t('appLayout.toast.unexpectedError.title' as TranslationKey),
+        description: t('appLayout.toast.unexpectedError.description' as TranslationKey),
         duration: 7000,
       });
     };
@@ -166,11 +180,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
       window.removeEventListener('error', errorHandler);
       window.removeEventListener('unhandledrejection', rejectionHandler);
     };
-  }, [toast, pathname]); 
+  }, [toast, pathname, t]); 
 
-  const currentNavItem = useMemo(() => navItems.find(item => item.href === pathname), [pathname]);
-  const pageTitle = currentNavItem?.label || 'Panel de Control';
-  const PageIcon = currentNavItem?.icon;
+  const navItems = useMemo(() => {
+    return navItemsData.map(item => ({
+      ...item,
+      label: t(item.labelKey as TranslationKey), // Use t() here
+      icon: item.icon,
+      href: item.href,
+    }));
+  }, [t, language]); // Depends on t and language
+
+  const currentNavItemData = useMemo(() => navItemsData.find(item => item.href === pathname), [pathname]);
+  const pageTitle = useMemo(() => {
+    return currentNavItemData ? t(currentNavItemData.labelKey as TranslationKey) : t('sidebar.dashboard' as TranslationKey); // Default to Dashboard if not found
+  }, [currentNavItemData, t, language]); // Depends on t and language
+  
+  const PageIcon = currentNavItemData?.icon;
   
   return (
     <SidebarProvider defaultOpen={true}>
@@ -180,7 +206,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }): 
             <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
               <FlaskConical className="h-8 w-8 text-primary" />
               <h1 className="text-xl font-semibold">
-                CodeAlchemist
+                {t('app.title' as TranslationKey)}
               </h1>
             </Link>
              <Link href="/" className="items-center justify-center data-[state=expanded]:group-data-[collapsible=icon]:hidden group-data-[collapsible=icon]:flex hidden">
@@ -245,35 +271,36 @@ function DebugPanel() {
   const { debugMode, logs, clearLogs } = useDebug();
   const [isExpanded, setIsExpanded] = React.useState(true);
   const { toast: showToast } = useToast(); 
+  const { t } = useI18n();
 
   if (!debugMode) return null;
 
   const handleCopyLogs = () => {
-    navigator.clipboard.writeText(logs.map(log => typeof log === 'object' ? JSON.stringify(log) : log).join('\\n'));
-    showToast({ title: "Logs Copiados", description: "Logs de depuración copiados al portapapeles."});
+    navigator.clipboard.writeText(logs.map(log => typeof log === 'object' ? JSON.stringify(log) : String(log)).join('\\n'));
+    showToast({ title: t('appLayout.debugPanel.copyButton' as TranslationKey), description: "Logs de depuración copiados al portapapeles."}); // TODO: i18n description
   };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-muted/80 backdrop-blur-sm shadow-lg">
       <div className="flex justify-between items-center p-2 border-b">
-        <h3 className="font-semibold text-sm">Panel de Depuración</h3>
+        <h3 className="font-semibold text-sm">{t('appLayout.debugPanel.title' as TranslationKey)}</h3>
         <div>
-          <Button variant="ghost" size="icon" onClick={handleCopyLogs} title="Copiar Logs">
+          <Button variant="ghost" size="icon" onClick={handleCopyLogs} title={t('appLayout.debugPanel.copyButton' as TranslationKey)}>
             <Copy className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={clearLogs} title="Borrar Logs">
+          <Button variant="ghost" size="icon" onClick={clearLogs} title={t('appLayout.debugPanel.clearButton' as TranslationKey)}>
             <Trash2 className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} title={isExpanded ? "Contraer" : "Expandir"}>
+          <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} title={isExpanded ? t('appLayout.debugPanel.collapseButton' as TranslationKey) : t('appLayout.debugPanel.expandButton' as TranslationKey)}>
             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </Button>
         </div>
       </div>
       {isExpanded && (
         <ScrollArea className="h-48 p-2 text-xs">
-          {logs.length === 0 ? <p>No hay logs.</p> : logs.map((log, index) => (
+          {logs.length === 0 ? <p>{t('appLayout.debugPanel.noLogs' as TranslationKey)}</p> : logs.map((log, index) => (
             <div key={index} className="font-mono whitespace-pre-wrap border-b border-dashed py-1">
-              {typeof log === 'object' ? JSON.stringify(log, null, 2) : log}
+              {typeof log === 'object' ? JSON.stringify(log, null, 2) : String(log)}
             </div>
           ))}
         </ScrollArea>
@@ -281,3 +308,6 @@ function DebugPanel() {
     </div>
   );
 }
+
+
+    

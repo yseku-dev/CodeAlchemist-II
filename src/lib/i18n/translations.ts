@@ -1,4 +1,3 @@
-
 // src/lib/i18n/translations.ts
 
 import type { LanguageCode } from '@/types';
@@ -42,17 +41,13 @@ const translationsData = {
         "generateProject": "Generar Proyecto",
         "refactorProject": "Refactorizar Proyecto",
         "analyzeCode": "Analizar Código",
-        "analyzeProject": "Analizar Proyecto",
+        "analyzeProject": "Analizar Proyecto Completo",
         "autoupdate": "AutoUpdate",
         "snapshots": "Versiones Guardadas",
         "chat": "Chat con IA",
         "agents": "Agentes IA",
         "groups": "Grupos de Trabajo IA",
         "settings": "Configuración",
-        "toggle": {
-            "hide": "Ocultar barra lateral",
-            "show": "Mostrar barra lateral"
-        },
         "mobile": {
           "title": "Navegación Principal"
         }
@@ -79,7 +74,7 @@ const translationsData = {
                 "description": "Obtén análisis detallados y sugerencias para fragmentos o archivos."
             },
             "analyzeProject": {
-                "title": "Analizar Proyecto",
+                "title": "Analizar Proyecto Completo",
                 "description": "Realiza un análisis completo de un proyecto desde un archivo o Git."
             },
             "autoupdate": {
@@ -356,7 +351,7 @@ const translationsData = {
             "downloadComplete": {
                 "title": "Descarga Completada",
                 "suggestionsJsonDescription": "Sugerencias descargadas como {filename}.",
-                "projectZipDescription": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios). Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
+                "projectZipDescription": "Este archivo ZIP ({filename}) contiene un JSON con los cambios sugeridos por la IA. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (de Git) y aplicar manualmente los cambios del JSON."
             },
             "preparingProjectZip": {
                 "title": "Preparando Descarga del Proyecto (ZIP)...",
@@ -602,9 +597,17 @@ const translationsData = {
         "promptLabel": "Prompt:"
       },
       "toast": {
-        "descriptionEmpty": "Por favor, describe tu necesidad.",
-        "codeGenerated": "El fragmento de código ha sido generado exitosamente.",
-        "generationError": "Error de Generación"
+        "descriptionEmpty": {
+            "title": "Descripción Vacía",
+            "description": "Por favor, describe tu necesidad."
+        },
+        "codeGenerated": {
+            "title": "Código Generado",
+            "description": "El fragmento de código ha sido generado exitosamente."
+        },
+        "generationError": {
+            "title": "Error de Generación"
+        }
       }
     },
     "generateProject": {
@@ -618,7 +621,7 @@ const translationsData = {
         "aiNotesLabel": "Notas de la IA:",
         "generatedFilesLabel": "Archivos Generados:",
         "downloadButton": "Descargar Proyecto (ZIP)",
-        "downloadNote": "Nota: La descarga será un archivo ZIP con la estructura y contenido del proyecto.",
+        "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
         "groupLogTitle": "Log Detallado del Grupo"
       },
       "confirmDialog": {
@@ -629,13 +632,33 @@ const translationsData = {
         "confirmButton": "Sí, Generar Proyecto"
       },
       "toast": {
-        "descriptionEmpty": "Por favor, describe tu proyecto.",
-        "projectGenerated": "La estructura base del proyecto ha sido generada.",
-        "generationError": "Error de Generación",
-        "downloadError": "Sin Resultados",
-        "downloadErrorDescription": "No hay estructura de proyecto para descargar.",
-        "downloadSuccess": "Proyecto Descargado (ZIP)",
-        "downloadSuccessDescription": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
+        "descriptionEmpty": {
+            "title": "Descripción Vacía",
+            "description": "Por favor, describe tu proyecto."
+        },
+        "projectGenerated": {
+            "title": "Proyecto Generado",
+            "description": "La estructura base del proyecto \"{projectName}\" ha sido generada."
+        },
+        "generationError": {
+            "title": "Error de Generación"
+        },
+        "downloadError": {
+            "title": "Sin Resultados",
+            "description": "No hay estructura de proyecto para descargar."
+        },
+        "downloadSuccess": {
+            "title": "Proyecto Descargado (JSON)",
+            "description": "Se ha descargado un archivo JSON con la estructura y contenido del proyecto \"{projectName}\". Puedes usar este archivo para crear los archivos y carpetas manualmente o con un script. La generación directa de archivos ZIP no es soportada por esta función en el navegador."
+        },
+        "zipDownloadSuccess": {
+            "title": "Proyecto Descargado (ZIP)",
+            "description": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
+        },
+        "zipDownloadError": {
+            "title": "Error de Descarga ZIP",
+            "description": "No se pudo generar el archivo ZIP: {error}"
+        }
       }
     },
     "analyzeCode": {
@@ -697,8 +720,21 @@ const translationsData = {
       "autofixButton": "Auto-Fix con IA",
       "autofixingButton": "Analizando...",
       "toast": {
-        "copied": "Error Copiado",
-        "copiedDescription": "El mensaje de error ha sido copiado al portapapeles."
+        "copied": {
+            "title": "Error Copiado",
+            "description": "El mensaje de error ha sido copiado al portapapeles."
+        },
+        "autofixAttempt": {
+            "title": "Intentando Auto-Corrección",
+            "description": "Consultando al 'EquipoDesarrolloSoftware' para una posible solución..."
+        },
+        "autofixSuggestionReceived": {
+            "title": "Sugerencia de Auto-Corrección Recibida",
+            "description": "El 'EquipoDesarrolloSoftware' ha proporcionado una sugerencia."
+        },
+        "autofixError": {
+            "title": "Error en Auto-Corrección"
+        }
       },
       "autofixModal": {
         "title": "Sugerencia de Auto-Corrección del Equipo de Software",
@@ -764,6 +800,10 @@ const translationsData = {
             "confirm": "Sí, Eliminar"
         },
         "toast": {
+            "appStateSaved": "Estado de Aplicación Guardado",
+            "appStateSavedDescription": "El estado actual de la aplicación \"{name}\" ha sido guardado.",
+            "appStateSavedAndDownloaded": "Estado de Aplicación Guardado y Descargado",
+            "appStateSavedAndDownloadedDescription": "El estado actual \"{name}\" ha sido guardado y descargado como {filename}.",
             "snapshotSaved": "Snapshot Guardado",
             "snapshotSavedDescription": "Snapshot \"{name}\" creado.",
             "snapshotDownloaded": "Snapshot Descargado",
@@ -774,7 +814,10 @@ const translationsData = {
                 "notFound": "No se encontraron los snapshots seleccionados.",
                 "selectionIncomplete": "Selecciona dos versiones (A y B) para comparar."
             },
-            "allSnapshotsDeleted": "Todos los Snapshots Eliminados"
+            "allSnapshotsDeleted": {
+                 "title": "Todos los Snapshots Eliminados",
+                 "description": "Todas las versiones guardadas han sido eliminadas."
+            }
         }
     },
     "chat": {
@@ -794,10 +837,16 @@ const translationsData = {
             "system": "Sistema"
         },
         "toast": {
-            "chatCleared": "Chat Limpiado",
-            "chatClearedDescription": "El historial de la conversación ha sido borrado.",
-            "chatError": "Error de Chat",
-            "autofixError": "Error en Auto-Fix"
+            "chatCleared": {
+                "title": "Chat Limpiado",
+                "description": "El historial de la conversación ha sido borrado."
+            },
+            "chatError": {
+                "title": "Error de Chat"
+            },
+            "autofixError": {
+                "title": "Error en Auto-Fix"
+            }
         },
         "autofix": {
             "userRequest": "Por favor, analiza este error y sugiere una solución: {errorMsg}"
@@ -826,37 +875,63 @@ const translationsData = {
         },
         "toast": {
             "form": {
-                "nameUneditableError": "El nombre del agente \"{name}\" no puede ser editado.",
-                "deleteError": "El agente \"{name}\" no se puede eliminar."
+                "nameUneditableError": {
+                    "title": "Error",
+                    "description": "El nombre del agente \"{name}\" no puede ser editado."
+                },
+                "deleteError": {
+                    "title": "Error",
+                    "description": "El agente \"{name}\" no se puede eliminar."
+                }
             },
             "import": {
-                "success": "Agentes Importados",
-                "successDescription": "{count} agentes importados y/o actualizados.",
+                "success": {
+                    "title": "Agentes Importados",
+                    "description": "{count} agentes importados y/o actualizados."
+                },
                 "invalidFormat": "Formato JSON inválido para agentes.",
-                "error": "Error de Importación"
+                "error": {
+                    "title": "Error de Importación"
+                }
             },
             "exportAll": {
-                "success": "Agentes Exportados",
-                "description": "Todos los agentes han sido exportados."
+                "success": {
+                    "title": "Agentes Exportados",
+                    "description": "Todos los agentes han sido exportados."
+                }
             },
             "exportSingle": {
-                "success": "Agente Exportado",
-                "description": "Agente \"{name}\" exportado."
+                "success": {
+                    "title": "Agente Exportado",
+                    "description": "Agente \"{name}\" exportado."
+                }
             },
             "suggestion": {
-                "roleRequired": "Descripción Requerida",
-                "roleRequiredDescription": "Por favor, describe el rol del agente.",
-                "received": "Sugerencia Recibida",
-                "receivedDescription": "La IA ha sugerido una definición para el agente {name}.",
-                "error": "Error de Sugerencia",
-                "errorDescription": "No se pudo obtener la sugerencia."
+                "roleRequired": {
+                    "title": "Descripción Requerida",
+                    "description": "Por favor, describe el rol del agente."
+                },
+                "received": {
+                    "title": "Sugerencia Recibida",
+                    "description": "La IA ha sugerido una definición para el agente {name}."
+                },
+                "error": {
+                    "title": "Error de Sugerencia",
+                    "description": "No se pudo obtener la sugerencia."
+                }
             },
-            "created": "Agente Creado",
-            "createdDescription": "Agente \"{name}\" añadido.",
-            "updated": "Agente Actualizado",
-            "updatedDescription": "Agente \"{name}\" guardado.",
-            "deleted": "Agente Eliminado",
-            "deletedDescription": "Agente \"{name}\" eliminado."
+            "created": {
+                "title": "Agente Creado",
+                "description": "Agente \"{name}\" añadido."
+            },
+            "updated": {
+                "title": "Agente Actualizado",
+                "description": "Agente \"{name}\" guardado."
+            },
+            "deleted": {
+                "title": "Agente Eliminado",
+                "description": "Agente \"{name}\" eliminado."
+            }
         },
         "form": {
             "title": {
@@ -908,8 +983,10 @@ const translationsData = {
                 "createAgent": "Crear Agente"
             },
             "toast": {
-                "nameRequired": "Nombre Requerido",
-                "nameRequiredDescription": "El agente debe tener un nombre."
+                "nameRequired": {
+                    "title": "Nombre Requerido",
+                    "description": "El agente debe tener un nombre."
+                }
             }
         },
         "suggestionDialog": {
@@ -967,30 +1044,49 @@ const translationsData = {
                 "createGroup": "Crear Grupo"
             },
             "toast": {
-                "fieldsRequired": "Campos Requeridos",
-                "fieldsRequiredDescription": "El nombre y la tarea principal son obligatorios.",
-                "agentsRequired": "Agentes Requeridos",
-                "agentsRequiredDescription": "Selecciona al menos un agente participante (además del Orquestador)."
+                "fieldsRequired": {
+                    "title": "Campos Requeridos",
+                    "description": "El nombre y la tarea principal son obligatorios."
+                },
+                "agentsRequired": {
+                    "title": "Agentes Requeridos",
+                    "description": "Selecciona al menos un agente participante (además del Orquestador)."
+                }
             }
         },
         "toast": {
-            "created": "Grupo Creado",
-            "createdDescription": "Grupo \"{name}\" añadido.",
-            "updated": "Grupo Actualizado",
-            "updatedDescription": "Grupo \"{name}\" guardado.",
-            "deleted": "Grupo Eliminado",
-            "deletedDescription": "Grupo \"{name}\" eliminado.",
+            "created": {
+                "title": "Grupo Creado",
+                "description": "Grupo \"{name}\" añadido."
+            },
+            "updated": {
+                "title": "Grupo Actualizado",
+                "description": "Grupo \"{name}\" guardado."
+            },
+            "deleted": {
+                "title": "Grupo Eliminado",
+                "description": "Grupo \"{name}\" eliminado."
+            },
             "suggestion": {
-                "taskRequired": "Descripción Requerida",
-                "taskRequiredDescription": "Por favor, describe la tarea del grupo.",
-                "received": "Sugerencia Recibida",
-                "receivedDescription": "La IA ha sugerido una definición para el grupo {name}.",
-                "error": "Error de Sugerencia"
+                "taskRequired": {
+                    "title": "Descripción Requerida",
+                    "description": "Por favor, describe la tarea del grupo."
+                },
+                "received": {
+                    "title": "Sugerencia Recibida",
+                    "description": "La IA ha sugerido una definición para el grupo {name}."
+                },
+                "error": {
+                    "title": "Error de Sugerencia"
+                }
             },
             "execution": {
+                "orchestratorNotFound": "Agente Orquestador no encontrado.",
                 "orchestratorError": "Error de Orquestador",
                 "groupError": "Error de Grupo",
-                "generalError": "Error de Ejecución"
+                "generalError": "Error de Ejecución",
+                "maxTurnsReached": "Se alcanzó el límite de turnos ({maxTurns}). Ejecución detenida.",
+                "stoppedOrFinished": "Ejecución del grupo finalizada o detenida."
             }
         },
         "suggestionDialog": {
@@ -1009,25 +1105,25 @@ const translationsData = {
             "stopButton": "Detener Ejecución"
         },
         "execution": {
-            "starting": "Iniciando ejecución del grupo: {name}...",
+            "starting": "Iniciando ejecución del grupo: {name}...\nTarea Principal: {mainTask}",
             "taskPrefix": "Tarea Principal: ",
             "criticalError": {
-                "orchestratorNotFound": "Agente Orquestrador ('orquestador-flujo-agentes') no encontrado. No se puede ejecutar el grupo.",
+                "orchestratorNotFound": "Agente Orquestador ('orquestador-flujo-agentes') no encontrado. No se puede ejecutar el grupo.",
                 "orchestratorParse": "Error al parsear la respuesta JSON del Orquestador.",
-                "orchestratorIncomplete": "Respuesta del Orquestrador incompleta (faltan next_agent_id o instruction_for_next_agent).",
+                "orchestratorIncomplete": "Respuesta del Orquestador incompleta (faltan next_agent_id o instruction_for_next_agent).",
                 "agentNotFound": "Agente con ID \"{id}\" no encontrado."
             },
             "log": {
                 "turnPrefix": "--- Turno {turn} ---",
-                "orchestratorReceiving": "Orquestrador recibiendo: \"{input}...\"",
-                "orchestratorRawResponse": "Orquestrador (raw JSON): {response}",
-                "orchestratorDecision": "Decisión del Orquestrador: Siguiente Agente: {nextAgentId}. Instrucción: \"{instruction}...\". Razón: \"{reasoning}\"",
+                "orchestratorReceiving": "Orquestador recibiendo: \"{input}...\"",
+                "orchestratorRawResponse": "Orquestador (raw JSON): {response}",
+                "orchestratorDecision": "Decisión del Orquestador: Siguiente Agente: {nextAgentId}. Instrucción: \"{instruction}...\". Razón: \"{reasoning}\"",
                 "taskCompleted": "--- Tarea Completada --- \nResultado Final del Grupo: {result}",
                 "callingAgent": "Llamando a Agente: {name}...",
                 "agentResponse": "Respuesta de {name}: \"{response}...\"",
                 "errorInTurn": "Error en Turno {turn}: {errorMessage}",
-                "maxTurnsReached": "Se alcanzó el número máximo de turnos ({maxTurns}). Ejecución detenida.",
-                "executionStoppedOrFinished": "Ejecución del grupo finalizada o detenida.",
+                "maxTurnsReached": "\nSe alcanzó el número máximo de turnos ({maxTurns}). Ejecución detenida.",
+                "executionStoppedOrFinished": "\nEjecución del grupo finalizada o detenida.",
                 "userStopped": "Turno {turn}: Ejecución cancelada por el usuario."
             }
         }
@@ -1069,17 +1165,13 @@ const translationsData = {
         "generateProject": "Generate Project",
         "refactorProject": "Refactor Project",
         "analyzeCode": "Analyze Code",
-        "analyzeProject": "Analyze Project",
+        "analyzeProject": "Analyze Full Project",
         "autoupdate": "AutoUpdate",
         "snapshots": "Saved Versions",
         "chat": "AI Chat",
         "agents": "AI Agents",
         "groups": "AI Workgroups",
         "settings": "Settings",
-        "toggle": {
-            "hide": "Hide sidebar",
-            "show": "Show sidebar"
-        },
         "mobile": {
           "title": "Main Navigation"
         }
@@ -1106,7 +1198,7 @@ const translationsData = {
                 "description": "Get detailed analysis and suggestions for code snippets or files."
             },
             "analyzeProject": {
-                "title": "Analyze Project",
+                "title": "Analyze Full Project",
                 "description": "Perform a complete analysis of a project from a file or Git."
             },
             "autoupdate": {
@@ -1383,7 +1475,7 @@ const translationsData = {
             "downloadComplete": {
                 "title": "Download Complete",
                 "suggestionsJsonDescription": "Suggestions downloaded as {filename}.",
-                "projectZipDescription": "Download of Project with Suggestions (ZIP containing JSON of changes) initiated. This ZIP file ({filename}) contains a JSON file detailing which files would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
+                "projectZipDescription": "This ZIP file ({filename}) contains a JSON file with the AI-suggested changes. To apply these improvements, you'll need the base CodeAlchemist source code (from Git) and manually apply the changes from the JSON."
             },
             "preparingProjectZip": {
                 "title": "Preparing Project Download (ZIP)...",
@@ -1429,633 +1521,744 @@ const translationsData = {
             }
         },
         "downloads": {
-            "suggestionsJsonFilename": "autoupdate_sugerencias.json",
+            "suggestionsJsonFilename": "autoupdate_suggestions.json",
             "projectZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip"
         },
         "errors": {
-            "getLocalSourceFailed": "No se pudo obtener el código fuente local para análisis.",
+            "getLocalSourceFailed": "Could not get local source code for analysis.",
             "getLocalSourceBundleFailed": "Failed to get local source bundle",
             "analysisFailedUI": "AutoUpdate analysis failed in UI",
             "unknownAnalysisError": "An unknown error occurred during self-analysis.",
-            "getServerSourceFailedZip": "No se pudo obtener el código fuente del servidor para el ZIP.",
+            "getServerSourceFailedZip": "Could not get server source code for ZIP.",
             "unknownZipError": "Unknown error generating ZIP.",
             "unknownGitUploadError": "Unknown error during Git upload.",
             "autofixHelperFailed": "Could not get AI help for this error."
         },
         "dialogs": {
             "applySuggestion": {
-                "title": "Aplicar Sugerencia a {area}",
-                "confirmText": "Sí, Marcar como Aplicada",
+                "title": "Apply Suggestion to {area}",
+                "confirmText": "Yes, Mark as Applied",
                 "description": {
-                    "p1": "Se marcará como aplicada la sugerencia para {area}.",
-                    "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:"
+                    "p1": "Suggestion for {area} will be marked as applied.",
+                    "p2": "Actual file modification is not possible from the browser. Review the suggested (or edited) content and apply it manually in your development environment:"
                 }
             },
-            "noContentToShow": "Error: No hay contenido para mostrar.",
+            "noContentToShow": "Error: No content to display.",
             "testSuggestion": {
-                "title": "Testear Sugerencia: {area}",
-                "description": "Revisa el código sugerido o editado. La prueba real debe realizarse en tu entorno de desarrollo."
+                "title": "Test Suggestion: {area}",
+                "description": "Review the suggested or edited code. Actual testing must be done in your development environment."
             },
-            "noContentToTest": "No hay contenido para testear.",
+            "noContentToTest": "No content to test.",
             "testInVenv": {
-                "title": "Testear Sugerencia en Entorno Virtual: {area}",
-                "description": "Esta funcionalidad simularía la ejecución del código sugerido en un entorno virtual aislado (ej. Python venv, Node.js NVM). La ejecución real requiere una infraestructura local o backend.",
-                "actionNote": "Acción: Se intentaría crear un entorno virtual, instalar dependencias (si se pudieran inferir) y ejecutar el código/pruebas.",
-                "simulateButton": "Simular Inicio de Prueba"
+                "title": "Test Suggestion in Virtual Environment: {area}",
+                "description": "This functionality would simulate running the suggested code in an isolated virtual environment (e.g., Python venv, Node.js NVM). Actual execution requires a local setup or backend infrastructure.",
+                "actionNote": "Action: It would attempt to create a virtual environment, install dependencies (if inferable), and run the code/tests.",
+                "simulateButton": "Simulate Test Start"
             },
             "commitToGit": {
-                "title": "Subir Cambios a Git",
-                "confirmText": "Commit y Push",
-                "placeholder": "Ej: Aplicadas sugerencias de AutoUpdate",
-                "description": "Esta acción intentará realizar un commit y push al repositorio configurado. Asegúrate de que las credenciales en 'Configuración' son correctas."
+                "title": "Upload Changes to Git",
+                "confirmText": "Commit and Push",
+                "placeholder": "E.g.: Applied AutoUpdate suggestions",
+                "description": "This action will attempt to commit and push to the configured repository. Ensure credentials in 'Settings' are correct."
             }
         },
         "autofix": {
-            "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
-            "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
+            "errorContext": "Error to analyze: {error}\n\nContext: Error occurred in CodeAlchemist's AutoUpdate feature.",
+            "focusArea": "Explain the following error and propose a solution or debugging steps: \"{error}\""
         }
     },
     "refactorProject": {
-        "title": "Refactorizar Proyecto",
-        "description": "Analiza un proyecto para obtener sugerencias de refactorización y aplícalas.",
-        "llmSourceLabel": "Usar Configuración LLM De:",
-        "projectSourceLabel": "Fuente del Proyecto",
-        "sourceUpload": "Subir Archivo",
-        "sourceGit": "URL de Git",
-        "uploadLabel": "Subir Archivo (.zip, .json, .py, .js, etc.)",
-        "gitUrlLabel": "URL de Git",
-        "gitUrlPlaceholder": "https://github.com/usuario/repo.git",
-        "paramsLabel": "Parámetros de Refactorización",
-        "goalsLabel": "Metas (opcional)",
-        "goalsPlaceholder": "Ej: Mejorar rendimiento UI, simplificar lógica X...",
-        "priorityLabel": "Prioridad General (opcional)",
-        "priorityPlaceholder": "Seleccionar prioridad...",
-        "priorityNone": "Ninguna",
-        "depthLabel": "Profundidad de Búsqueda (opcional)",
-        "depthPlaceholder": "Ej: 3 (niveles)",
-        "focusLabel": "Campo de Enfoque del Análisis (opcional)",
-        "focusPlaceholder": "Ej: Seguridad, UI, Módulo de pagos",
-        "analyzeButton": "Analizar para Refactorizar",
+        "title": "Refactor Project",
+        "description": "Analyze a project to get refactoring suggestions and apply them.",
+        "llmSourceLabel": "Use LLM Configuration From:",
+        "projectSourceLabel": "Project Source",
+        "sourceUpload": "Upload File",
+        "sourceGit": "Git URL",
+        "uploadLabel": "Upload File (.zip, .json, .py, .js, etc.)",
+        "gitUrlLabel": "Git URL",
+        "gitUrlPlaceholder": "https://github.com/user/repo.git",
+        "paramsLabel": "Refactoring Parameters",
+        "goalsLabel": "Goals (optional)",
+        "goalsPlaceholder": "E.g.: Improve UI performance, simplify logic X...",
+        "priorityLabel": "General Priority (optional)",
+        "priorityPlaceholder": "Select priority...",
+        "priorityNone": "None",
+        "depthLabel": "Search Depth (optional)",
+        "depthPlaceholder": "E.g.: 3 (levels)",
+        "focusLabel": "Analysis Focus Area (optional)",
+        "focusPlaceholder": "E.g.: Security, UI, Payment module",
+        "analyzeButton": "Analyze for Refactoring",
         "results": {
-            "title": "Resultados y Sugerencias",
-            "applyAllButton": "Marcar Todas como Aplicadas",
-            "noSuggestions": "Aún no hay sugerencias. Realiza un análisis para comenzar.",
+            "title": "Results and Suggestions",
+            "applyAllButton": "Mark All as Applied",
+            "noSuggestions": "No suggestions yet. Perform an analysis to start.",
             "projectSummaryCard": {
-                "title": "Resumen del Proyecto",
-                "noSummary": "No se proporcionó un resumen del proyecto."
+                "title": "Project Summary",
+                "noSummary": "No project summary was provided."
             },
-            "suggestionsTitle": "Sugerencias de Refactorización:",
-            "noSpecificSuggestions": "No se generaron sugerencias específicas de refactorización."
+            "suggestionsTitle": "Refactoring Suggestions:",
+            "noSpecificSuggestions": "No specific refactoring suggestions were generated."
         },
         "suggestion": {
-            "priorityLabel": "Prioridad:",
-            "snippetLabel": "Snippet Sugerido:",
+            "priorityLabel": "Priority:",
+            "snippetLabel": "Suggested Snippet:",
             "snippetOriginal": "Original:",
-            "snippetModified": "Modificado:",
-            "viewDiffButton": "Ver Diff",
-            "discardButton": "Descartar",
-            "applyButton": "Marcar como Aplicada",
-            "revertStateButton": "Revertir Estado"
+            "snippetModified": "Modified:",
+            "viewDiffButton": "View Diff",
+            "discardButton": "Discard",
+            "applyButton": "Mark as Applied",
+            "revertStateButton": "Revert Status"
         },
         "diffModal": {
-            "title": "Comparación de Código (Diff)",
+            "title": "Code Comparison (Diff)",
             "originalLabel": "Original:",
-            "suggestedLabel": "Sugerido:",
+            "suggestedLabel": "Suggested:",
             "noContent": "N/A"
         },
         "logs": {
-            "groupLogTitle": "Log de Ejecución del Grupo"
+            "groupLogTitle": "Group Execution Log"
         },
         "toast": {
             "invalidFile": {
-                "title": "Archivo Inválido",
-                "description": "Tipo de archivo no admitido o tamaño excede 10MB."
+                "title": "Invalid File",
+                "description": "Unsupported file type or size exceeds 10MB."
             },
             "sourceRequired": {
-                "title": "Fuente del Proyecto Requerida",
-                "description": "Sube un archivo o proporciona una URL de Git."
+                "title": "Project Source Required",
+                "description": "Upload a file or provide a Git URL."
             },
             "analysisComplete": {
-                "title": "Análisis Completado",
-                "description": "Sugerencias de refactorización generadas."
+                "title": "Analysis Complete",
+                "description": "Refactoring suggestions generated."
             },
             "analysisError": {
-                "title": "Error de Análisis"
+                "title": "Analysis Error"
             },
             "suggestionApplied": {
-                "title": "Sugerencia Marcada como Aplicada",
-                "description": "La sugerencia para \"{area}\" ha sido marcada. Recuerda aplicar los cambios manualmente en tu código si es necesario."
+                "title": "Suggestion Marked as Applied",
+                "description": "The suggestion for \"{area}\" has been marked. Remember to apply changes manually to your code if necessary."
             },
             "noDiff": {
-                "title": "Sin Diff Disponible",
-                "description": "Esta sugerencia no tiene un snippet de código para comparar."
+                "title": "No Diff Available",
+                "description": "This suggestion does not have a code snippet to compare."
             },
             "suggestionDiscarded": {
-                "title": "Sugerencia Descartada"
+                "title": "Suggestion Discarded"
             },
             "allApplied": {
-                "title": "Todas Marcadas como Aplicadas",
-                "description": "Todas las sugerencias pendientes han sido marcadas. Aplica los cambios manualmente."
+                "title": "All Marked as Applied",
+                "description": "All pending suggestions have been marked. Apply changes manually."
             }
         }
     },
     "analyzeProject": {
-        "title": "Análisis de Proyecto Completo",
-        "description": "Realiza un análisis holístico de un proyecto entero, subido o desde Git.",
-        "llmSourceLabel": "Usar Configuración LLM De:",
-        "projectSourceLabel": "Fuente del Proyecto",
-        "sourceUpload": "Subir Archivo (ZIP/JSON)",
-        "sourceGit": "URL de Git",
-        "uploadLabel": "Subir Archivo (.zip, .json)",
-        "gitUrlLabel": "URL de Git",
-        "gitUrlPlaceholder": "https://github.com/usuario/repo.git",
-        "paramsLabel": "Parámetros de Análisis",
-        "depthLabel": "Profundidad de Búsqueda (opcional)",
-        "depthPlaceholder": "Ej: 3 (niveles)",
-        "focusLabel": "Campo de Enfoque del Análisis (opcional)",
-        "focusPlaceholder": "Ej: Rendimiento, Seguridad de API",
-        "analyzeButton": "Analizar Proyecto",
+        "title": "Analyze Full Project",
+        "description": "Perform a holistic analysis of an entire project, uploaded or from Git.",
+        "llmSourceLabel": "Use LLM Configuration From:",
+        "projectSourceLabel": "Project Source",
+        "sourceUpload": "Upload File (ZIP/JSON)",
+        "sourceGit": "Git URL",
+        "uploadLabel": "Upload File (.zip, .json)",
+        "gitUrlLabel": "Git URL",
+        "gitUrlPlaceholder": "https://github.com/user/repo.git",
+        "paramsLabel": "Analysis Parameters",
+        "depthLabel": "Search Depth (optional)",
+        "depthPlaceholder": "E.g.: 3 (levels)",
+        "focusLabel": "Analysis Focus Area (optional)",
+        "focusPlaceholder": "E.g.: Performance, API Security",
+        "analyzeButton": "Analyze Project",
         "results": {
-            "analyzing": "Analizando proyecto...",
-            "noResults": "Aún no hay resultados. Realiza un análisis para comenzar.",
-            "overallAssessmentLabel": "Evaluación General:",
-            "improvementIdeasLabel": "Ideas Generales de Mejora:",
-            "identifiedAreasLabel": "Áreas Identificadas:",
-            "specificSuggestionsLabel": "Sugerencias Específicas:",
-            "suggestionPriorityLabel": "Prioridad:",
-            "suggestedPromptLabel": "Prompt Sugerido:",
-            "groupLogTitle": "Log Detallado del Análisis"
+            "analyzing": "Analyzing project...",
+            "noResults": "No results yet. Perform an analysis to start.",
+            "overallAssessmentLabel": "Overall Assessment:",
+            "improvementIdeasLabel": "General Improvement Ideas:",
+            "identifiedAreasLabel": "Identified Areas:",
+            "specificSuggestionsLabel": "Specific Suggestions:",
+            "suggestionPriorityLabel": "Priority:",
+            "suggestedPromptLabel": "Suggested Prompt:",
+            "groupLogTitle": "Detailed Analysis Log"
         },
         "toast": {
             "invalidFile": {
-                "title": "Archivo Inválido",
-                "description": "Sube un archivo .zip o .json de menos de 25MB."
+                "title": "Invalid File",
+                "description": "Upload a .zip or .json file under 25MB."
             },
             "readError": {
-                "title": "Error de Lectura",
-                "description": "No se pudo leer el archivo."
+                "title": "Read Error",
+                "description": "Could not read the file."
             },
             "unsupportedFileType": {
-                "title": "Tipo de Archivo no Soportado",
-                "description": "El análisis de este tipo de archivo no está completamente implementado."
+                "title": "Unsupported File Type",
+                "description": "Analysis for this file type is not fully implemented."
             },
             "sourceRequired": {
-                "title": "Fuente del Proyecto Requerida",
-                "description": "Sube un archivo o proporciona una URL de Git."
+                "title": "Project Source Required",
+                "description": "Upload a file or provide a Git URL."
             },
             "analysisComplete": {
-                "title": "Análisis Completado",
-                "description": "El proyecto ha sido analizado."
+                "title": "Analysis Complete",
+                "description": "The project has been analyzed."
             },
             "analysisError": {
-                "title": "Error de Análisis"
+                "title": "Analysis Error"
             }
         }
     },
     "generateCode": {
-      "title": "Generar Código",
-      "description": "Crea fragmentos de código a partir de descripciones en lenguaje natural.",
-      "describeNeedLabel": "Describe tu necesidad",
-      "describeNeedPlaceholder": "Ej: Una función en Python que sume dos números y maneje errores de tipo.",
-      "generateButton": "Generar Código",
+      "title": "Generate Code",
+      "description": "Create code snippets from natural language descriptions.",
+      "describeNeedLabel": "Describe your need",
+      "describeNeedPlaceholder": "E.g.: A Python function that sums two numbers and handles type errors.",
+      "generateButton": "Generate Code",
       "results": {
-        "explanationLabel": "Explicación:",
-        "codeSnippetLabel": "Fragmento de Código:",
-        "groupLogTitle": "Log Detallado del Grupo"
+        "explanationLabel": "Explanation:",
+        "codeSnippetLabel": "Code Snippet:",
+        "groupLogTitle": "Detailed Group Log"
       },
       "confirmDialog": {
-        "title": "Confirmar Generación de Código",
-        "llmSource": "Fuente LLM:",
+        "title": "Confirm Code Generation",
+        "llmSource": "LLM Source:",
         "promptLabel": "Prompt:"
       },
       "toast": {
-        "descriptionEmpty": "Por favor, describe tu necesidad.",
-        "codeGenerated": "El fragmento de código ha sido generado exitosamente.",
-        "generationError": "Error de Generación"
+        "descriptionEmpty": {
+            "title": "Empty Description",
+            "description": "Please describe your need."
+        },
+        "codeGenerated": {
+            "title": "Code Generated",
+            "description": "The code snippet has been generated successfully."
+        },
+        "generationError": {
+            "title": "Generation Error"
+        }
       }
     },
     "generateProject": {
-      "title": "Generar Proyecto",
-      "description": "Crea una estructura base para nuevos proyectos a partir de tus especificaciones.",
-      "describeProjectLabel": "Describe tu proyecto",
-      "describeProjectPlaceholder": "Ej: Un API REST con Node.js y Express, con rutas para usuarios y productos, y una base de datos PostgreSQL.",
-      "generateButton": "Generar Proyecto",
+      "title": "Generate Project",
+      "description": "Create a base structure for new projects from your specifications.",
+      "describeProjectLabel": "Describe your project",
+      "describeProjectPlaceholder": "E.g.: A REST API with Node.js and Express, with routes for users and products, and a PostgreSQL database.",
+      "generateButton": "Generate Project",
       "results": {
-        "suggestedNameLabel": "Nombre Sugerido:",
-        "aiNotesLabel": "Notas de la IA:",
-        "generatedFilesLabel": "Archivos Generados:",
-        "downloadButton": "Descargar Proyecto (ZIP)",
-        "downloadNote": "Nota: La descarga será un archivo ZIP con la estructura y contenido del proyecto.",
-        "groupLogTitle": "Log Detallado del Grupo"
+        "suggestedNameLabel": "Suggested Name:",
+        "aiNotesLabel": "AI Notes:",
+        "generatedFilesLabel": "Generated Files:",
+        "downloadButton": "Download Project (ZIP)",
+        "downloadNote": "Note: The download will be a JSON file with the project structure.",
+        "groupLogTitle": "Detailed Group Log"
       },
       "confirmDialog": {
-        "title": "Confirmar Generación de Proyecto",
-        "currentPromptLabel": "Prompt Actual:",
-        "redefinePromptLabel": "Redefinir Prompt (opcional):",
-        "llmConfigInfo": "Configuración LLM a usar:",
-        "confirmButton": "Sí, Generar Proyecto"
+        "title": "Confirm Project Generation",
+        "currentPromptLabel": "Current Prompt:",
+        "redefinePromptLabel": "Redefine Prompt (optional):",
+        "llmConfigInfo": "LLM configuration to use:",
+        "confirmButton": "Yes, Generate Project"
       },
       "toast": {
-        "descriptionEmpty": "Por favor, describe tu proyecto.",
-        "projectGenerated": "La estructura base del proyecto ha sido generada.",
-        "generationError": "Error de Generación",
-        "downloadError": "Sin Resultados",
-        "downloadErrorDescription": "No hay estructura de proyecto para descargar.",
-        "downloadSuccess": "Proyecto Descargado (ZIP)",
-        "downloadSuccessDescription": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
+        "descriptionEmpty": {
+            "title": "Empty Description",
+            "description": "Please describe your project."
+        },
+        "projectGenerated": {
+            "title": "Project Generated",
+            "description": "The base structure for project \"{projectName}\" has been generated."
+        },
+        "generationError": {
+            "title": "Generation Error"
+        },
+        "downloadError": {
+            "title": "No Results",
+            "description": "There is no project structure to download."
+        },
+        "downloadSuccess": {
+            "title": "Project Downloaded (JSON)",
+            "description": "A JSON file with the project structure and content for \"{projectName}\" has been downloaded. You can use this file to create the files and folders manually or with a script. Direct ZIP file generation is not supported by this feature in the browser."
+        },
+        "zipDownloadSuccess": {
+            "title": "Project Downloaded (ZIP)",
+            "description": "A ZIP file with the project structure and content for \"{projectName}\" has been downloaded."
+        },
+        "zipDownloadError": {
+            "title": "ZIP Download Error",
+            "description": "Could not generate the ZIP file: {error}"
+        }
       }
     },
     "analyzeCode": {
-      "title": "Analizar Código",
-      "description": "Obtén análisis detallados y sugerencias de mejora para fragmentos o archivos de código.",
-      "codeSourceLabel": "Fuente del Código:",
-      "uploadFileLabel": "Subir un archivo de código (opcional)",
-      "gitFileUrlLabel": "URL de Archivo Git (opcional, raw content)",
-      "gitFileUrlPlaceholder": "Ej: https://raw.githubusercontent.com/...",
-      "fetchUrlButton": "Obtener",
-      "pasteCodeInstruction": "O pega el código abajo",
-      "pasteCodePlaceholder": "Pega tu código aquí para analizarlo...",
-      "additionalInstructionsLabel": "Instrucciones Adicionales para el Análisis (opcional)",
-      "additionalInstructionsPlaceholder": "Ej: Enfócate en la seguridad, o sugiere alternativas más performantes.",
-      "analyzeButton": "Analizar Código",
+      "title": "Analyze Code",
+      "description": "Get detailed analysis and improvement suggestions for code snippets or files.",
+      "codeSourceLabel": "Code Source:",
+      "uploadFileLabel": "Upload a code file (optional)",
+      "gitFileUrlLabel": "Git File URL (optional, raw content)",
+      "gitFileUrlPlaceholder": "E.g.: https://raw.githubusercontent.com/...",
+      "fetchUrlButton": "Fetch",
+      "pasteCodeInstruction": "Or paste code below",
+      "pasteCodePlaceholder": "Paste your code here to analyze it...",
+      "additionalInstructionsLabel": "Additional Instructions for Analysis (optional)",
+      "additionalInstructionsPlaceholder": "E.g.: Focus on security, or suggest more performant alternatives.",
+      "analyzeButton": "Analyze Code",
       "results": {
-        "explanationLabel": "Explicación:",
-        "originalCodeLabel": "Código Original:",
-        "suggestedCodeLabel": "Código Sugerido:",
-        "saveOriginalButton": "Guardar Original",
-        "saveSuggestedButton": "Guardar Sugerido"
+        "explanationLabel": "Explanation:",
+        "originalCodeLabel": "Original Code:",
+        "suggestedCodeLabel": "Suggested Code:",
+        "saveOriginalButton": "Save Original",
+        "saveSuggestedButton": "Save Suggested"
       },
       "toast": {
         "invalidFile": {
-            "title": "Archivo Inválido",
-            "description": "Sube un archivo de texto de menos de 5MB."
+            "title": "Invalid File",
+            "description": "Upload a text file under 5MB."
         },
         "emptyUrl": {
-            "title": "URL Vacía",
-            "description": "Introduce una URL de archivo Git."
+            "title": "Empty URL",
+            "description": "Enter a Git file URL."
         },
         "fetchError": {
-            "title": "Error de Obtención"
+            "title": "Fetch Error"
         },
         "codeFetched": {
-            "title": "Código Obtenido",
-            "description": "Contenido de la URL cargado."
+            "title": "Code Fetched",
+            "description": "URL content loaded."
         },
         "emptyCode": {
-            "title": "Código Vacío",
-            "description": "Introduce o carga código para analizar."
+            "title": "Empty Code",
+            "description": "Enter or upload code to analyze."
         },
         "analysisComplete": {
-            "title": "Análisis Completado",
-            "description": "El código ha sido analizado."
+            "title": "Analysis Complete",
+            "description": "The code has been analyzed."
         },
         "analysisError": {
-            "title": "Error de Análisis"
+            "title": "Analysis Error"
         },
         "snapshotError": {
             "title": "Error",
-            "description": "No hay código {type} para guardar."
+            "description": "No {type} code to save."
         }
       }
     },
     "errorDisplay": {
-      "title": "Error Detectado",
-      "copyButton": "Copiar Error",
-      "autofixButton": "Auto-Fix con IA",
-      "autofixingButton": "Analizando...",
+      "title": "Error Detected",
+      "copyButton": "Copy Error",
+      "autofixButton": "Auto-Fix with AI",
+      "autofixingButton": "Analyzing...",
       "toast": {
-        "copied": "Error Copiado",
-        "copiedDescription": "El mensaje de error ha sido copiado al portapapeles."
+        "copied": {
+            "title": "Error Copied",
+            "description": "The error message has been copied to the clipboard."
+        },
+        "autofixAttempt": {
+            "title": "Attempting Auto-Fix",
+            "description": "Consulting 'EquipoDesarrolloSoftware' for a possible solution..."
+        },
+        "autofixSuggestionReceived": {
+            "title": "Auto-Fix Suggestion Received",
+            "description": "'EquipoDesarrolloSoftware' has provided a suggestion."
+        },
+        "autofixError": {
+            "title": "Auto-Fix Error"
+        }
       },
       "autofixModal": {
-        "title": "Sugerencia de Auto-Corrección del Equipo de Software",
-        "description": "El grupo 'EquipoDesarrolloSoftware' ha analizado el error y propone lo siguiente:",
-        "originalErrorLabel": "Mensaje de Error Original:",
-        "diagnosisLabel": "Diagnóstico del Grupo:",
-        "solutionLabel": "Solución Sugerida:",
-        "invocationLogLabel": "Log de Invocación del Grupo (para depuración)"
+        "title": "Auto-Fix Suggestion from Software Team",
+        "description": "The 'EquipoDesarrolloSoftware' group has analyzed the error and proposes the following:",
+        "originalErrorLabel": "Original Error Message:",
+        "diagnosisLabel": "Group Diagnosis:",
+        "solutionLabel": "Suggested Solution:",
+        "invocationLogLabel": "Group Invocation Log (for debugging)"
       }
     },
      "versions": {
-        "title": "Versiones Guardadas (Snapshots)",
-        "description": "Gestiona instantáneas de código generadas o del estado de la aplicación.",
-        "saveAppStateButton": "Guardar Estado de App (JSON)",
-        "saveAppStateDescription": "Guarda la configuración actual, agentes y grupos como un snapshot JSON.",
-        "saveAndDownloadStateButton": "Guardar Estado y Descargar como ZIP",
-        "saveAndDownloadStateDescription": "Guarda el estado actual de la aplicación y lo descarga como un archivo .zip (conteniendo el JSON del estado).",
-        "compareButton": "Comparar A y B",
-        "compareButtonDisabledTooltip": "Selecciona dos versiones (A y B) para comparar.",
-        "deleteAllButton": "Eliminar Todas",
+        "title": "Saved Versions (Snapshots)",
+        "description": "Manage generated code snapshots or application state.",
+        "saveAppStateButton": "Save App State (JSON)",
+        "saveAppStateDescription": "Saves current configuration, agents, and groups as a JSON snapshot.",
+        "saveAndDownloadStateButton": "Save State & Download as ZIP",
+        "saveAndDownloadStateDescription": "Saves the current application state and downloads it as a .zip file (containing the state JSON).",
+        "compareButton": "Compare A & B",
+        "compareButtonDisabledTooltip": "Select two versions (A and B) to compare.",
+        "deleteAllButton": "Delete All",
         "table": {
             "colA": "A",
             "colB": "B",
-            "colName": "Nombre",
-            "colCreatedAt": "Fecha de Creación",
-            "colSource": "Origen",
-            "colActions": "Acciones",
-            "noVersions": "No hay versiones guardadas."
+            "colName": "Name",
+            "colCreatedAt": "Creation Date",
+            "colSource": "Source",
+            "colActions": "Actions",
+            "noVersions": "No saved versions."
         },
         "action": {
-            "view": "Ver",
-            "downloadOriginal": "Descargar como {format}",
-            "downloadZip": "Descargar como ZIP",
-            "delete": "Eliminar",
-            "selectA": "Seleccionar para A",
-            "selectB": "Seleccionar para B"
+            "view": "View",
+            "downloadOriginal": "Download as {format}",
+            "downloadZip": "Download as ZIP",
+            "delete": "Delete",
+            "selectA": "Select for A",
+            "selectB": "Select for B"
         },
         "source": {
-            "original": "Original (Análisis)",
-            "suggested": "Sugerido (Análisis)",
-            "codealchemist-app-state": "Estado App",
-            "codealchemist-current": "Código Actual (AutoUpdate)",
-            "unknown": "Desconocido"
+            "original": "Original (Analysis)",
+            "suggested": "Suggested (Analysis)",
+            "codealchemist-app-state": "App State",
+            "codealchemist-current": "Current Code (AutoUpdate)",
+            "unknown": "Unknown"
         },
         "viewModal": {
-            "title": "Viendo Snapshot: {name}",
-            "noCode": "Error: Sin código para mostrar."
+            "title": "Viewing Snapshot: {name}",
+            "noCode": "Error: No code to display."
         },
         "compareModal": {
-            "title": "Comparar Versiones (A vs B)",
-            "versionA": "Versión A: {name}",
-            "versionB": "Versión B: {name}",
-            "noDiffLib": "La comparación visual detallada (diff) no está implementada. Se muestran los contenidos lado a lado."
+            "title": "Compare Versions (A vs B)",
+            "versionA": "Version A: {name}",
+            "versionB": "Version B: {name}",
+            "noDiffLib": "Detailed visual comparison (diff) is not implemented. Contents are shown side-by-side."
         },
         "deleteAllModal": {
-            "title": "Confirmar Eliminación Total",
-            "description": "¿Estás seguro de que quieres eliminar TODOS los snapshots guardados? Esta acción no se puede deshacer.",
-            "confirm": "Sí, Eliminar Todos"
+            "title": "Confirm Total Deletion",
+            "description": "Are you sure you want to delete ALL saved snapshots? This action cannot be undone.",
+            "confirm": "Yes, Delete All"
         },
         "deleteSingleModal": {
-            "title": "Confirmar Eliminación: {name}",
-            "description": "¿Estás seguro de que quieres eliminar este snapshot? Esta acción no se puede deshacer.",
-            "confirm": "Sí, Eliminar"
+            "title": "Confirm Deletion: {name}",
+            "description": "Are you sure you want to delete this snapshot? This action cannot be undone.",
+            "confirm": "Yes, Delete"
         },
         "toast": {
-            "snapshotSaved": "Snapshot Guardado",
-            "snapshotSavedDescription": "Snapshot \"{name}\" creado.",
-            "snapshotDownloaded": "Snapshot Descargado",
-            "snapshotDownloadedDescription": "Snapshot \"{name}\" descargado como {filename}.",
-            "snapshotDeleted": "Snapshot Eliminado",
-            "snapshotDeletedDescription": "Snapshot \"{name}\" eliminado.",
-            "compareError": {
-                "notFound": "No se encontraron los snapshots seleccionados.",
-                "selectionIncomplete": "Selecciona dos versiones (A y B) para comparar."
+            "appStateSaved": {
+                "title": "Application State Saved",
+                "description": "Current application state \"{name}\" has been saved."
             },
-            "allSnapshotsDeleted": "Todos los Snapshots Eliminados"
+            "appStateSavedAndDownloaded": {
+                "title": "Application State Saved & Downloaded",
+                "description": "Current state \"{name}\" has been saved and downloaded as {filename}."
+            },
+            "snapshotSaved": {
+                "title": "Snapshot Saved",
+                "description": "Snapshot \"{name}\" created."
+            },
+            "snapshotDownloaded": {
+                "title": "Snapshot Downloaded",
+                "description": "Snapshot \"{name}\" downloaded as {filename}."
+            },
+            "snapshotDeleted": {
+                "title": "Snapshot Deleted",
+                "description": "Snapshot \"{name}\" deleted."
+            },
+            "compareError": {
+                "notFound": "Could not find the selected snapshots.",
+                "selectionIncomplete": "Select two versions (A and B) to compare."
+            },
+            "allSnapshotsDeleted": {
+                 "title": "All Snapshots Deleted",
+                 "description": "All saved versions have been deleted."
+            }
         }
     },
     "chat": {
         "title": "AI Chat",
-        "description": "Interactúa con un asistente IA para consultas, ideas y más.",
-        "inputPlaceholder": "Escribe tu mensaje aquí...",
-        "sendButton": "Enviar",
-        "clearButton": "Borrar Chat",
-        "thinking": "Pensando...",
+        "description": "Interact with an AI assistant for queries, ideas, and more.",
+        "inputPlaceholder": "Type your message here...",
+        "sendButton": "Send",
+        "clearButton": "Clear Chat",
+        "thinking": "Thinking...",
         "systemMessage": {
             "errorPrefix": "Error: ",
-            "autofixErrorPrefix": "Error durante el Auto-Fix: "
+            "autofixErrorPrefix": "Error during Auto-Fix: "
         },
         "agent": {
-            "assistant": "Asistente IA",
-            "user": "Usuario",
-            "system": "Sistema"
+            "assistant": "AI Assistant",
+            "user": "User",
+            "system": "System"
         },
         "toast": {
-            "chatCleared": "Chat Limpiado",
-            "chatClearedDescription": "El historial de la conversación ha sido borrado.",
-            "chatError": "Error de Chat",
-            "autofixError": "Error en Auto-Fix"
+            "chatCleared": {
+                "title": "Chat Cleared",
+                "description": "The conversation history has been cleared."
+            },
+            "chatError": {
+                "title": "Chat Error"
+            },
+            "autofixError": {
+                "title": "Auto-Fix Error"
+            }
         },
         "autofix": {
-            "userRequest": "Por favor, analiza este error y sugiere una solución: {errorMsg}"
+            "userRequest": "Please analyze this error and suggest a solution: {errorMsg}"
         }
     },
     "agents": {
         "title": "AI Agent Management",
-        "description": "Crea, configura, prueba y gestiona agentes IA individuales.",
-        "createWithAIButton": "Crear con IA",
-        "importButton": "Importar",
-        "exportAllButton": "Exportar Todos",
-        "createAgentButton": "Crear Agente",
-        "noAgentsMessage": "No hay agentes creados. ¡Crea uno para empezar!",
-        "defaultAgentBadge": "(Por Defecto)",
+        "description": "Create, configure, test, and manage individual AI agents.",
+        "createWithAIButton": "Create with AI",
+        "importButton": "Import",
+        "exportAllButton": "Export All",
+        "createAgentButton": "Create Agent",
+        "noAgentsMessage": "No agents created. Create one to get started!",
+        "defaultAgentBadge": "(Default)",
         "llmLabel": "LLM:",
         "llmGlobalFormat": "Global ({provider})",
-        "llmCustomFormat": "Personalizado ({provider})",
+        "llmCustomFormat": "Custom ({provider})",
         "llmNotApplicable": "N/A",
-        "capabilitiesLabel": "Capacidades:",
-        "noCapabilities": "Ninguna",
+        "capabilitiesLabel": "Capabilities:",
+        "noCapabilities": "None",
         "action": {
-            "test": "Probar Agente",
-            "export": "Exportar Agente",
-            "edit": "Editar Agente",
-            "delete": "Eliminar Agente"
+            "test": "Test Agent",
+            "export": "Export Agent",
+            "edit": "Edit Agent",
+            "delete": "Delete Agent"
         },
         "toast": {
             "form": {
-                "nameUneditableError": "El nombre del agente \"{name}\" no puede ser editado.",
-                "deleteError": "El agente \"{name}\" no se puede eliminar."
+                "nameUneditableError": {
+                    "title": "Error",
+                    "description": "Agent name \"{name}\" cannot be edited."
+                },
+                "deleteError": {
+                    "title": "Error",
+                    "description": "Agent \"{name}\" cannot be deleted."
+                }
             },
             "import": {
-                "success": "Agentes Importados",
-                "successDescription": "{count} agentes importados y/o actualizados.",
-                "invalidFormat": "Formato JSON inválido para agentes.",
-                "error": "Error de Importación"
+                "success": {
+                    "title": "Agents Imported",
+                    "description": "{count} agents imported and/or updated."
+                },
+                "invalidFormat": "Invalid JSON format for agents.",
+                "error": {
+                    "title": "Import Error"
+                }
             },
             "exportAll": {
-                "success": "Agentes Exportados",
-                "description": "Todos los agentes han sido exportados."
+                "success": {
+                    "title": "Agents Exported",
+                    "description": "All agents have been exported."
+                }
             },
             "exportSingle": {
-                "success": "Agente Exportado",
-                "description": "Agente \"{name}\" exportado."
+                "success": {
+                    "title": "Agent Exported",
+                    "description": "Agent \"{name}\" exported."
+                }
             },
             "suggestion": {
-                "roleRequired": "Descripción Requerida",
-                "roleRequiredDescription": "Por favor, describe el rol del agente.",
-                "received": "Sugerencia Recibida",
-                "receivedDescription": "La IA ha sugerido una definición para el agente {name}.",
-                "error": "Error de Sugerencia",
-                "errorDescription": "No se pudo obtener la sugerencia."
+                "roleRequired": {
+                    "title": "Description Required",
+                    "description": "Please describe the agent's role."
+                },
+                "received": {
+                    "title": "Suggestion Received",
+                    "description": "AI has suggested a definition for agent {name}."
+                },
+                "error": {
+                    "title": "Suggestion Error",
+                    "description": "Could not get suggestion."
+                }
             },
-            "created": "Agente Creado",
-            "createdDescription": "Agente \"{name}\" añadido.",
-            "updated": "Agente Actualizado",
-            "updatedDescription": "Agente \"{name}\" guardado.",
-            "deleted": "Agente Eliminado",
-            "deletedDescription": "Agente \"{name}\" eliminado."
+            "created": {
+                "title": "Agent Created",
+                "description": "Agent \"{name}\" added."
+            },
+            "updated": {
+                "title": "Agent Updated",
+                "description": "Agent \"{name}\" saved."
+            },
+            "deleted": {
+                "title": "Agent Deleted",
+                "description": "Agent \"{name}\" deleted."
+            }
         },
         "form": {
             "title": {
-                "edit": "Editar Agente",
-                "create": "Crear Nuevo Agente",
-                "reviewSuggestion": "Revisar Sugerencia de Agente"
+                "edit": "Edit Agent",
+                "create": "Create New Agent",
+                "reviewSuggestion": "Review Agent Suggestion"
             },
             "description": {
-                "edit": "Modifica los detalles del agente \"{name}\".",
-                "create": "Define un nuevo agente especializado para tus tareas de IA."
+                "edit": "Modify details for agent \"{name}\".",
+                "create": "Define a new specialized agent for your AI tasks."
             },
             "label": {
-                "name": "Nombre",
-                "description": "Descripción",
-                "systemPrompt": "Mensaje de Sistema (Prompt)",
-                "capabilities": "Capacidades del Agente",
-                "llmConfig": "Configuración LLM del Agente"
+                "name": "Name",
+                "description": "Description",
+                "systemPrompt": "System Message (Prompt)",
+                "capabilities": "Agent Capabilities",
+                "llmConfig": "Agent LLM Configuration"
             },
             "placeholder": {
-                "systemPrompt": "Define el rol, comportamiento y directrices del agente..."
+                "systemPrompt": "Define the agent's role, behavior, and guidelines..."
             },
             "capability": {
-                "accessOwnCode": "Acceso a Código Propio",
-                "execution": "Capacidad de Ejecución",
-                "virtualEnv": "Capacidad de Entorno Virtual",
-                "readWrite": "Capacidad Lectura/Escritura",
-                "dangerousTooltip": "(Peligroso)"
+                "accessOwnCode": "Access Own Code",
+                "execution": "Execution Capability",
+                "virtualEnv": "Virtual Environment Capability",
+                "readWrite": "Read/Write Capability",
+                "dangerousTooltip": "(Dangerous)"
             },
             "llm": {
-                "useGlobal": "Usar Configuración Global",
+                "useGlobal": "Use Global Configuration",
                 "custom": {
-                    "providerLabel": "Proveedor LLM",
-                    "modelLabel": "Modelo",
+                    "providerLabel": "LLM Provider",
+                    "modelLabel": "Model",
                     "modelPlaceholder": {
-                        "gemini": "Ej: gemini-1.5-pro-latest",
-                        "selectProvider": "Selecciona proveedor",
-                        "default": "Selecciona modelo"
+                        "gemini": "E.g.: gemini-1.5-pro-latest",
+                        "selectProvider": "Select provider",
+                        "default": "Select model"
                     },
-                    "geminiModelDescription": "Modelos comunes listados. Puedes escribir otro si es necesario.",
-                    "apiUrlLabel": "URL API (Opcional)",
-                    "apiUrlPlaceholder": "Se auto-rellena al cambiar proveedor",
-                    "apiUrlDescription": "Modifícala si usas un proxy o un endpoint no estándar.",
-                    "apiKeyLabel": "Clave API (Opcional)",
-                    "apiKeyPlaceholder": "Usar global si está vacía"
+                    "geminiModelDescription": "Common models listed. You can type another if needed.",
+                    "apiUrlLabel": "API URL (Optional)",
+                    "apiUrlPlaceholder": "Auto-fills on provider change",
+                    "apiUrlDescription": "Modify if using a proxy or non-standard endpoint.",
+                    "apiKeyLabel": "API Key (Optional)",
+                    "apiKeyPlaceholder": "Use global if empty"
                 }
             },
             "button": {
-                "saveChanges": "Guardar Cambios",
-                "createAgent": "Crear Agente"
+                "saveChanges": "Save Changes",
+                "createAgent": "Create Agent"
             },
             "toast": {
-                "nameRequired": "Nombre Requerido",
-                "nameRequiredDescription": "El agente debe tener un nombre."
+                "nameRequired": {
+                    "title": "Name Required",
+                    "description": "The agent must have a name."
+                }
             }
         },
         "suggestionDialog": {
-            "title": "Sugerir Definición de Agente con IA",
-            "description": "Describe el rol o la tarea principal del agente que necesitas, y la IA sugerirá una definición.",
-            "textareaLabel": "Descripción del Rol del Agente",
-            "textareaPlaceholder": "Ej: Un agente que resume textos largos en puntos clave.",
-            "submitButton": "Obtener Sugerencia"
+            "title": "Suggest Agent Definition with AI",
+            "description": "Describe the role or main task of the agent you need, and AI will suggest a definition.",
+            "textareaLabel": "Agent Role Description",
+            "textareaPlaceholder": "E.g.: An agent that summarizes long texts into key points.",
+            "submitButton": "Get Suggestion"
         },
         "testChatDialog": {
-            "title": "Probando Agente: {name}",
-            "description": "Interactúa directamente con el agente. Su prompt de sistema se muestra abajo.",
-            "systemMessage": "Estás probando el agente: {name}.\n--- Inicio del Prompt de Sistema del Agente ---\n{systemPrompt}\n--- Fin del Prompt de Sistema del Agente ---",
-            "inputPlaceholder": "Escribe tu mensaje al agente...",
-            "sendButton": "Enviar",
-            "thinking": "Agente está pensando...",
+            "title": "Testing Agent: {name}",
+            "description": "Interact directly with the agent. Its system prompt is shown below.",
+            "systemMessage": "You are testing agent: {name}.\n--- Start of Agent System Prompt ---\n{systemPrompt}\n--- End of Agent System Prompt ---",
+            "inputPlaceholder": "Type your message to the agent...",
+            "sendButton": "Send",
+            "thinking": "Agent is thinking...",
             "errorPrefix": "Error: "
         }
     },
     "groups": {
         "title": "AI Workgroup Management",
-        "description": "Define y ejecuta equipos de agentes IA colaborativos.",
-        "createWithAIButton": "Crear con IA",
-        "createGroupButton": "Crear Grupo",
-        "noGroupsMessage": "No hay grupos de trabajo creados.",
-        "defaultGroupBadge": "(Por Defecto)",
-        "agentsLabel": "Agentes:",
+        "description": "Define and execute collaborative AI agent teams.",
+        "createWithAIButton": "Create with AI",
+        "createGroupButton": "Create Group",
+        "noGroupsMessage": "No workgroups created.",
+        "defaultGroupBadge": "(Default)",
+        "agentsLabel": "Agents:",
         "agentsCountFormat": "{count} (+ Orchestrator)",
-        "taskLabel": "Tarea:",
+        "taskLabel": "Task:",
         "action": {
-            "execute": "Ejecutar Grupo",
-            "edit": "Editar Grupo",
-            "delete": "Eliminar Grupo"
+            "execute": "Execute Group",
+            "edit": "Edit Group",
+            "delete": "Delete Group"
         },
         "form": {
             "title": {
-                "edit": "Editar Grupo de Trabajo",
-                "create": "Crear Nuevo Grupo de Trabajo",
-                "reviewSuggestion": "Revisar Sugerencia de Grupo"
+                "edit": "Edit Workgroup",
+                "create": "Create New Workgroup",
+                "reviewSuggestion": "Review Group Suggestion"
             },
             "label": {
-                "name": "Nombre",
-                "description": "Descripción",
-                "mainTask": "Tarea Principal del Grupo",
-                "selectAgents": "Seleccionar Agentes Participantes"
+                "name": "Name",
+                "description": "Description",
+                "mainTask": "Group Main Task",
+                "selectAgents": "Select Participating Agents"
             },
             "placeholder": {
-                "mainTask": "Describe el objetivo general que el grupo debe alcanzar..."
+                "mainTask": "Describe the overall goal the workgroup should achieve..."
             },
-            "orchestratorImplicitNote": "OrquestadorFlujoAgentes se añade implícitamente.",
-            "noAgentsToSelectError": "No hay otros agentes disponibles para seleccionar. Crea agentes primero.",
+            "orchestratorImplicitNote": "OrchestratorFlujoAgentes is added implicitly.",
+            "noAgentsToSelectError": "No other agents available for selection. Create agents first.",
             "button": {
-                "saveChanges": "Guardar Cambios",
-                "createGroupWithSuggestion": "Crear Grupo con Sugerencia",
-                "createGroup": "Crear Grupo"
+                "saveChanges": "Save Changes",
+                "createGroupWithSuggestion": "Create Group with Suggestion",
+                "createGroup": "Create Group"
             },
             "toast": {
-                "fieldsRequired": "Campos Requeridos",
-                "fieldsRequiredDescription": "El nombre y la tarea principal son obligatorios.",
-                "agentsRequired": "Agentes Requeridos",
-                "agentsRequiredDescription": "Selecciona al menos un agente participante (además del Orquestador)."
+                "fieldsRequired": {
+                    "title": "Required Fields",
+                    "description": "Name and main task are mandatory."
+                },
+                "agentsRequired": {
+                    "title": "Agents Required",
+                    "description": "Select at least one participating agent (besides the Orchestrator)."
+                }
             }
         },
         "toast": {
-            "created": "Grupo Creado",
-            "createdDescription": "Grupo \"{name}\" añadido.",
-            "updated": "Grupo Actualizado",
-            "updatedDescription": "Grupo \"{name}\" guardado.",
-            "deleted": "Grupo Eliminado",
-            "deletedDescription": "Grupo \"{name}\" eliminado.",
+            "created": {
+                "title": "Group Created",
+                "description": "Group \"{name}\" added."
+            },
+            "updated": {
+                "title": "Group Updated",
+                "description": "Group \"{name}\" saved."
+            },
+            "deleted": {
+                "title": "Group Deleted",
+                "description": "Group \"{name}\" deleted."
+            },
             "suggestion": {
-                "taskRequired": "Descripción Requerida",
-                "taskRequiredDescription": "Por favor, describe la tarea del grupo.",
-                "received": "Sugerencia Recibida",
-                "receivedDescription": "La IA ha sugerido una definición para el grupo {name}.",
-                "error": "Error de Sugerencia"
+                "taskRequired": {
+                    "title": "Description Required",
+                    "description": "Please describe the group's task."
+                },
+                "received": {
+                    "title": "Suggestion Received",
+                    "description": "AI has suggested a definition for group {name}."
+                },
+                "error": {
+                    "title": "Suggestion Error"
+                }
             },
             "execution": {
-                "orchestratorError": "Error de Orquestador",
-                "groupError": "Error de Grupo",
-                "generalError": "Error de Ejecución"
+                "orchestratorNotFound": "Orchestrator agent not found.",
+                "orchestratorError": "Orchestrator Error",
+                "groupError": "Group Error",
+                "generalError": "Execution Error",
+                "maxTurnsReached": "Maximum turns ({maxTurns}) reached. Execution stopped.",
+                "stoppedOrFinished": "Group execution finished or stopped."
             }
         },
         "suggestionDialog": {
-            "title": "Sugerir Definición de Grupo con IA",
-            "description": "Describe la tarea o el objetivo principal del grupo, y la IA sugerirá una definición y agentes relevantes.",
-            "textareaLabel": "Descripción de la Tarea del Grupo",
-            "textareaPlaceholder": "Ej: Desarrollar un nuevo módulo de e-commerce para la aplicación.",
-            "submitButton": "Obtener Sugerencia",
-            "submitButtonDisabled": "Crea Agentes Primero",
-            "noAgentsWarning": "Crea agentes primero para poder obtener sugerencias de grupos."
+            "title": "Suggest Group Definition with AI",
+            "description": "Describe the group's main task or objective, and AI will suggest a definition and relevant agents.",
+            "textareaLabel": "Group Task Description",
+            "textareaPlaceholder": "E.g.: Develop a new e-commerce module for the application.",
+            "submitButton": "Get Suggestion",
+            "submitButtonDisabled": "Create Agents First",
+            "noAgentsWarning": "Create agents first to get group suggestions."
         },
         "executionModal": {
-            "title": "Ejecución del Grupo: {name}",
-            "mainTaskLabel": "Tarea Principal:",
-            "logTitle": "Log de Ejecución Detallado",
-            "stopButton": "Detener Ejecución"
+            "title": "Group Execution: {name}",
+            "mainTaskLabel": "Main Task:",
+            "logTitle": "Detailed Execution Log",
+            "stopButton": "Stop Execution"
         },
         "execution": {
-            "starting": "Iniciando ejecución del grupo: {name}...",
-            "taskPrefix": "Tarea Principal: ",
+            "starting": "Starting group execution: {name}...\nMain Task: {mainTask}",
+            "taskPrefix": "Main Task: ",
             "criticalError": {
-                "orchestratorNotFound": "Agente Orquestrador ('orquestador-flujo-agentes') no encontrado. No se puede ejecutar el grupo.",
-                "orchestratorParse": "Error al parsear la respuesta JSON del Orquestrador.",
-                "orchestratorIncomplete": "Respuesta del Orquestrador incompleta (faltan next_agent_id o instruction_for_next_agent).",
-                "agentNotFound": "Agente con ID \"{id}\" no encontrado."
+                "orchestratorNotFound": "Orchestrator agent ('orquestador-flujo-agentes') not found. Cannot execute group.",
+                "orchestratorParse": "Error parsing Orchestrator's JSON response.",
+                "orchestratorIncomplete": "Orchestrator response incomplete (missing next_agent_id or instruction_for_next_agent).",
+                "agentNotFound": "Agent with ID \"{id}\" not found."
             },
             "log": {
-                "turnPrefix": "--- Turno {turn} ---",
-                "orchestratorReceiving": "Orquestrador recibiendo: \"{input}...\"",
-                "orchestratorRawResponse": "Orquestrador (raw JSON): {response}",
-                "orchestratorDecision": "Decisión del Orquestrador: Siguiente Agente: {nextAgentId}. Instrucción: \"{instruction}...\". Razón: \"{reasoning}\"",
-                "taskCompleted": "--- Tarea Completada --- \nResultado Final del Grupo: {result}",
-                "callingAgent": "Llamando a Agente: {name}...",
-                "agentResponse": "Respuesta de {name}: \"{response}...\"",
-                "errorInTurn": "Error en Turno {turn}: {errorMessage}",
-                "maxTurnsReached": "Se alcanzó el número máximo de turnos ({maxTurns}). Ejecución detenida.",
-                "executionStoppedOrFinished": "Ejecución del grupo finalizada o detenida.",
-                "userStopped": "Turno {turn}: Ejecución cancelada por el usuario."
+                "turnPrefix": "--- Turn {turn} ---",
+                "orchestratorReceiving": "Orchestrator receiving: \"{input}...\"",
+                "orchestratorRawResponse": "Orchestrator (raw JSON): {response}",
+                "orchestratorDecision": "Orchestrator Decision: Next Agent: {nextAgentId}. Instruction: \"{instruction}...\". Reason: \"{reasoning}\"",
+                "taskCompleted": "--- Task Completed ---\nFinal Group Result: {result}",
+                "callingAgent": "Calling Agent: {name}...",
+                "agentResponse": "Response from {name}: \"{response}...\"",
+                "errorInTurn": "Error in Turn {turn}: {errorMessage}",
+                "maxTurnsReached": "\nMaximum number of turns ({maxTurns}) reached. Execution stopped.",
+                "executionStoppedOrFinished": "\nGroup execution finished or stopped.",
+                "userStopped": "Turn {turn}: Execution cancelled by user."
             }
         }
     },
@@ -2117,5 +2320,7 @@ type DotNestedKeys<T> = T extends object
 // export type AppTranslationKey = DotNestedKeys<typeof translationsData['es']>;
 // And then use AppTranslationKey instead of string for the `t` function's key parameter.
 // For now, we keep TranslationKey as string for simplicity with potentially dynamic keys.
+
+    
 
     
