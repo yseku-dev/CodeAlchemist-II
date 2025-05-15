@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -139,14 +140,13 @@ export default function GruposTrabajoIAPage() {
         return;
     }
 
-    if (editingGroup) {
+    if (editingGroup && !editingGroup.id.startsWith('suggested-')) {
       updateGroup({ ...editingGroup, ...formData } as AIAgentGroup);
-    } else if (formData.id && formData.id.startsWith('suggested-')) {
+      toast({ title: t('groups.toast.updated.title'), description: t('groups.toast.updated.description', { name: formData.name }) });
+    } else { // Creating new or confirming suggestion
       const { id, ...newGroupData } = formData;
       addGroup(newGroupData);
-    }
-     else {
-      addGroup(formData);
+      toast({ title: t('groups.toast.created.title'), description: t('groups.toast.created.description', { name: formData.name }) });
     }
     setIsFormOpen(false);
     setEditingGroup(null);
@@ -167,9 +167,10 @@ export default function GruposTrabajoIAPage() {
   const confirmDeleteGroup = () => {
     if (groupToDelete) {
       addDebugLog({source: 'GruposTrabajoIAPage', type: 'INFO', message: `Deleting group: ${groupToDelete.name}`, data: { groupId: groupToDelete.id }, flowName: 'deleteGroup'});
+      const groupName = groupToDelete.name;
       deleteGroup(groupToDelete.id);
       setGroupToDelete(null);
-      toast({ title: t('groups.deleted.title'), description: t('groups.deleted.description', {name: groupToDelete.name}) });
+      toast({ title: t('groups.toast.deleted.title'), description: t('groups.toast.deleted.description', {name: groupName}) });
     }
   };
 
@@ -293,7 +294,7 @@ export default function GruposTrabajoIAPage() {
     if (isGroupExecuting && currentTurn > MAX_EXECUTION_TURNS) {
       setExecutionLog(prev => [...prev, t('groups.toast.execution.maxTurnsReached', {maxTurns: MAX_EXECUTION_TURNS})]);
     }
-     if (!isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) {
+     if (!executionControllerRef.current?.signal.aborted && !isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) { // check signal before logging this
         setExecutionLog(prev => [...prev, t('groups.toast.execution.stoppedOrFinished')]);
     }
     setIsGroupExecuting(false);
@@ -394,7 +395,13 @@ export default function GruposTrabajoIAPage() {
       }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>{editingGroup ? t('groups.form.title.edit') : (formData.id && formData.id.startsWith('suggested-') ? t('groups.form.title.reviewSuggestion') : t('groups.form.title.create'))}</DialogTitle>
+            <DialogTitle>{editingGroup && !editingGroup.id.startsWith('suggested-') ? t('groups.form.title.edit') : (formData.id && formData.id.startsWith('suggested-') ? t('groups.form.title.reviewSuggestion') : t('groups.form.title.create'))}</DialogTitle>
+            <DialogDescriptionComponent>
+              {editingGroup && !editingGroup.id.startsWith('suggested-')
+                ? t('groups.form.descriptionModal.edit', {name: editingGroup.name})
+                : t('groups.form.descriptionModal.create')
+              }
+            </DialogDescriptionComponent>
           </DialogHeader>
           <ScrollArea className="flex-grow pr-6 -mr-6">
             <div className="space-y-4 py-4">
@@ -435,7 +442,9 @@ export default function GruposTrabajoIAPage() {
           </ScrollArea>
           <DialogFooter className="pt-4 border-t">
             <DialogClose asChild><Button variant="outline">{t('common.cancel')}</Button></DialogClose>
-            <Button onClick={handleSubmitForm} disabled={availableAgentsForSelection.length === 0 && formData.agentIds.length === 0}>{editingGroup ? t('groups.form.button.saveChanges') : (formData.id && formData.id.startsWith('suggested-') ? t('groups.form.button.createGroupWithSuggestion') : t('groups.form.button.createGroup'))}</Button>
+            <Button onClick={handleSubmitForm} disabled={availableAgentsForSelection.length === 0 && formData.agentIds.length === 0}>
+                {editingGroup && !editingGroup.id.startsWith('suggested-') ? t('groups.form.button.saveChanges') : (formData.id && formData.id.startsWith('suggested-') ? t('groups.form.button.createGroupWithSuggestion') : t('groups.form.button.createGroup'))}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -453,9 +462,9 @@ export default function GruposTrabajoIAPage() {
         <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
                 <DialogTitle>{t('groups.executionModal.title', { name: executingGroup?.name || 'N/A' })}</DialogTitle>
-                <DialogDescriptionComponent>{t('groups.executionModal.mainTaskLabel')} {executingGroup?.mainTask}</DialogDescriptionComponent> {/* Use aliased DialogDescription */}
+                <DialogDescriptionComponent>{t('groups.executionModal.mainTaskLabel')} {executingGroup?.mainTask}</DialogDescriptionComponent>
             </DialogHeader>
-            <div className="flex-grow overflow-hidden -mx-6">
+            <div className="flex-grow overflow-hidden -mx-6"> {/* Ensure this takes up space and allows LogsDisplay to scroll */}
                 <LogsDisplay title={t('groups.executionModal.logTitle')} logs={executionLog} defaultExpanded={true} />
             </div>
             <DialogFooter className="pt-4 border-t">
