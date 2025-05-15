@@ -4,12 +4,15 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Download, GitCommit, ClipboardList, FileArchive } from 'lucide-react'; // Added FileArchive
+import { Loader2, Download, GitCommit, ClipboardList, FileArchive } from 'lucide-react';
 import ErrorDisplay from '@/components/error-display';
 import LogsDisplay from '@/components/logs-display';
 import type { AnalyzeCodeOutput, AutoUpdateSuggestion } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AutoUpdateSuggestionCard from '@/components/features/autoupdate/autoupdate-suggestion-card';
+import CodeBlock from '@/components/code-block';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 interface AutoUpdateResultsDisplayProps {
   analysisResult: AnalyzeCodeOutput | null;
@@ -24,13 +27,14 @@ interface AutoUpdateResultsDisplayProps {
   onCancelEdit: (suggestionId: string) => void;
   onTestSuggestion: (suggestion: AutoUpdateSuggestion) => void;
   onTestInVenv: (suggestion: AutoUpdateSuggestion) => void;
-  onDownloadSuggestions: (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => void; // Updated format types
+  onDownloadSuggestions: (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => void;
   onOpenCommitDialog: () => void;
+  unifiedPrompt: string | null;
 }
 
 /**
  * @fileOverview Component for displaying AutoUpdate analysis results.
- * Shows analysis summary, detailed suggestions, and actions like download/commit.
+ * Shows analysis summary, detailed suggestions, a unified prompt, and actions like download/commit.
  */
 export default function AutoUpdateResultsDisplay({
   analysisResult,
@@ -47,6 +51,7 @@ export default function AutoUpdateResultsDisplay({
   onTestInVenv,
   onDownloadSuggestions,
   onOpenCommitDialog,
+  unifiedPrompt,
 }: AutoUpdateResultsDisplayProps) {
   return (
     <Card className="lg:col-span-2">
@@ -90,7 +95,7 @@ export default function AutoUpdateResultsDisplay({
             <div className="mt-4 pt-4 border-t">
               <h4 className="font-semibold text-lg">Sugerencias Detalladas:</h4>
               {suggestions.length === 0 && <p className="text-sm text-muted-foreground">No hay sugerencias detalladas.</p>}
-              <ScrollArea className="max-h-[calc(100vh-22rem)] md:max-h-[calc(100vh-25rem)] lg:max-h-[65vh] overflow-y-auto pr-2"> {/* Increased lg:max-h */}
+              <ScrollArea className="max-h-[calc(100vh-22rem)] md:max-h-[calc(100vh-25rem)] lg:max-h-[65vh] overflow-y-auto pr-2">
                   <div className="space-y-3">
                   {suggestions.map(s => (
                       <AutoUpdateSuggestionCard
@@ -108,6 +113,16 @@ export default function AutoUpdateResultsDisplay({
                   </div>
               </ScrollArea>
             </div>
+
+            {unifiedPrompt && unifiedPrompt.trim() !== '' && (
+              <div className="mt-6 pt-4 border-t">
+                <Label htmlFor="unified-prompt-display" className="text-lg font-semibold block mb-2">
+                  Prompt Unificado para Implementar Todas las Sugerencias:
+                </Label>
+                <CodeBlock code={unifiedPrompt} language="plaintext" maxHeight="300px" />
+              </div>
+            )}
+
             {analysisResult.groupLog && <LogsDisplay title="Log de Ejecución del Grupo" logs={analysisResult.groupLog} />}
           </div>
         )}
