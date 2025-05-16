@@ -294,7 +294,7 @@ export default function GruposTrabajoIAPage() {
     if (isGroupExecuting && currentTurn > MAX_EXECUTION_TURNS) {
       setExecutionLog(prev => [...prev, t('groups.toast.execution.maxTurnsReached', {maxTurns: MAX_EXECUTION_TURNS})]);
     }
-     if (!executionControllerRef.current?.signal.aborted && !isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) { // check signal before logging this
+     if (!executionControllerRef.current?.signal.aborted && !isGroupExecuting && currentTurn <= MAX_EXECUTION_TURNS) { 
         setExecutionLog(prev => [...prev, t('groups.toast.execution.stoppedOrFinished')]);
     }
     setIsGroupExecuting(false);
@@ -345,6 +345,32 @@ export default function GruposTrabajoIAPage() {
   const groupSuggestionExtraFooter = availableAgentsForSelection.length === 0
     ? <p className="text-xs text-destructive text-center">{t('groups.suggestionDialog.noAgentsWarning')}</p>
     : null;
+    
+  const getDialogTitle = () => {
+    if (editingGroup && !editingGroup.id.startsWith('suggested-')) {
+      return t('groups.form.title.edit');
+    } else if (formData.id && formData.id.startsWith('suggested-')) {
+      return t('groups.form.title.reviewSuggestion');
+    }
+    return t('groups.form.title.create');
+  };
+
+  const getDialogDescription = () => {
+    if (editingGroup && !editingGroup.id.startsWith('suggested-')) {
+      return t('groups.form.descriptionModal.edit', { name: editingGroup.name });
+    }
+    return t('groups.form.descriptionModal.create');
+  };
+
+  const getSubmitButtonText = () => {
+    if (editingGroup && !editingGroup.id.startsWith('suggested-')) {
+      return t('groups.form.button.saveChanges');
+    } else if (formData.id && formData.id.startsWith('suggested-')) {
+      return t('groups.form.button.createGroupWithSuggestion');
+    }
+    return t('groups.form.button.createGroup');
+  };
+
 
   return (
     <div className="space-y-6">
@@ -395,12 +421,9 @@ export default function GruposTrabajoIAPage() {
       }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>{editingGroup && !editingGroup.id.startsWith('suggested-') ? t('groups.form.title.edit') : (formData.id && formData.id.startsWith('suggested-') ? t('groups.form.title.reviewSuggestion') : t('groups.form.title.create'))}</DialogTitle>
+            <DialogTitle>{getDialogTitle()}</DialogTitle>
             <DialogDescriptionComponent>
-              {editingGroup && !editingGroup.id.startsWith('suggested-')
-                ? t('groups.form.descriptionModal.edit', {name: editingGroup.name})
-                : t('groups.form.descriptionModal.create')
-              }
+              {getDialogDescription()}
             </DialogDescriptionComponent>
           </DialogHeader>
           <ScrollArea className="flex-grow pr-6 -mr-6">
@@ -443,7 +466,7 @@ export default function GruposTrabajoIAPage() {
           <DialogFooter className="pt-4 border-t">
             <DialogClose asChild><Button variant="outline">{t('common.cancel')}</Button></DialogClose>
             <Button onClick={handleSubmitForm} disabled={availableAgentsForSelection.length === 0 && formData.agentIds.length === 0}>
-                {editingGroup && !editingGroup.id.startsWith('suggested-') ? t('groups.form.button.saveChanges') : (formData.id && formData.id.startsWith('suggested-') ? t('groups.form.button.createGroupWithSuggestion') : t('groups.form.button.createGroup'))}
+                {getSubmitButtonText()}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -464,7 +487,7 @@ export default function GruposTrabajoIAPage() {
                 <DialogTitle>{t('groups.executionModal.title', { name: executingGroup?.name || 'N/A' })}</DialogTitle>
                 <DialogDescriptionComponent>{t('groups.executionModal.mainTaskLabel')} {executingGroup?.mainTask}</DialogDescriptionComponent>
             </DialogHeader>
-            <div className="flex-grow overflow-hidden -mx-6"> {/* Ensure this takes up space and allows LogsDisplay to scroll */}
+            <div className="flex-grow overflow-hidden -mx-6"> 
                 <LogsDisplay title={t('groups.executionModal.logTitle')} logs={executionLog} defaultExpanded={true} />
             </div>
             <DialogFooter className="pt-4 border-t">

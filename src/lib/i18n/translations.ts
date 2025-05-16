@@ -24,7 +24,6 @@ export type AllTranslations = {
 
 /**
  * Represents a key that can be used to look up a translation.
- * Using `string` for flexibility with dot-notation keys.
  */
 export type TranslationKey = string;
 
@@ -216,6 +215,18 @@ const translationsData = {
             "languageChanged": {
                 "title": "Idioma Cambiado",
                 "description": "El idioma de la aplicación se ha establecido a {langName}."
+            },
+            "groqModelsLoadSuccess": {
+                "title": "Modelos Groq Cargados",
+                "description": "Se cargaron {count} modelos de Groq."
+            },
+            "groqModelsLoadNoModels": {
+                "title": "Sin Modelos Groq",
+                "description": "No se encontraron modelos para la clave API de Groq proporcionada."
+            },
+            "groqModelsLoadError": {
+                "title": "Error al Cargar Modelos Groq",
+                "description": "{error}"
             }
         }
     },
@@ -244,14 +255,16 @@ const translationsData = {
         "copy": "Copiar",
         "clear": "Limpiar",
         "expand": "Expandir",
-        "collapse": "Contraer"
+        "collapse": "Contraer",
+        "unknownError": "Error desconocido",
+        "fileSelected": "Archivo seleccionado: {name}"
     },
     "autoupdate": {
         "title": "AutoUpdate (Análisis del Propio Código)",
         "description": "Permite que CodeAlchemist analice su propio código fuente.",
         "config": {
-            "title": "AutoUpdate (Análisis del Propio Código)",
-            "description": "Permite que CodeAlchemist analice su propio código fuente.",
+            "title": "Configuración de AutoUpdate",
+            "description": "Configura los parámetros para el auto-análisis de CodeAlchemist.",
             "llmSourceLabel": "Usar Configuración LLM De:",
             "codeSourceLabel": "Fuente del Código para Auto-Análisis",
             "sourceLocal": "Local (código actual de la app)",
@@ -259,6 +272,8 @@ const translationsData = {
             "gitUrlLabel": "URL del Repositorio Git",
             "gitUrlPlaceholder": "URL HTTPS del repo CodeAlchemist",
             "analysisParamsLabel": "Parámetros de Auto-Análisis",
+            "depthLabel": "Profundidad de Búsqueda (opcional)",
+            "depthPlaceholder": "Ej: 3 (niveles)",
             "analysisPrefsLabel": "Preferencias de Análisis / Campo de Enfoque (opcional)",
             "analysisPrefsPlaceholder": "Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano.",
             "startButton": "Iniciar Auto-Análisis",
@@ -312,7 +327,8 @@ const translationsData = {
             "venvSim": "Prueba simulada en entorno virtual para {area}.",
             "detailedExecutionLogsTitle": "Logs de Ejecución Detallados (AutoUpdate)",
             "analyzingWithGroup": "Analizando con grupo...",
-            "waitingForGroup": "Esperando resultados del grupo..."
+            "waitingForGroup": "Esperando resultados del grupo...",
+            "notAvailable": "N/A"
         },
         "analysis": {
             "fileMarker": "Archivo",
@@ -398,8 +414,8 @@ const translationsData = {
                 "description": "Se simula el inicio de pruebas para {area}."
             },
             "downloadProjectZipToast":{
-                "title": "Descarga de Proyecto con Sugerencias Aplicadas (ZIP)",
-                "description": "Se ha descargado un archivo .zip. Importante: Este archivo ZIP contiene un único archivo JSON con las sugerencias de código. No es un ZIP del proyecto completo con estructura de carpetas. Para obtener el proyecto completo, necesitarías clonarlo desde su repositorio Git y aplicar manualmente las sugerencias descargadas."
+                "title": "Descarga de Código Actual (ZIP)",
+                "description": "Se ha iniciado la descarga de un ZIP que contiene el código fuente actual del proyecto, obtenido del servidor. Las sugerencias marcadas como 'aplicadas' se han incorporado conceptualmente. Este proceso puede tardar unos momentos."
             },
              "downloadCurrentCodeZipToast": {
                 "title": "Descarga de Código Actual (ZIP)",
@@ -642,8 +658,7 @@ const translationsData = {
         "generatedFilesLabel": "Archivos Generados:",
         "downloadButton": "Descargar Proyecto (ZIP)",
         "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
-        "groupLogTitle": "Log Detallado del Grupo",
-        "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
+        "groupLogTitle": "Log Detallado del Grupo"
       },
       "confirmDialog": {
         "title": "Confirmar Generación de Proyecto",
@@ -670,7 +685,7 @@ const translationsData = {
         },
         "zipDownloadSuccess": {
             "title": "Proyecto Descargado (ZIP)",
-            "description": "Se ha descargado un archivo ZIP con la estructura y contenido del proyecto \"{projectName}\"."
+            "description": "Se ha descargado un archivo JSON ({filename}) con la estructura y contenido del proyecto \"{projectName}\". Úsalo para crear los archivos manualmente o con un script."
         },
         "zipDownloadError": {
             "title": "Error de Descarga ZIP",
@@ -700,7 +715,8 @@ const translationsData = {
         "originalCodeLabel": "Código Original:",
         "suggestedCodeLabel": "Código Sugerido:",
         "saveOriginalButton": "Guardar Original",
-        "saveSuggestedButton": "Guardar Sugerido"
+        "saveSuggestedButton": "Guardar Sugerido",
+        "snapshotName": "Snapshot de Código ({type}) - {time}"
       },
       "toast": {
         "invalidFile": {
@@ -1001,7 +1017,7 @@ const translationsData = {
                     "providerLabel": "Proveedor LLM",
                     "modelLabel": "Modelo",
                     "modelPlaceholder": {
-                        "gemini": "Ej: gemini-1.5-pro-latest",
+                        "geminiLlm": "Ej: gemini-1.5-pro-latest ({provider})",
                         "selectProvider": "Selecciona proveedor",
                         "default": "Selecciona modelo"
                     },
@@ -1015,7 +1031,8 @@ const translationsData = {
             },
             "button": {
                 "saveChanges": "Guardar Cambios",
-                "createAgent": "Crear Agente"
+                "createAgent": "Crear Agente",
+                "createAgentWithSuggestion": "Crear Agente con Sugerencia"
             },
             "toast": {
                 "nameRequired": {
@@ -1394,6 +1411,18 @@ const translationsData = {
             "languageChanged": {
                 "title": "Language Changed",
                 "description": "Application language has been set to {langName}."
+            },
+            "groqModelsLoadSuccess": {
+                "title": "Groq Models Loaded",
+                "description": "Loaded {count} models from Groq."
+            },
+            "groqModelsLoadNoModels": {
+                "title": "No Groq Models",
+                "description": "No models found for the provided Groq API key."
+            },
+            "groqModelsLoadError": {
+                "title": "Error Loading Groq Models",
+                "description": "{error}"
             }
         }
     },
@@ -1422,14 +1451,16 @@ const translationsData = {
         "copy": "Copy",
         "clear": "Clear",
         "expand": "Expand",
-        "collapse": "Collapse"
+        "collapse": "Collapse",
+        "unknownError": "Unknown error",
+        "fileSelected": "File selected: {name}"
     },
     "autoupdate": {
         "title": "AutoUpdate (Self-Code Analysis)",
         "description": "Allow CodeAlchemist to analyze its own source code.",
         "config": {
-            "title": "AutoUpdate (Self-Code Analysis)",
-            "description": "Allow CodeAlchemist to analyze its own source code.",
+            "title": "AutoUpdate Configuration",
+            "description": "Configure parameters for CodeAlchemist self-analysis.",
             "llmSourceLabel": "Use LLM Configuration From:",
             "codeSourceLabel": "Source Code for Self-Analysis",
             "sourceLocal": "Local (current app code)",
@@ -1437,6 +1468,8 @@ const translationsData = {
             "gitUrlLabel": "Git Repository URL",
             "gitUrlPlaceholder": "HTTPS URL of CodeAlchemist repo",
             "analysisParamsLabel": "Self-Analysis Parameters",
+            "depthLabel": "Search Depth (optional)",
+            "depthPlaceholder": "E.g.: 3 (levels)",
             "analysisPrefsLabel": "Analysis Preferences / Focus Area (optional)",
             "analysisPrefsPlaceholder": "E.g.: Focus on UI optimization. All suggestions in English.",
             "startButton": "Start Self-Analysis",
@@ -1490,7 +1523,8 @@ const translationsData = {
             "venvSim": "Simulated virtual environment test for {area}.",
             "detailedExecutionLogsTitle": "Detailed Execution Logs (AutoUpdate)",
             "analyzingWithGroup": "Analyzing with group...",
-            "waitingForGroup": "Waiting for group results..."
+            "waitingForGroup": "Waiting for group results...",
+            "notAvailable": "N/A"
         },
         "analysis": {
             "fileMarker": "File",
@@ -1538,8 +1572,8 @@ const translationsData = {
                 "description": "Getting code from server..."
             },
             "projectZipDownloadInitiated": {
-                "title": "Download of Project with Suggestions (ZIP containing JSON of changes)",
-                "description": "This ZIP file contains a single JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
+                "title": "Download of Code with Applied Suggestions (ZIP)",
+                "description": "A .zip file is downloading. This archive contains the current project source code (fetched from the server) with any 'applied' suggestions conceptually merged in by the client before zipping. This file ({filename}) contains a unique JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
             },
             "zipError": {
                 "title": "Error Generating ZIP"
@@ -1576,16 +1610,16 @@ const translationsData = {
                 "description": "Simulating test start for {area}."
             },
             "downloadProjectZipToast":{
-                "title": "Download of Project with Applied Suggestions (ZIP)",
-                "description": "A .zip file has been downloaded. Important: This ZIP file contains a single JSON file with the code suggestions. It is not a ZIP of the complete project with folder structure. To get the full project, you would need to clone it from its Git repository and manually apply the downloaded suggestions."
+                "title": "Download of Current Code with Suggestions (ZIP)",
+                "description": "Download of a ZIP containing the project's current source code (from server), with 'applied' suggestions conceptually merged, has started. This file ({filename}) contains a unique JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
             },
-            "downloadCurrentCodeZipToast": {
+             "downloadCurrentCodeZipToast": {
                 "title": "Download of Current Code (ZIP)",
                 "description": "Download of a ZIP containing the project's current source code, obtained from the server, has started. This process may take a few moments."
             }
         },
         "downloads": {
-            "suggestionsJsonFilename": "autoupdate_suggestions.json",
+            "suggestionsJsonFilename": "autoupdate_sugerencias.json",
             "projectZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip",
             "currentCodeZipFilename": "CodeAlchemist_CodigoActual.zip"
         },
@@ -1820,8 +1854,7 @@ const translationsData = {
         "generatedFilesLabel": "Generated Files:",
         "downloadButton": "Download Project (ZIP)",
         "downloadNote": "Note: The download will be a JSON file with the project structure.",
-        "groupLogTitle": "Detailed Group Log",
-        "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
+        "groupLogTitle": "Detailed Group Log"
       },
       "confirmDialog": {
         "title": "Confirm Project Generation",
@@ -1848,7 +1881,7 @@ const translationsData = {
         },
         "zipDownloadSuccess": {
             "title": "Project Downloaded (ZIP)",
-            "description": "A ZIP file with the project structure and content for \"{projectName}\" has been downloaded."
+            "description": "A JSON file ({filename}) with the project structure and content for \"{projectName}\" has been downloaded. Use this file to create files manually or with a script."
         },
         "zipDownloadError": {
             "title": "ZIP Download Error",
@@ -1878,7 +1911,8 @@ const translationsData = {
         "originalCodeLabel": "Original Code:",
         "suggestedCodeLabel": "Suggested Code:",
         "saveOriginalButton": "Save Original",
-        "saveSuggestedButton": "Save Suggested"
+        "saveSuggestedButton": "Save Suggested",
+        "snapshotName": "Code Snapshot ({type}) - {time}"
       },
       "toast": {
         "invalidFile": {
@@ -2179,7 +2213,7 @@ const translationsData = {
                     "providerLabel": "LLM Provider",
                     "modelLabel": "Model",
                     "modelPlaceholder": {
-                        "gemini": "E.g.: gemini-1.5-pro-latest",
+                        "geminiLlm": "E.g.: gemini-1.5-pro-latest ({provider})",
                         "selectProvider": "Select provider",
                         "default": "Select model"
                     },
@@ -2193,7 +2227,8 @@ const translationsData = {
             },
             "button": {
                 "saveChanges": "Save Changes",
-                "createAgent": "Create Agent"
+                "createAgent": "Create Agent",
+                "createAgentWithSuggestion": "Create Agent with Suggestion"
             },
             "toast": {
                 "nameRequired": {

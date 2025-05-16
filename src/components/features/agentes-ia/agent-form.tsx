@@ -15,6 +15,7 @@ import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS } fr
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
+import { getGroqModels } from '@/app/configuracion/actions'; // Assuming server action is here
 
 /**
  * @fileOverview AgentForm component for creating and editing AI Agents.
@@ -82,10 +83,62 @@ export default function AgentForm({
   const [formData, setFormData] = useState<AgentFormData>(initialAgentFormData);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
 
+  // For custom Groq models
+  const [customGroqModels, setCustomGroqModels] = useState<string[]>([]);
+  const [isLoadingCustomGroqModels, setIsLoadingCustomGroqModels] = useState(false);
+  const previousCustomApiKeyRef = React.useRef<string | null>(null);
+
+
+  const fetchAndSetCustomGroqModels = React.useCallback(async (apiKey: string) => {
+    if (!apiKey) {
+        setCustomGroqModels([]);
+        setAvailableModels(getModelsForProvider("Groq")); // Fallback to static
+        return;
+    }
+    if (apiKey === previousCustomApiKeyRef.current && customGroqModels.length > 0) {
+        setAvailableModels(customGroqModels);
+        return;
+    }
+
+    setIsLoadingCustomGroqModels(true);
+    toast({ title: t('settings.llm.testingConnectionButton'), description: t('settings.llm.providerLabel') + ': Groq'});
+
+    try {
+        const result = await getGroqModels(apiKey);
+        if (result.success && result.models) {
+            setCustomGroqModels(result.models);
+            setAvailableModels(result.models.length > 0 ? result.models : getModelsForProvider("Groq"));
+            previousCustomApiKeyRef.current = apiKey;
+            if (result.models.length > 0) {
+              toast({ title: t('settings.toast.groqModelsLoadSuccess.title'), description: t('settings.toast.groqModelsLoadSuccess.description', { count: result.models.length }) });
+            } else {
+              toast({ title: t('settings.toast.groqModelsLoadNoModels.title'), description: t('settings.toast.groqModelsLoadNoModels.description') });
+            }
+        } else {
+            setCustomGroqModels([]);
+            setAvailableModels(getModelsForProvider("Groq"));
+            previousCustomApiKeyRef.current = null;
+            toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: result.error || t('common.unknownError') });
+        }
+    } catch (error: any) {
+        setCustomGroqModels([]);
+        setAvailableModels(getModelsForProvider("Groq"));
+        previousCustomApiKeyRef.current = null;
+        toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: error.message || t('common.unknownError') });
+    } finally {
+        setIsLoadingCustomGroqModels(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customGroqModels, getModelsForProvider, t]);
+
+
   useEffect(() => {
     if (isOpen) {
+      let initialProvider: LLMProvider;
+      let initialApiKey: string | undefined;
+
       if (editingAgent) {
-        const agentConfig = editingAgent.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, model: globalLLMConfig.model, apiUrl: globalLLMConfig.apiUrl };
+        const agentConfig = editingAgent.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, model: globalLLMConfig.model, apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] };
         setFormData({
           id: editingAgent.id,
           name: editingAgent.name,
@@ -97,7 +150,8 @@ export default function AgentForm({
             customConfig: { ...agentConfig }
           },
         });
-        setAvailableModels(getModelsForProvider(agentConfig.provider));
+        initialProvider = agentConfig.provider;
+        initialApiKey = agentConfig.apiKey;
       } else {
         const defaultProvider = globalLLMConfig.provider || DEFAULT_LLM_SETTINGS.provider;
         setFormData({
@@ -107,16 +161,38 @@ export default function AgentForm({
             customConfig: {
               ...DEFAULT_LLM_SETTINGS,
               provider: defaultProvider,
-              model: '', // Model will be selected or default from getModelsForProvider
-              apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[defaultProvider] || ''
+              model: globalLLMConfig.model || '', 
+              apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[defaultProvider] || ''
             }
           }
         });
-        setAvailableModels(getModelsForProvider(defaultProvider));
+        initialProvider = defaultProvider;
+        initialApiKey = DEFAULT_LLM_SETTINGS.apiKey; // or globalLLMConfig.apiKey if preferred
       }
+      
+      if (initialProvider === "Groq" && initialApiKey) {
+        fetchAndSetCustomGroqModels(initialApiKey);
+      } else {
+        setAvailableModels(getModelsForProvider(initialProvider));
+      }
+
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, editingAgent, getModelsForProvider]); // GlobalLLMConfig omitted to prevent re-init if only global changes
+  }, [isOpen, editingAgent, getModelsForProvider, globalLLMConfig]);
+
+  useEffect(() => {
+    if (!formData.llmConfig.useGlobal && formData.llmConfig.customConfig?.provider === "Groq" && formData.llmConfig.customConfig.apiKey) {
+        if (formData.llmConfig.customConfig.apiKey !== previousCustomApiKeyRef.current) {
+             fetchAndSetCustomGroqModels(formData.llmConfig.customConfig.apiKey);
+        } else if (customGroqModels.length > 0) {
+            setAvailableModels(customGroqModels);
+        }
+    } else if (!formData.llmConfig.useGlobal && formData.llmConfig.customConfig) {
+        setAvailableModels(getModelsForProvider(formData.llmConfig.customConfig.provider));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.llmConfig.customConfig?.provider, formData.llmConfig.customConfig?.apiKey, formData.llmConfig.useGlobal]);
+
 
   /**
    * Handles changes to general form fields.
@@ -151,27 +227,42 @@ export default function AgentForm({
 
       if (field === 'useGlobal') {
         newFormState.llmConfig.useGlobal = !!value;
-        if (!!value === false && !newFormState.llmConfig.customConfig) { // Switching to custom and no custom exists
+        if (!!value === false && !newFormState.llmConfig.customConfig) { 
           const provider = globalLLMConfig.provider || DEFAULT_LLM_SETTINGS.provider;
           newCustomConfig.provider = provider;
           newCustomConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[provider] || '';
           const models = getModelsForProvider(provider);
           newCustomConfig.model = models[0] || '';
-          setAvailableModels(models);
+           if (provider === "Groq" && globalLLMConfig.apiKey) {
+            fetchAndSetCustomGroqModels(globalLLMConfig.apiKey);
+          } else {
+            setAvailableModels(models);
+          }
           newFormState.llmConfig.customConfig = newCustomConfig;
-        } else if (!!value === false && newFormState.llmConfig.customConfig) { // Switching to custom and custom already exists
-            setAvailableModels(getModelsForProvider(newFormState.llmConfig.customConfig.provider));
+        } else if (!!value === false && newFormState.llmConfig.customConfig) { 
+            if (newFormState.llmConfig.customConfig.provider === "Groq" && newFormState.llmConfig.customConfig.apiKey) {
+                fetchAndSetCustomGroqModels(newFormState.llmConfig.customConfig.apiKey);
+            } else {
+                 setAvailableModels(getModelsForProvider(newFormState.llmConfig.customConfig.provider));
+            }
         }
-      } else { // Modifying a field within customConfig
-        newFormState.llmConfig.useGlobal = false; // Ensure custom is selected
+      } else { 
+        newFormState.llmConfig.useGlobal = false; 
         (newCustomConfig as any)[field] = value;
 
         if (field === 'provider') {
           const provider = value as LLMProvider;
           newCustomConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[provider] || '';
-          const models = getModelsForProvider(provider);
-          setAvailableModels(models);
-          if (!models.includes(newCustomConfig.model || '')) { // Ensure model is string for includes check
+          let models: string[];
+          if (provider === "Groq" && newCustomConfig.apiKey) {
+            fetchAndSetCustomGroqModels(newCustomConfig.apiKey);
+            models = customGroqModels; // Use potentially fetched models
+          } else {
+            models = getModelsForProvider(provider);
+            setAvailableModels(models);
+            setCustomGroqModels([]); // Clear Groq models if provider is not Groq
+          }
+          if (!models.includes(newCustomConfig.model || '')) { 
             newCustomConfig.model = models[0] || '';
           }
         }
@@ -193,7 +284,7 @@ export default function AgentForm({
     }
 
     const finalLlmConfig = formData.llmConfig.useGlobal
-      ? { useGlobal: true, customConfig: undefined } // Explicitly set customConfig to undefined if global is used
+      ? { useGlobal: true, customConfig: undefined } 
       : { useGlobal: false, customConfig: formData.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] || '' } };
 
     const agentDataToSubmit = { ...formData, llmConfig: finalLlmConfig };
@@ -217,7 +308,7 @@ export default function AgentForm({
             {t(dialogDescriptionKey as TranslationKey, { name: editingAgent?.name || '' })}
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="flex-grow pr-6 -mr-6"> {/* ScrollArea for form content */}
+        <ScrollArea className="flex-grow pr-6 -mr-6"> 
           <div className="space-y-4 py-4">
             <div className="space-y-1">
               <Label htmlFor="agent-name">{t('agents.form.label.name')}</Label>
@@ -238,7 +329,7 @@ export default function AgentForm({
                 <div key={key} className="flex items-center space-x-2">
                   <Switch id={`cap-${key}`} checked={formData.capabilities[key]} onCheckedChange={(checked) => handleCapabilityChange(key, checked)} />
                   <Label htmlFor={`cap-${key}`} className="font-normal">
-                    {t(`agents.form.capability.${key}` as TranslationKey)} {/* Removed .toLowerCase() */}
+                    {t(`agents.form.capability.${key}` as TranslationKey)} 
                     {(key === 'execution' || key === 'readWrite') && <span className="text-destructive text-xs ml-1">{t('agents.form.capability.dangerousTooltip')}</span>}
                   </Label>
                 </div>
@@ -264,7 +355,10 @@ export default function AgentForm({
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="custom-llm-model" className="text-xs">{t('agents.form.llm.custom.modelLabel')}</Label>
+                     <Label htmlFor="custom-llm-model" className="text-xs flex items-center">
+                        {t('agents.form.llm.custom.modelLabel')}
+                        {formData.llmConfig.customConfig.provider === "Groq" && isLoadingCustomGroqModels && <Loader2 className="h-3 w-3 animate-spin ml-2" />}
+                    </Label>
                     <Select
                       value={formData.llmConfig.customConfig.model || ''}
                       onValueChange={(val) => handleLlmConfigChange('model', val )}
@@ -311,7 +405,7 @@ export default function AgentForm({
               )}
             </div>
           </div>
-        </ScrollArea> {/* End ScrollArea */}
+        </ScrollArea> 
         <DialogFooter className="pt-4 border-t">
           <DialogClose asChild><Button variant="outline">{t('common.cancel')}</Button></DialogClose>
           <Button onClick={handleSubmit}>
@@ -322,5 +416,3 @@ export default function AgentForm({
     </Dialog>
   );
 }
-
-    
