@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogFooter, DialogClose } from '@/components/ui/dialog'; // Renamed DialogDescription to avoid conflict
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -140,7 +140,7 @@ export default function GruposTrabajoIAPage() {
         return;
     }
 
-    if (editingGroup && !editingGroup.id.startsWith('suggested-')) {
+    if (editingGroup && editingGroup.id && !editingGroup.id.startsWith('suggested-')) {
       updateGroup({ ...editingGroup, ...formData } as AIAgentGroup);
       toast({ title: t('groups.toast.updated.title'), description: t('groups.toast.updated.description', { name: formData.name }) });
     } else { // Creating new or confirming suggestion
@@ -347,7 +347,7 @@ export default function GruposTrabajoIAPage() {
     : null;
     
   const getDialogTitle = () => {
-    if (editingGroup && !editingGroup.id.startsWith('suggested-')) {
+    if (editingGroup && editingGroup.id && !editingGroup.id.startsWith('suggested-')) {
       return t('groups.form.title.edit');
     } else if (formData.id && formData.id.startsWith('suggested-')) {
       return t('groups.form.title.reviewSuggestion');
@@ -356,14 +356,14 @@ export default function GruposTrabajoIAPage() {
   };
 
   const getDialogDescription = () => {
-    if (editingGroup && !editingGroup.id.startsWith('suggested-')) {
+    if (editingGroup && editingGroup.id && !editingGroup.id.startsWith('suggested-')) {
       return t('groups.form.descriptionModal.edit', { name: editingGroup.name });
     }
     return t('groups.form.descriptionModal.create');
   };
 
   const getSubmitButtonText = () => {
-    if (editingGroup && !editingGroup.id.startsWith('suggested-')) {
+    if (editingGroup && editingGroup.id && !editingGroup.id.startsWith('suggested-')) {
       return t('groups.form.button.saveChanges');
     } else if (formData.id && formData.id.startsWith('suggested-')) {
       return t('groups.form.button.createGroupWithSuggestion');
@@ -405,7 +405,7 @@ export default function GruposTrabajoIAPage() {
                   </CardContent>
                   <CardFooter className="flex justify-end gap-1 p-2">
                     <Button variant="ghost" size="icon" title={t('groups.action.execute')} onClick={() => handleExecuteGroup(group)} disabled={isGroupExecuting}><Play className="h-4 w-4"/></Button>
-                    <Button variant="ghost" size="icon" title={t('groups.action.edit')} onClick={() => handleOpenForm(group)} disabled={isGroupExecuting}><Edit3 className="h-4 w-4"/></Button>
+                    <Button variant="ghost" size="icon" title={t('groups.action.edit')} onClick={() => handleOpenForm(group)} disabled={isGroupExecuting || (editingGroup && editingGroup.id === group.id && isFormOpen)}><Edit3 className="h-4 w-4"/></Button>
                     <Button variant="ghost" size="icon" title={t('groups.action.delete')} onClick={() => handleDeleteGroup(group)} disabled={isGroupExecuting}><Trash2 className="h-4 w-4 text-destructive"/></Button>
                   </CardFooter>
                 </Card>
@@ -426,44 +426,46 @@ export default function GruposTrabajoIAPage() {
               {getDialogDescription()}
             </DialogDescriptionComponent>
           </DialogHeader>
-          <ScrollArea className="flex-grow pr-6 -mr-6">
-            <div className="space-y-4 py-4">
-              <div className="space-y-1">
-                <Label htmlFor="group-name">{t('groups.form.label.name')}</Label>
-                <Input id="group-name" value={formData.name} onChange={(e) => handleFormChange('name', e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="group-description">{t('groups.form.label.description')}</Label>
-                <Textarea id="group-description" value={formData.description} onChange={(e) => handleFormChange('description', e.target.value)} rows={2} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="group-mainTask">{t('groups.form.label.mainTask')}</Label>
-                <Textarea id="group-mainTask" value={formData.mainTask} onChange={(e) => handleFormChange('mainTask', e.target.value)} rows={4} placeholder={t('groups.form.placeholder.mainTask')} />
-              </div>
+          <div className="flex-grow overflow-hidden"> {/* Wrapper for ScrollArea */}
+            <ScrollArea className="h-full pr-6 -mr-6">
+              <div className="space-y-4 py-4">
+                <div className="space-y-1">
+                  <Label htmlFor="group-name">{t('groups.form.label.name')}</Label>
+                  <Input id="group-name" value={formData.name} onChange={(e) => handleFormChange('name', e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="group-description">{t('groups.form.label.description')}</Label>
+                  <Textarea id="group-description" value={formData.description} onChange={(e) => handleFormChange('description', e.target.value)} rows={2} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="group-mainTask">{t('groups.form.label.mainTask')}</Label>
+                  <Textarea id="group-mainTask" value={formData.mainTask} onChange={(e) => handleFormChange('mainTask', e.target.value)} rows={4} placeholder={t('groups.form.placeholder.mainTask')} />
+                </div>
 
-              <Label className="font-semibold">{t('groups.form.label.selectAgents')}</Label>
-              <p className="text-xs text-muted-foreground">{t('groups.form.orchestratorImplicitNote')}</p>
-              {availableAgentsForSelection.length === 0 ? (
-                 <p className="text-sm text-destructive p-2 border border-destructive/50 rounded-md">{t('groups.form.noAgentsToSelectError')}</p>
-              ) : (
-                <ScrollArea className="h-40 border rounded-md p-2">
-                    <div className="space-y-2">
-                    {availableAgentsForSelection.map(agent => (
-                        <div key={agent.id} className="flex items-center space-x-2">
-                        <Checkbox
-                            id={`agent-${agent.id}`}
-                            checked={formData.agentIds.includes(agent.id)}
-                            onCheckedChange={(checked) => handleAgentSelectionChange(agent.id, !!checked)}
-                        />
-                        <Label htmlFor={`agent-${agent.id}`} className="font-normal text-sm">{agent.name}</Label>
-                        </div>
-                    ))}
-                    </div>
-                </ScrollArea>
-              )}
-            </div>
-          </ScrollArea>
-          <DialogFooter className="pt-4 border-t">
+                <Label className="font-semibold">{t('groups.form.label.selectAgents')}</Label>
+                <p className="text-xs text-muted-foreground">{t('groups.form.orchestratorImplicitNote')}</p>
+                {availableAgentsForSelection.length === 0 ? (
+                  <p className="text-sm text-destructive p-2 border border-destructive/50 rounded-md">{t('groups.form.noAgentsToSelectError')}</p>
+                ) : (
+                  <ScrollArea className="h-40 border rounded-md p-2">
+                      <div className="space-y-2">
+                      {availableAgentsForSelection.map(agent => (
+                          <div key={agent.id} className="flex items-center space-x-2">
+                          <Checkbox
+                              id={`agent-${agent.id}`}
+                              checked={formData.agentIds.includes(agent.id)}
+                              onCheckedChange={(checked) => handleAgentSelectionChange(agent.id, !!checked)}
+                          />
+                          <Label htmlFor={`agent-${agent.id}`} className="font-normal text-sm">{agent.name}</Label>
+                          </div>
+                      ))}
+                      </div>
+                  </ScrollArea>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+          <DialogFooter className="pt-4 border-t mt-auto"> {/* Ensure footer is not part of scrollable area */}
             <DialogClose asChild><Button variant="outline">{t('common.cancel')}</Button></DialogClose>
             <Button onClick={handleSubmitForm} disabled={availableAgentsForSelection.length === 0 && formData.agentIds.length === 0}>
                 {getSubmitButtonText()}
@@ -490,7 +492,7 @@ export default function GruposTrabajoIAPage() {
             <div className="flex-grow overflow-hidden -mx-6"> 
                 <LogsDisplay title={t('groups.executionModal.logTitle')} logs={executionLog} defaultExpanded={true} />
             </div>
-            <DialogFooter className="pt-4 border-t">
+            <DialogFooter className="pt-4 border-t mt-auto">
                 <Button variant="outline" onClick={handleStopExecution} disabled={!isGroupExecuting}>{t('groups.executionModal.stopButton')}</Button>
                 <DialogClose asChild><Button>{t('common.close')}</Button></DialogClose>
             </DialogFooter>
