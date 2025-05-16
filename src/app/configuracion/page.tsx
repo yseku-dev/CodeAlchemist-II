@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'; // Added CardHeader, CardTitle, CardDescription
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,12 +18,15 @@ import { Upload, Download, Save, Settings as SettingsIcon, Loader2 } from 'lucid
 import { getModelsForProvider } from '@/lib/utils';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useI18n } from '@/context/I18nContext';
+import type { TranslationKey } from '@/lib/i18n/translations';
+import { getGroqModels } from './actions';
 
 /**
  * @fileOverview Page component for application configuration.
  * Allows users to configure LLM providers, Git settings, debug mode, and application language.
  * Settings are persisted to localStorage.
  * Provides functionality to import and export application settings.
+ * Internationalized using useI18n.
  */
 
 /**
@@ -33,19 +36,6 @@ import { useI18n } from '@/context/I18nContext';
  */
 const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
   // In a real scenario, this would make an API call or use a Genkit flow.
-  // For example, a simple Genkit flow might be:
-  // const testFlow = ai.defineFlow({ name: 'testLlmConnection', inputSchema: LLMSettingsSchema, outputSchema: z.boolean() }, async (cfg) => {
-  //   try {
-  //     const llm = getModel(cfg.modelName); // Or however Genkit accesses a specific model based on full config
-  //     await generate({ model: llm, prompt: "Test" }); // A very simple prompt
-  //     return true;
-  //   } catch (e) {
-  //     console.error("LLM Connection test failed in flow:", e);
-  //     return false;
-  //   }
-  // });
-  // return await testFlow(config);
-
   console.info("Testing LLM Connection with:", config);
   // Simulate API call
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
@@ -58,7 +48,6 @@ const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
  */
 const testGitConnection = async (config: GitSettings): Promise<boolean> => {
   // In a real scenario, this could use a Server Action calling 'simple-git'
-  // to try listing remotes or fetching from the configured repoUrl.
   console.info("Testing Git Connection with:", config);
   // Simulate API call or Git operation
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
@@ -72,9 +61,8 @@ const testGitConnection = async (config: GitSettings): Promise<boolean> => {
 export default function ConfiguracionPage(): JSX.Element {
   const { toast } = useToast();
   const { setDebugMode: setContextDebugMode, addLog } = useDebug();
-  const { settings, updateLLMConfig, updateGitConfig, updateSettings } = useAppState();
+  const { settings, updateLLMConfig, updateGitConfig, updateSettings, updateLanguage: updateAppLanguage } = useAppState();
   const { t, language: i18nLanguage, setLanguage: setI18nLanguage, supportedLanguages } = useI18n();
-
 
   // Local state for form fields, initialized from global settings
   const [currentLLMConfig, setCurrentLLMConfig] = useState<LLMSettings>(settings.llmConfig);
@@ -85,6 +73,10 @@ export default function ConfiguracionPage(): JSX.Element {
   const [isTestingGit, setIsTestingGit] = useState(false);
 
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [groqModels, setGroqModels] = useState<string[]>([]);
+  const [isLoadingGroqModels, setIsLoadingGroqModels] = useState(false);
+  const previousApiKeyRef = useRef<string | null>(null);
+  
   const importConfigInputRef = useRef<HTMLInputElement>(null);
 
   // Effect to sync local form state when global settings change (e.g., due to import or context update)
@@ -92,14 +84,87 @@ export default function ConfiguracionPage(): JSX.Element {
     setCurrentLLMConfig(settings.llmConfig);
     setCurrentGitConfig(settings.gitConfig);
     setCurrentDebugMode(settings.debugMode);
-    // Ensure available models are updated if the provider changes globally
-    if (settings.llmConfig.provider) {
+    
+    if (settings.llmConfig.provider === "Groq" && settings.llmConfig.apiKey && groqModels.length > 0) {
+      setAvailableModels(groqModels);
+    } else if (settings.llmConfig.provider) {
       setAvailableModels(getModelsForProvider(settings.llmConfig.provider));
     } else {
       setAvailableModels(getModelsForProvider(DEFAULT_LLM_SETTINGS.provider));
     }
-  }, [settings]);
+  }, [settings, groqModels]);
 
+
+  const fetchAndSetGroqModels = useCallback(async (apiKey: string) => {
+    if (!apiKey) {
+      setGroqModels([]);
+      setAvailableModels(getModelsForProvider("Groq"));
+      previousApiKeyRef.current = null;
+      return;
+    }
+
+    if (apiKey === previousApiKeyRef.current && groqModels.length > 0) {
+      setAvailableModels(groqModels);
+      addLog({ source: 'ConfiguracionPage', type: 'DEBUG', message: 'Usando modelos Groq cacheados para la API key actual.' });
+      return;
+    }
+
+    setIsLoadingGroqModels(true);
+    addLog({ source: 'ConfiguracionPage', type: 'INFO', message: `Obteniendo modelos de Groq para API key: ${apiKey.substring(0, 5)}...` });
+    toast({ title: t('settings.llm.testingConnectionButton'), description: `${t('settings.llm.providerLabel')}: Groq` });
+
+    try {
+      const result = await getGroqModels(apiKey);
+      addLog({ source: 'ConfiguracionPage', type: 'DEBUG', message: '[CLIENT] Resultado de Server Action (getGroqModels):', data: result });
+
+      if (result.success && result.models) {
+        setGroqModels(result.models);
+        const modelsToUse = result.models.length > 0 ? result.models : getModelsForProvider("Groq");
+        setAvailableModels(modelsToUse);
+        previousApiKeyRef.current = apiKey;
+
+        if (result.models.length > 0) {
+          toast({ title: t('settings.toast.groqModelsLoadSuccess.title'), description: t('settings.toast.groqModelsLoadSuccess.description', { count: result.models.length }) });
+          if (currentLLMConfig.provider === "Groq" && !modelsToUse.includes(currentLLMConfig.model || '')) {
+             setCurrentLLMConfig(prev => ({ ...prev, model: modelsToUse[0] || '' }));
+          }
+        } else {
+          toast({ title: t('settings.toast.groqModelsLoadNoModels.title'), description: t('settings.toast.groqModelsLoadNoModels.description') });
+        }
+         if (result.error) { // If success is true but there's a partial error message (e.g. fallback used)
+            toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: result.error });
+        }
+
+      } else {
+        setGroqModels([]);
+        setAvailableModels(getModelsForProvider("Groq"));
+        previousApiKeyRef.current = null; // Reset so next attempt with same key will refetch
+        toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: result.error || t('common.unknownError') });
+         if(result.debug) console.error('[CLIENT] Debug info de Server Action (getGroqModels):', result.debug);
+      }
+    } catch (error: any) {
+      setGroqModels([]);
+      setAvailableModels(getModelsForProvider("Groq"));
+      previousApiKeyRef.current = null;
+      const errorMsg = error.message || t('common.unknownError');
+      toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: errorMsg });
+      addLog({ source: 'ConfiguracionPage', type: 'ERROR', message: 'Error al llamar a getGroqModels en cliente.', data: error });
+    } finally {
+      setIsLoadingGroqModels(false);
+    }
+  }, [t, toast, addLog, currentLLMConfig.provider, currentLLMConfig.model, groqModels]);
+
+
+  useEffect(() => {
+    if (currentLLMConfig.provider === "Groq" && currentLLMConfig.apiKey) {
+      fetchAndSetGroqModels(currentLLMConfig.apiKey);
+    } else if (currentLLMConfig.provider !== "Groq") {
+      setGroqModels([]); // Clear Groq models if provider is not Groq
+      previousApiKeyRef.current = null;
+      setAvailableModels(getModelsForProvider(currentLLMConfig.provider || DEFAULT_LLM_SETTINGS.provider));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLLMConfig.provider, currentLLMConfig.apiKey]); // fetchAndSetGroqModels is memoized
 
   /**
    * Handles changes in the LLM configuration form fields.
@@ -107,19 +172,31 @@ export default function ConfiguracionPage(): JSX.Element {
    * @param {string | LLMProvider} value - The new value for the field.
    */
   const handleLLMConfigChange = (field: keyof LLMSettings, value: string | LLMProvider) => {
-    const newConfig = { ...currentLLMConfig, [field]: value };
+    setCurrentLLMConfig(prevConfig => {
+      const newConfig = { ...prevConfig, [field]: value };
 
-    if (field === 'provider') {
-      const newProvider = value as LLMProvider;
-      newConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[newProvider] || ""; // Auto-fill API URL
-      const modelsForNewProvider = getModelsForProvider(newProvider);
-      setAvailableModels(modelsForNewProvider);
-
-      if (!modelsForNewProvider.includes(newConfig.model) || !newConfig.model) {
-         newConfig.model = modelsForNewProvider.length > 0 ? modelsForNewProvider[0] : '';
+      if (field === 'provider') {
+        const newProvider = value as LLMProvider;
+        newConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[newProvider] || ""; // Auto-fill API URL
+        
+        if (newProvider !== "Groq") {
+          const modelsForNewProvider = getModelsForProvider(newProvider);
+          setAvailableModels(modelsForNewProvider); // Set available models for non-Groq providers
+          if (!modelsForNewProvider.includes(newConfig.model) || !newConfig.model) {
+            newConfig.model = modelsForNewProvider.length > 0 ? modelsForNewProvider[0] : '';
+          }
+        } else {
+          // For Groq, models will be fetched by the useEffect or fetchAndSetGroqModels directly
+          // We can set a temporary loading state or keep existing models until fetch completes
+           if (newConfig.apiKey) { // If API key exists, trigger fetch
+             fetchAndSetGroqModels(newConfig.apiKey);
+           } else { // No API key, use static fallback
+             setAvailableModels(getModelsForProvider("Groq"));
+           }
+        }
       }
-    }
-    setCurrentLLMConfig(newConfig);
+      return newConfig;
+    });
   };
 
   /**
@@ -145,9 +222,8 @@ export default function ConfiguracionPage(): JSX.Element {
   const handleSaveSettings = () => {
     updateLLMConfig(currentLLMConfig);
     updateGitConfig(currentGitConfig);
-    // updateSettings is for non-language settings. Language is updated via I18nContext.
-    updateSettings({ debugMode: currentDebugMode });
-    setContextDebugMode(currentDebugMode); // Update debug context immediately
+    updateSettings({ debugMode: currentDebugMode, language: i18nLanguage });
+    setContextDebugMode(currentDebugMode); 
 
     toast({ title: t('settings.toast.saved.title'), description: t('settings.toast.saved.description') });
     addLog({source: "ConfiguracionPage", type: "INFO", message:"Configuration saved."});
@@ -159,7 +235,7 @@ export default function ConfiguracionPage(): JSX.Element {
    * @param {LanguageCode} langCode - The selected language code.
    */
   const handleLanguageChange = (langCode: LanguageCode) => {
-    setI18nLanguage(langCode); // This updates I18nContext and AppStateContext
+    setI18nLanguage(langCode); 
     const langName = supportedLanguages.find(l => l.code === langCode)?.name || langCode.toUpperCase();
     toast({ title: t('settings.toast.languageChanged.title'), description: t('settings.toast.languageChanged.description', { langName }) });
     addLog({source: "ConfiguracionPage", type: "INFO", message:`Language changed to: ${langCode}`});
@@ -212,12 +288,11 @@ export default function ConfiguracionPage(): JSX.Element {
    */
   const handleExportConfig = () => {
     try {
-      // Use the settings from the AppState to ensure we export what's currently active/saved globally
       const configToExport: AppSettings = {
-        llmConfig: settings.llmConfig,
-        gitConfig: settings.gitConfig,
-        debugMode: settings.debugMode,
-        language: settings.language,
+        llmConfig: currentLLMConfig, // Use current form state for export
+        gitConfig: currentGitConfig,
+        debugMode: currentDebugMode,
+        language: i18nLanguage,
       };
       const jsonString = JSON.stringify(configToExport, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -252,7 +327,6 @@ export default function ConfiguracionPage(): JSX.Element {
           const importedContent = e.target?.result as string;
           const parsedConfig = JSON.parse(importedContent);
 
-          // Basic validation of the imported structure
           if (
             parsedConfig &&
             typeof parsedConfig === 'object' &&
@@ -263,11 +337,21 @@ export default function ConfiguracionPage(): JSX.Element {
           ) {
             const importedSettings = parsedConfig as AppSettings;
 
-            // Update global state directly
             updateLLMConfig(importedSettings.llmConfig);
             updateGitConfig(importedSettings.gitConfig);
-            updateSettings({ debugMode: importedSettings.debugMode }); // Update non-language settings
-            setI18nLanguage(importedSettings.language); // Update language via I18nContext's setter
+            updateSettings({ debugMode: importedSettings.debugMode }); 
+            setI18nLanguage(importedSettings.language); 
+            
+            // Update local form state to reflect imported settings immediately
+            setCurrentLLMConfig(importedSettings.llmConfig);
+            setCurrentGitConfig(importedSettings.gitConfig);
+            setCurrentDebugMode(importedSettings.debugMode);
+            if (importedSettings.llmConfig.provider === "Groq" && importedSettings.llmConfig.apiKey) {
+                fetchAndSetGroqModels(importedSettings.llmConfig.apiKey);
+            } else {
+                setAvailableModels(getModelsForProvider(importedSettings.llmConfig.provider));
+            }
+
 
             toast({ title: t('settings.toast.configImported.title'), description: t('settings.toast.configImported.description') });
             addLog({source: "ConfiguracionPage", type: "INFO", message:"Configuration imported and applied."});
@@ -360,7 +444,10 @@ export default function ConfiguracionPage(): JSX.Element {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="llm-model">{t('settings.llm.modelNameLabel')}</Label>
+              <Label htmlFor="llm-model" className="flex items-center">
+                {t('settings.llm.modelNameLabel')}
+                {currentLLMConfig.provider === "Groq" && isLoadingGroqModels && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+              </Label>
               <Select
                 value={currentLLMConfig.model || ''}
                 onValueChange={(value) => handleLLMConfigChange('model', value)}
@@ -379,6 +466,9 @@ export default function ConfiguracionPage(): JSX.Element {
                   {availableModels.map(model => (
                     <SelectItem key={model} value={model}>{model}</SelectItem>
                   ))}
+                   {(currentLLMConfig.provider === "Groq" && isLoadingGroqModels && availableModels.length === 0) && (
+                    <div className="p-2 text-center text-xs text-muted-foreground"> {t('common.loading')} </div>
+                  )}
                 </SelectContent>
               </Select>
               {(["Google Gemini", "LM Studio", "Ollama"].includes(currentLLMConfig.provider)) && (
@@ -391,7 +481,7 @@ export default function ConfiguracionPage(): JSX.Element {
           <CardFooter>
             <Button onClick={handleTestLLM} disabled={isTestingLLM}>
               {isTestingLLM ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isTestingLLM ? t('settings.llm.testConnectionButton.testing') : t('settings.llm.testConnectionButton')}
+              {isTestingLLM ? t('settings.llm.testingConnectionButton') : t('settings.llm.testConnectionButton')}
             </Button>
           </CardFooter>
         </Card>
@@ -447,7 +537,7 @@ export default function ConfiguracionPage(): JSX.Element {
           <CardFooter>
             <Button onClick={handleTestGit} disabled={isTestingGit}>
               {isTestingGit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isTestingGit ? t('settings.git.testConnectionButton.testing') : t('settings.git.testConnectionButton')}
+              {isTestingGit ? t('settings.git.testingConnectionButton') : t('settings.git.testConnectionButton')}
             </Button>
           </CardFooter>
         </Card>
@@ -464,7 +554,7 @@ export default function ConfiguracionPage(): JSX.Element {
             <div className="space-y-2">
               <Label htmlFor="language-select">{t('settings.language.selectLabel')}</Label>
               <Select
-                value={i18nLanguage} // Value from I18nContext
+                value={i18nLanguage} 
                 onValueChange={(value) => handleLanguageChange(value as LanguageCode)}
               >
                 <SelectTrigger id="language-select">
@@ -503,3 +593,5 @@ export default function ConfiguracionPage(): JSX.Element {
     </Card>
   );
 }
+
+    
