@@ -7,335 +7,469 @@ CodeAlchemist es una plataforma de desarrollo asistido por inteligencia artifici
 
 **Operatividad:** Todas las funcionalidades descritas en este documento son completamente operativas y no incluyen procedimientos simulados o experimentales donde se indique que la funcionalidad es real. Las acciones que implican modificación de código (sugeridas por la IA y aplicadas por el usuario) o interacción con sistemas externos (como APIs de LLMs o Git) se ejecutan de forma real según la configuración y permisos otorgados. Las limitaciones inherentes a un entorno de navegador (como la modificación directa de archivos del sistema) se indican cuando son relevantes.
 
-## Características Principales
+## 1. Información General del Proyecto
+
+*   **Nombre del Proyecto:** CodeAlchemist
+*   **Propósito:** Optimizar y agilizar el ciclo de vida del desarrollo de software mediante asistencia de IA.
+*   **Tecnologías Utilizadas:**
+    *   **Framework Frontend:** Next.js (con App Router)
+    *   **Biblioteca UI:** React
+    *   **Lenguaje:** TypeScript
+    *   **Componentes UI:** ShadCN UI (sobre Radix UI y Tailwind CSS)
+    *   **CSS:** Tailwind CSS
+    *   **IA/LLM Framework:** Genkit (de Google)
+    *   **Iconos:** Lucide Icons
+    *   **Gestión de Estado (Cliente):** React Context (`AppStateContext`, `DebugContext`, `I18nContext`) con `useLocalStorage` para persistencia.
+    *   **Formateo y Linting:** ESLint y Prettier
+    *   **Empaquetado (Cliente-Side ZIP):** JSZip
+    *   **Interacción Git (Servidor):** `simple-git` (usado en Server Actions)
+    *   **Acceso a Archivos (Servidor):** Módulos `fs`, `path`, `glob` de Node.js (usado en Server Actions)
+*   **Arquitectura del Proyecto:**
+    *   **Frontend:** Aplicación Next.js que se ejecuta en el navegador del cliente. Gestiona toda la interfaz de usuario y la lógica de presentación.
+    *   **Backend (Lógica de IA y Acciones del Servidor):**
+        *   **Flujos Genkit:** Definidos en `src/ai/flows/`, se ejecutan en el entorno del servidor de Next.js (o en un entorno Node.js separado si se despliega así Genkit). Manejan todas las interacciones con los modelos de lenguaje grandes (LLMs) para generación de código, análisis, etc.
+        *   **Server Actions de Next.js:** Funciones definidas en archivos como `src/app/autoupdate/actions.ts` (con la directiva `"use server";`) que se ejecutan en el servidor. Se utilizan para operaciones que requieren acceso al sistema de archivos del servidor (ej. `getApplicationSourceBundle`) o para interactuar con herramientas del lado del servidor como `simple-git`.
+    *   **APIs Externas:** Principalmente las APIs de los proveedores de LLM (Groq, Google AI Studio/Vertex AI, OpenAI, Anthropic, etc.) configuradas por el usuario.
+    *   **Servicios Externos:** Potencialmente repositorios Git (GitHub, GitLab, etc.) para clonar o subir código.
+    *   **Bases de Datos:** No utiliza una base de datos tradicional para su lógica principal. El estado de la aplicación (configuraciones, agentes, grupos, snapshots) se persiste en el `localStorage` del navegador del usuario.
+*   **Requisitos Previos:**
+    *   Node.js (versión recomendada: 18.x o superior)
+    *   npm (o yarn)
+    *   Git (para clonar el proyecto y para la funcionalidad de "Subir a Git")
+    *   Un navegador web moderno (Chrome, Firefox, Edge, Safari).
+    *   Claves API para los proveedores de LLM que se deseen utilizar (ej. `GOOGLE_API_KEY` para Genkit con Google AI, o claves para Groq, OpenAI, etc., que se configuran en la UI).
+
+## 2. Funcionalidades y Características
 
 CodeAlchemist ofrece un conjunto robusto de características diseñadas para asistir en diversas etapas del desarrollo de software:
 
-*   **Generación de Código**: Permite a los usuarios crear fragmentos de código a partir de descripciones en lenguaje natural. Esta funcionalidad utiliza la configuración de IA seleccionada, que puede ser la configuración global de la aplicación, la configuración específica de un agente IA, o la de un grupo de trabajo IA. El proceso implica:
-    *   Un selector **"Usar Configuración LLM De"** para elegir la fuente de IA (Global, Agente específico, o Grupo de Trabajo).
-    *   Un área de texto **"Describe tu necesidad"** para que el usuario ingrese el prompt detallado sobre el código que desea generar.
-    *   Un botón **"Generar Código"**. Al pulsarlo, y tras una posible confirmación donde se muestra el prompt y la configuración LLM a usar, se inicia el proceso de generación.
-    *   La sección de **Resultados** muestra primero una **Explicación** (opcional, generada por la IA) del código que se va a generar, seguida del **Fragmento de Código** en sí. Dispone de un botón para **Copiar Código**.
-    *   Si se utilizó un grupo de trabajo, se muestra un **Log Detallado del Grupo** al final de la página, el cual es expandible/contraíble y permite copiar su contenido.
+*   **Generación de Código** (`/generar-codigo`): Permite a los usuarios crear fragmentos de código a partir de descripciones en lenguaje natural.
+    *   **Inputs:**
+        *   Selector "Usar Configuración LLM De" (`LLMConfigSelector`): Elige fuente de IA (Global, Agente, Grupo).
+        *   Textarea "Describe tu necesidad": Prompt del usuario.
+    *   **Lógica:**
+        1.  Usuario llena el prompt y selecciona configuración LLM.
+        2.  Botón "Generar Código" abre un diálogo de confirmación (`ConfirmDialog`).
+        3.  Al confirmar, se llama a `callGenerateCodeFromDescription` (`apiClient.ts`), que invoca el flujo Genkit `generateCodeFromDescriptionFlow`.
+        4.  Si se seleccionó un Agente o Grupo, su contexto (system prompt o main task del orquestador) se pasa al flujo para guiar al LLM.
+    *   **Outputs:**
+        *   Resultados muestran "Explicación" y "Fragmento de Código" (`CodeBlock`).
+        *   Botón para copiar código.
+        *   Si se usó un Grupo, se muestra un `LogsDisplay` con un log contextual del grupo.
+    *   **Dependencias:** `LLMConfigSelector`, `ConfirmDialog`, `CodeBlock`, `LogsDisplay`, `useI18n`.
+    *   **Interacciones:** El diálogo de confirmación permite revisar el prompt.
 
-*   **Generación de Proyectos**: Facilita la creación de una estructura base para nuevos proyectos (archivos y carpetas) a partir de especificaciones del usuario. Utiliza la configuración de IA seleccionada (global, agente específico o grupo de trabajo).
-    *   Selector **"Usar Configuración LLM De"**.
-    *   Área de texto **"Describe tu proyecto"** para el prompt detallado, indicando tipo de proyecto, tecnologías, estructura deseada, etc.
-    *   Botón **"Generar Proyecto"**. Al pulsarlo, se abre un diálogo de **"Confirmar Generación"** donde el usuario puede revisar el prompt actual y, si es necesario, **Redefinir Prompt (opcional)** para ajustarlo antes de continuar. También se muestran botones para "Cancelar" o "Sí, Generar Proyecto".
-    *   En los **Resultados**, se muestra un **"Nombre Sugerido"** para el proyecto (generado por la IA) y **"Notas de la IA"** con comentarios sobre la estructura generada o posibles próximos pasos.
-    *   Se presenta una lista de **"Archivos Generados"** con sus rutas relativas y contenido. Cada archivo puede expandirse para ver su código directamente en la interfaz.
-    *   Un botón **"Descargar Proyecto (ZIP)"** permite obtener un archivo JSON que contiene la estructura y el contenido de todos los archivos generados, empaquetado con extensión `.zip`. (Nota: El archivo ZIP contiene un único JSON, no una estructura de directorios y archivos individuales, debido a las limitaciones del navegador para generar ZIPs complejos).
-    *   Si se utilizó un grupo de trabajo, se muestra un **Log Detallado del Grupo** al final de la página.
+*   **Generación de Proyectos** (`/generar-proyecto`): Facilita la creación de una estructura base para nuevos proyectos.
+    *   **Inputs:**
+        *   Selector "Usar Configuración LLM De".
+        *   Textarea "Describe tu proyecto".
+    *   **Lógica:**
+        1.  Usuario llena el prompt.
+        2.  Botón "Generar Proyecto" abre `ConfirmDialog` que permite "Redefinir Prompt".
+        3.  Al confirmar, se llama a `callGenerateProjectStructure` (`apiClient.ts`), que invoca `generateProjectStructureFlow`.
+        4.  Contexto de Agente/Grupo se pasa al flujo.
+    *   **Outputs:**
+        *   Resultados: "Nombre Sugerido", "Notas de la IA".
+        *   Lista de "Archivos Generados" usando `FileTreeDisplay`.
+        *   Botón "Descargar Proyecto (ZIP)" (usa `JSZip` en cliente para crear un ZIP de los archivos generados).
+        *   `LogsDisplay` si se usó un Grupo.
+    *   **Dependencias:** `LLMConfigSelector`, `ConfirmDialog`, `FileTreeDisplay`, `JSZip`, `useI18n`.
 
-*   **Refactorizar Proyecto**: Permite analizar un proyecto existente para obtener sugerencias de refactorización generadas por la IA y aplicarlas.
-    *   Selector **"Usar Configuración LLM De"**:
-        *   **Ajustes Globales**: Utiliza la configuración general de la aplicación.
-        *   **Agente**: Permite seleccionar un agente específico. Se recomienda uno especializado en refactorización, como `RefactorizadorCodigoExperto`.
-        *   **Grupo**: Permite seleccionar un grupo de trabajo que incluya agentes relevantes.
-    *   **Fuente del Proyecto**:
-        *   **Subir Archivo**: Admite archivos `.zip`, `.json`, o archivos de texto individuales.
-        *   **URL de Git**: Permite introducir la URL HTTPS de un repositorio Git público.
-    *   **Parámetros de Refactorización**:
-        *   **Metas (opcional)**.
-        *   **Prioridad General (opcional)**: Selector (ej. "Priorizar Seguridad", "Priorizar Legibilidad").
-        *   **Profundidad de Búsqueda (opcional)**: Campo numérico.
-        *   **Campo de Enfoque del Análisis (opcional)**: Campo de texto.
-    *   Botón **"Analizar para Refactorizar"**.
-    *   **Resultados y Sugerencias**: Lista de sugerencias con Área, Descripción, Prioridad, y Snippet Sugerido (opcional). Comienza con un resumen del proyecto.
-    *   **Acciones por Sugerencia**: "Marcar como Aplicada" (actualiza estado en UI), "Ver Diff", "Descartar".
-    *   **Acción Masiva**: "Marcar Todas como Aplicadas".
-    *   **Logs de Ejecución**: Si se usó un grupo.
+*   **Refactorizar Proyecto** (`/refactorizar-proyecto`): Analiza un proyecto existente para obtener sugerencias de refactorización.
+    *   **Inputs:**
+        *   Selector "Usar Configuración LLM De".
+        *   Fuente del Proyecto: Upload (ZIP, JSON, texto) o URL de Git.
+        *   Parámetros: Metas (texto), Prioridad General (select), Profundidad de Búsqueda (numérico), Campo de Enfoque (texto).
+    *   **Lógica:**
+        1.  Usuario configura y pulsa "Analizar para Refactorizar".
+        2.  Se llama a `callRefactorProjectWithAI` (`apiClient.ts`), que invoca `refactorProjectWithAIFlow`.
+        3.  Contexto de Agente/Grupo y parámetros de refactorización se pasan al flujo.
+    *   **Outputs:**
+        *   Resultados: "Resumen del Proyecto", lista de "Sugerencias" (área, descripción, prioridad, snippet).
+        *   Acciones por sugerencia: "Aplicar" (marca estado en UI), "Ver Diff" (abre modal con `CodeBlock`), "Descartar".
+        *   Acción masiva: "Aplicar Todas".
+        *   `LogsDisplay` si se usó un Grupo.
+    *   **Dependencias:** `LLMConfigSelector`, `CodeBlock`, `ConfirmDialog` (implícito para Diff), `LogsDisplay`, `useI18n`.
 
-*   **Análisis de Código Inteligente**: Permite obtener análisis detallados y sugerencias para fragmentos de código.
-    *   Selector **"Usar Configuración LLM De"**.
-    *   **Fuente del Código**: Subir archivo, URL de archivo Git, o pegar código. Campo para "Instrucciones Adicionales".
-    *   Botón **"Analizar Código"**.
-    *   **Resultados**: Explicación (objetivos del código original), Código Original, Código Sugerido.
-    *   Botones **"Guardar Original"** y **"Guardar Sugerido"** para la sección "Versiones Guardadas".
+*   **Análisis de Código Inteligente** (`/analizar-codigo`): Análisis detallado para fragmentos o archivos.
+    *   **Inputs:**
+        *   Selector "Usar Configuración LLM De".
+        *   Fuente del Código: Upload, URL Git (raw), o pegar en `CodeEditor`.
+        *   Campo "Instrucciones Adicionales".
+    *   **Lógica:**
+        1.  Usuario proporciona código y pulsa "Analizar Código".
+        2.  Se llama a `callAnalyzeCodeSnippet` (`apiClient.ts`), que invoca `analyzeCodeSnippetFlow`.
+        3.  Contexto de Agente/Grupo e instrucciones adicionales se pasan al flujo.
+    *   **Outputs:**
+        *   Resultados: "Explicación", "Código Original", "Código Sugerido" (todos en `CodeBlock`).
+        *   Botones "Guardar Original" y "Guardar Sugerido" (crean snapshots en `AppStateContext`).
+    *   **Dependencias:** `LLMConfigSelector`, `CodeEditor`, `CodeBlock`, `useI18n`.
 
-*   **Análisis de Proyecto Completo**: Para un análisis holístico de proyectos.
-    *   Selector **"Usar Configuración LLM De"**.
-    *   **Fuente del Proyecto**: Subir ZIP/JSON o URL de Git.
-    *   **Parámetros de Análisis**: "Profundidad de Búsqueda", "Campo de Enfoque".
-    *   Botón **"Analizar Proyecto"**.
-    *   **Resultados**: Título del análisis, Evaluación General (comenzando con objetivos y funcionalidades del proyecto), Ideas Generales de Mejora, Áreas Identificadas, Sugerencias Específicas (con área, descripción, prioridad y prompt sugerido para implementación).
-    *   **Log Detallado**: Si se usó un grupo.
+*   **Análisis de Proyecto Completo** (`/analizar-proyecto`): Análisis holístico de proyectos.
+    *   **Inputs:**
+        *   Selector "Usar Configuración LLM De".
+        *   Fuente del Proyecto: Upload (ZIP/JSON) o URL de Git.
+        *   Parámetros: Profundidad de Búsqueda (numérico), Campo de Enfoque (texto).
+    *   **Lógica:**
+        1.  Usuario configura y pulsa "Analizar Proyecto".
+        2.  Se llama a `callAnalyzeSelfCode` (que invoca `analyzeSelfCodeFlow`, renombrado conceptualmente a `analyzeProjectCodeFlow` en el prompt).
+        3.  Contexto de Agente/Grupo y parámetros se pasan al flujo.
+    *   **Outputs:**
+        *   Resultados: "Título del Análisis", "Evaluación General" (comienza con objetivos del proyecto), "Ideas Generales de Mejora", "Áreas Identificadas", "Sugerencias Específicas" (con prompt sugerido).
+        *   `LogsDisplay` si se usó un Grupo.
+    *   **Dependencias:** `LLMConfigSelector`, `LogsDisplay`, `useI18n`.
 
-*   **AutoUpdate (Análisis del Propio Código)**: Permite que CodeAlchemist analice su propio código fuente.
-    *   Selector **"Usar Configuración LLM De"** (defecto: `RefactorizadorCodigoExperto`).
-    *   **Fuente del Código**: "Local" (código del servidor donde se ejecuta CodeAlchemist, obtenido vía Server Action) o "URL del Repositorio Git".
-    *   **Preferencias de Análisis (Opcional)**: Guía para la IA.
-    *   Botón **"Iniciar Auto-Análisis"**.
-    *   **Barra de Progreso**: Si el análisis no es por grupo.
-    *   **Resultados**: Título del Análisis, Evaluación General (comenzando con objetivos del proyecto), Ideas Generales de Mejora, Sugerencias Detalladas (con área, sugerencia, prioridad, contenido completo sugerido del archivo, y prompt sugerido para implementación por IA).
-    *   **Acciones por Sugerencia**:
-        *   Botón **"Editar Contenido"**: Permite modificar el contenido sugerido por la IA en un área de texto.
-        *   Botón **"Testear Sugerencia"**: Abre un diálogo modal con el código (sugerido o editado) para revisión, aclarando que la prueba real debe hacerse en el entorno de desarrollo.
-        *   Botón **"Testear en Ent. Virtual"**: Abre un diálogo similar, explicando que la ejecución real en un entorno virtualizado (venv, nvm) requeriría infraestructura local/backend.
-        *   Botón **"Aplicar Sugerencia"**: Abre diálogo de confirmación con vista previa del cambio. Al confirmar, se marca como "aplicada" en la UI. (La modificación real de archivos de CodeAlchemist no es posible desde el navegador).
-    *   **Descargar Código**:
-        *   **"Descargar Código Actual (ZIP)"**: Inicia una Server Action para obtener el código fuente actual de CodeAlchemist del servidor, aplica conceptualmente las sugerencias marcadas como "applied" en el cliente, y luego usa JSZip en el cliente para empaquetar estos archivos en un ZIP.
-        *   **"Descargar Sugerencias (JSON)"**: Descarga un JSON con las rutas y el contenido completo sugerido/editado de los archivos afectados por las sugerencias.
-    *   **Subir a Git**: Botón para conceptualizar un `commit` y `push` al repo configurado (requiere implementación real de backend/Server Action con `simple-git`). Muestra un diálogo para mensaje de commit.
-    *   **Manejo de Errores y Auto-Fix**: Botones "Copiar Error" y "Auto-Fix" (usa IA para analizar error).
-    *   **Logs de Ejecución Detallados**: Panel expandible/contraíble.
+*   **AutoUpdate (Análisis del Propio Código)** (`/autoupdate`): CodeAlchemist analiza su propio código.
+    *   **Inputs:**
+        *   Selector "Usar Configuración LLM De" (defecto: `RefactorizadorCodigoExperto`).
+        *   Fuente: "Local" (Server Action `getApplicationSourceBundle` para obtener código del servidor) o "URL del Repositorio Git".
+        *   "Preferencias de Análisis" (Campo de Enfoque).
+    *   **Lógica:**
+        1.  Usuario pulsa "Iniciar Auto-Análisis".
+        2.  Si es "Local", se llama a Server Action `getApplicationSourceBundle`.
+        3.  Se llama a `callAnalyzeSelfCode` con el código obtenido/referencia Git y preferencias.
+    *   **Outputs (`AutoUpdateResultsDisplay`):**
+        *   Resultados: Título, Evaluación General (comienza con objetivos del proyecto), Ideas Generales, Sugerencias Detalladas (con área, sugerencia, prioridad, contenido completo sugerido, prompt de implementación).
+        *   Acciones por sugerencia (`autoupdate-suggestion-card`):
+            *   "Editar Contenido": Permite modificar el `suggestedFullFileContent` en un `Textarea`.
+            *   "Testear Sugerencia": Modal con código para revisión conceptual.
+            *   "Testear en Ent. Virtual": Modal similar, explica que la ejecución real requiere infraestructura.
+            *   "Aplicar Sugerencia": Modal de confirmación. Marca sugerencia como "applied" en UI. (Modificación real de archivos de CodeAlchemist no es posible desde navegador; Server Action sería necesaria).
+        *   Descargas:
+            *   "Descargar Sugerencias (JSON)": JSON de sugerencias (ruta -> contenido).
+            *   "Descargar Código Actual (ZIP)": Llama a Server Action `getApplicationSourceBundle`, luego el cliente aplica conceptualmente las sugerencias "applied" y usa `JSZip` para crear un ZIP.
+        *   "Subir a Git": Llama a Server Action `handleUploadToGit` (usa `simple-git` en servidor).
+        *   Manejo de Errores con "Copiar Error" y "Auto-Fix" (usa `callAutoFixErrorWithGroup`).
+        *   `LogsDisplay` para logs detallados.
+    *   **Dependencias:** `LLMConfigSelector`, `AutoUpdateConfigForm`, `AutoUpdateResultsDisplay`, `autoupdate-suggestion-card`, `CodeBlock`, `ConfirmDialog`, `JSZip`, `useI18n`. Server Actions `getApplicationSourceBundle`, `handleUploadToGit`.
 
-*   **Versiones Guardadas (Snapshots)**: Gestiona instantáneas de código o estado de la aplicación.
-    *   Muestra lista de snapshots (nombre, fecha, origen).
-    *   **Acciones por Versión**: "Ver", "Descargar" (menú con "como [JSON/TXT]" y "como ZIP"), "Eliminar", "Seleccionar para Comparar (A/B)".
-    *   **Comparar Versiones**: Diálogo modal con vista lado a lado (no diff real).
-    *   **"Guardar Estado Actual de la Aplicación (JSON)"**: Guarda la configuración, agentes y grupos actuales como un snapshot JSON.
-    *   **"Guardar Estado y Descargar como ZIP"**: Guarda el estado de la app y lo descarga como un archivo `.zip` (conteniendo el JSON del estado).
-    *   Botón **"Eliminar Todas"**.
+*   **Versiones Guardadas (Snapshots)** (`/versiones-guardadas`): Gestiona instantáneas de código o estado.
+    *   **Lógica:** Muestra lista de snapshots de `AppStateContext`.
+    *   Acciones por versión:
+        *   "Ver": Modal con `CodeBlock`.
+        *   "Descargar" (DropdownMenu): "como [JSON/TXT]" o "como ZIP" (descarga el contenido original con extensión .zip).
+        *   "Eliminar".
+        *   "Seleccionar para Comparar (A/B)".
+    *   "Comparar Versiones": Modal con dos `CodeBlock` lado a lado.
+    *   "Guardar Estado Actual de la Aplicación (JSON)": Guarda `settings`, `agents`, `groups` como un snapshot JSON.
+    *   "Guardar Estado y Descargar como ZIP": Guarda estado y lo descarga como ZIP (conteniendo el JSON).
+    *   "Eliminar Todas".
+    *   **Dependencias:** `CodeBlock`, `ConfirmDialog`, `DropdownMenu`, `useI18n`.
 
-*   **Chat con IA**: Permite interactuar con un asistente IA.
-    *   Selector **"Usar Configuración LLM De"**.
-    *   Historial de conversación.
-    *   Botón **"Borrar el Chat"**.
-    *   Manejo de errores con "Copiar Error" y "Auto-Fix". Las interacciones son reales, llamando a flujos Genkit.
+*   **Chat con IA** (`/chat-ia`): Interactúa con un asistente IA.
+    *   **Inputs:** Selector "Usar Configuración LLM De", Textarea para mensaje.
+    *   **Lógica:**
+        1.  Llama a `callChatWithAgentOrGlobal` o `callChatWithAIGroup` (`apiClient.ts`).
+        2.  `chatWithAgentOrGlobalFlow` usa el prompt de sistema del Agente si se selecciona.
+        3.  `chatWithAIGroupFlow` pasa la tarea al Orquestador del Grupo, quien devuelve su decisión/respuesta inicial.
+    *   **Outputs:** Historial de conversación. "Borrar Chat". Manejo de errores con "Auto-Fix" (usa `callAutoFixErrorWithGroup`).
+    *   **Dependencias:** `LLMConfigSelector`, `ErrorDisplay`, `useI18n`.
 
-*   **Gestión de Agentes IA**: Para crear, configurar, probar y gestionar agentes.
-    *   Lista de agentes con detalles.
-    *   Botones **"Crear con IA"** (diálogo para describir rol, IA sugiere definición completa), **"Importar Agentes"** (JSON), **"Exportar Todos los Agentes"** (JSON).
-    *   **Formulario "Crear/Editar Agente"**: Nombre, Descripción, Mensaje de Sistema, Capacidades (Acceso Código Propio, Ejecución, Entorno Virtual, Lectura/Escritura), Configuración LLM (Global o Personalizada).
-    *   Agentes por defecto `OrquestadorFlujoAgentes` y `RefactorizadorCodigoExperto` con protecciones.
-    *   **Acciones por Agente**: "Probar" (chat modal con agente real), "Exportar" (JSON individual), "Editar", "Eliminar".
+*   **Gestión de Agentes IA** (`/agentes-ia`): Crea, configura, prueba y gestiona agentes.
+    *   **Lógica:** Lista agentes de `AppStateContext`.
+    *   Botones: "Crear con IA" (`AISuggestionDialog` llama a `callSuggestAgentDefinition`), "Importar Agentes" (JSON), "Exportar Todos los Agentes" (JSON), "Crear Agente".
+    *   Formulario "Crear/Editar Agente" (`agent-form`): Nombre, Descripción, Mensaje de Sistema, Capacidades (checkboxes), Configuración LLM (Global/Personalizada).
+    *   Agentes por defecto `OrquestadorFlujoAgentes`, `RefactorizadorCodigoExperto` y otros.
+    *   Acciones por agente: "Probar" (`agent-test-chat` llama a `callChatWithAgentOrGlobal`), "Exportar" (JSON individual), "Editar", "Eliminar".
+    *   **Dependencias:** `AISuggestionDialog`, `agent-form`, `agent-test-chat`, `ConfirmDialog`, `useI18n`.
 
-*   **Gestión de Grupos de Trabajo IA**: Define equipos de agentes IA.
-    *   Lista de grupos.
-    *   **"Crear con IA"**: Diálogo para describir tarea, IA sugiere definición y agentes.
-    *   **Formulario "Crear/Editar Grupo"**: Nombre, Descripción, Tarea Principal, Seleccionar Agentes (Orquestador implícito, requiere al menos uno más).
+*   **Gestión de Grupos de Trabajo IA** (`/grupos-trabajo-ia`): Define equipos de agentes.
+    *   **Lógica:** Lista grupos de `AppStateContext`.
+    *   "Crear con IA" (`AISuggestionDialog` llama a `callSuggestGroupDefinition`).
+    *   Formulario "Crear/Editar Grupo": Nombre, Descripción, Tarea Principal, Seleccionar Agentes (Orquestador implícito).
     *   Grupo por defecto `EquipoDesarrolloSoftware`.
-    *   **Acciones por Grupo**: "Ejecutar" (diálogo modal con log de ejecución multi-turno real, coordinado por el Orquestador), "Editar", "Eliminar".
+    *   Acciones por grupo: "Ejecutar" (modal con `LogsDisplay` para log de ejecución multi-turno real, coordinado por `callChatWithAIGroup` y `callChatWithAgentOrGlobal` en bucle), "Editar", "Eliminar".
+    *   **Dependencias:** `AISuggestionDialog`, `LogsDisplay`, `ConfirmDialog`, `useI18n`.
 
 *   **Interfaz de Usuario Intuitiva**:
-    *   Tecnologías web modernas, responsiva.
-    *   **Barra Lateral** colapsable (control `ChevronsLeft`/`ChevronsRight` arriba a la derecha del header del sidebar).
-    *   Menú "hamburguesa" (`Menu`) en móviles para la barra lateral.
-    *   Paleta de colores profesional y legible.
+    *   Tecnologías: Next.js, React, TypeScript, ShadCN UI, Tailwind CSS.
+    *   Barra Lateral (`AppLayout` y `Sidebar` de ShadCN UI): Colapsable (control `CollapsibleSidebarButton` con `ChevronsLeft`/`ChevronsRight` en el header del sidebar). Menú "hamburguesa" (`MenuIcon` y `SidebarTrigger`) en móviles.
+    *   Paleta de colores profesional (detallada en sección "Diseño Visual").
 
-*   **Configuración Personalizada**: Ajuste de parámetros globales.
-    *   **Configuración del Proveedor LLM**: Proveedor, URL Endpoint (auto-rellenada), Clave API, Nombre del Modelo. Botón "Probar Conexión".
-    *   **Configuración de Git (Opcional)**: URL Repositorio, Usuario, Email, PAT. Botón "Probar Conexión".
-    *   **Modo Depuración**: Interruptor para panel de logs detallados (expandible, copiar, borrar).
-    *   Botones **"Importar" / "Exportar Configuración" / "Guardar Configuración"** en la cabecera de la página.
+*   **Configuración Personalizada** (`/configuracion`): Ajuste de parámetros globales.
+    *   **Configuración LLM:** Proveedor, URL Endpoint, Clave API, Modelo. Botón "Probar Conexión" (simulado). Carga dinámica de modelos Groq vía Server Action `getGroqModels`.
+    *   **Configuración Git:** URL Repositorio, Usuario, Email, PAT. Botón "Probar Conexión" (simulado).
+    *   **Idioma:** Selector para cambiar entre 'es' y 'en'.
+    *   **Modo Depuración:** Interruptor para panel de logs (`DebugPanel` en `AppLayout`).
+    *   Botones "Importar"/"Exportar Configuración"/"Guardar Configuración" en cabecera de página.
+    *   **Dependencias:** `Select`, `Input`, `Switch`, `Button`, `useI18n`.
 
 *   **Manejo de Errores Mejorado**:
-    *   Visualización clara. Botón "Copiar Error".
-    *   Botón **"Auto-Fix"** en secciones relevantes para análisis de error por IA.
-    *   Consideraciones para **Priorización dinámica de errores, Aprendizaje predictivo, Validación robusta, Sincronización con Orquestador**.
-    *   Gestión de errores comunes de API LLM (límites de tokens, timeouts) con reintentos y backoff exponencial.
+    *   `ErrorDisplay` muestra errores con opción de "Copiar Error" y "Auto-Fix" (usa `callAutoFixErrorWithGroup`).
+    *   `apiClient.ts` centraliza llamadas a flujos, parsea errores a `AppError`, implementa reintentos con backoff.
+    *   `src/app/error.tsx` como Error Boundary global.
+    *   Listeners globales en `AppLayout.tsx` para errores JS no capturados.
 
-## Guía de Inicio
-
-### Requisitos Previos
-
-*   Un navegador web moderno y actualizado (ej. Chrome, Firefox, Edge, Safari).
-*   Node.js (versión recomendada: 18.x o superior) y npm (o yarn).
-*   Git instalado.
-*   Conexión a internet para clonar el repositorio, instalar dependencias, y acceder a APIs de LLM.
-*   (Opcional) Si se usan modelos LLM locales (LM Studio, Ollama), tenerlos instalados, configurados y en ejecución.
-
-### Instalación y Primer Uso
-
-1.  **Clonar el Repositorio**:
-    Abre tu terminal y clona el proyecto desde GitHub:
-    ```bash
-    git clone https://github.com/yseku-dev/studio.git codealchemist
-    ```
-2.  **Navegar al Directorio del Proyecto**:
-    ```bash
-    cd codealchemist
-    ```
-3.  **Instalar Dependencias**:
-    Usa npm o yarn para instalar todas las dependencias del proyecto:
-    ```bash
-    npm install
-    # o si prefieres yarn:
-    # yarn install
-    ```
-4.  **Configurar Variables de Entorno**:
-    *   Crea un archivo llamado `.env.local` en la raíz del proyecto. Este archivo es para tus variables de entorno locales y no se subirá a Git (está en `.gitignore`).
-    *   Añade las claves API necesarias. Por ejemplo, si vas a usar Google Gemini a través de Genkit (que es la configuración por defecto en `src/ai/genkit.ts`), necesitarás una clave API de Google AI Studio o Google Cloud:
-        ```env
-        GOOGLE_API_KEY=TU_CLAVE_API_DE_GOOGLE_AQUI
+### Funcionalidad Multiidioma
+*   **Mecanismo:** Se utiliza un `I18nContext` (`src/context/I18nContext.tsx`) que provee una función `t(key: TranslationKey, params?: Record<string, string | number>)` y el idioma actual. El idioma se persiste en `localStorage` a través de `AppStateContext`.
+*   **Idiomas Soportados:** Español (`es`, por defecto) e Inglés (`en`). Definidos en `src/lib/i18n/constants.ts`.
+*   **Archivos de Traducción:** `src/lib/i18n/translations.ts` contiene un objeto `translationsData` con las cadenas para cada idioma.
+    *   **Estructura:**
+        ```javascript
+        export const translationsData = {
+          es: {
+            app: { title: "CodeAlchemist" },
+            sidebar: { dashboard: "Panel de Control", ... },
+            // ... otras secciones
+          },
+          en: { /* traducciones en inglés */ }
+        };
         ```
-        Si planeas usar otros proveedores LLM, necesitarás sus respectivas claves (ej. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`). Estas claves las ingresarás directamente en la interfaz de CodeAlchemist (sección "Configuración"), donde se guardarán en el `localStorage` de tu navegador. La variable `GOOGLE_API_KEY` en `.env.local` es específicamente para el backend de Genkit si se usa GoogleAI.
-5.  **Ejecutar la Aplicación en Modo Desarrollo**:
-    *   Inicia el servidor de desarrollo de Next.js (que también iniciará Genkit si está configurado para el modo desarrollo):
-        ```bash
-        npm run dev
-        # o con yarn:
-        # yarn dev
-        ```
-    *   Este comando usualmente también inicia el observador de Genkit (`genkit start -- tsx --watch src/ai/dev.ts`) como parte del script `dev`.
-6.  **Acceder a la Aplicación**:
-    Abre tu navegador web y ve a `http://localhost:9002` (o el puerto que se indique en la consola si el 9002 está ocupado).
+*   **Ejemplos:**
+    *   Barra Lateral: `t('sidebar.dashboard')` muestra "Panel de Control" o "Dashboard".
+    *   Página de Configuración: `t('settings.llm.title')` muestra "Configuración del Proveedor LLM" o "LLM Provider Settings".
 
-7.  **Configuración Inicial en CodeAlchemist (Muy Recomendado)**:
-    *   Una vez que la aplicación cargue, navega a la sección **"Configuración"** (icono de engranaje `Settings` en la barra lateral).
-    *   **Configura tu Proveedor LLM Global**:
-        *   Selecciona el **Proveedor LLM** que deseas usar (Groq, Google Gemini, OpenAI, etc.).
-        *   La **URL del Endpoint de API** se rellenará automáticamente para la mayoría de los proveedores. Ajusta si es necesario (especialmente para LM Studio u Ollama, ej. `http://localhost:1234/v1` o `http://localhost:11434/v1`).
-        *   Introduce tu **Clave API** si el proveedor la requiere y no la has configurado vía variables de entorno que el backend pudiera usar. La clave ingresada aquí se guarda localmente en tu navegador.
-        *   Elige un **Nombre del Modelo** de la lista disponible para ese proveedor.
-        *   Haz clic en **"Probar Conexión (Proveedor LLM)"** para asegurar que la comunicación con la IA es exitosa.
-    *   **(Opcional) Configura Git**: Si planeas usar la funcionalidad de "Subir a Git" en "AutoUpdate", completa los detalles de Git (URL del Repositorio, Nombre de Usuario, Email, Token de Acceso Personal) y prueba la conexión con **"Probar Conexión Git"**.
-    *   **(Opcional) Activa el Modo Depuración**: Si deseas ver logs detallados de la aplicación en un panel inferior.
-    *   Haz clic en **"Guardar Configuración"**.
+## 3. Interfaz de Usuario (UI)
 
-8.  **Inicialización de Agentes y Grupos por Defecto**:
-    *   Al cargar la aplicación por primera vez (o si no existen en el `localStorage`), CodeAlchemist crea automáticamente un conjunto de agentes y un grupo de trabajo por defecto. Estos están definidos en `src/lib/constants.ts`.
-    *   **Agentes Creados por Defecto**:
-        *   `OrquestadorFlujoAgentes`: Esencial para la gestión de grupos. No eliminable, nombre no editable. Prompt predefinido para gestionar el flujo de trabajo.
-        *   `RefactorizadorCodigoExperto`: Especializado en análisis y refactorización. Prompt orientado a Clean Code, SOLID y salida JSON.
-        *   `JefeDeProducto`: Define requisitos, historias de usuario.
-        *   `ArquitectoSoftware`: Diseña arquitectura, selecciona tecnologías.
-        *   `DesarrolladorSoftware`: Escribe código. Capacidades: acceso código propio, ejecución, lectura/escritura.
-        *   `IngenieroPruebas`: Escribe y ejecuta pruebas. Capacidad: ejecución.
-        *   `IngenieroDevOps`: Gestiona infraestructura, despliegues, CI/CD. Capacidades: ejecución, entorno virtual, lectura/escritura.
-        *   `RepresentanteUsuario`: Proporciona feedback de usuario.
-        *   `ValidadorCodigo`: Analiza resultados de refactorización. Capacidades: acceso código propio, ejecución.
-    *   **Grupo de Trabajo Creado por Defecto**:
-        *   `EquipoDesarrolloSoftware`: Incluye Orquestador y los agentes JefeDeProducto, ArquitectoSoftware, DesarrolladorSoftware, RefactorizadorCodigoExperto, ValidadorCodigo, IngenieroPruebas, IngenieroDevOps, y RepresentanteUsuario. Tarea principal predefinida para simular un equipo de producción de software completo y mejorar el sistema "Auto-Fix".
-    *   Estos elementos por defecto sirven como punto de partida y pueden ser editados (con las excepciones mencionadas). Son gestionables a través de las secciones "Agentes IA" y "Grupos de Trabajo IA".
+### Estructura de la Aplicación
+La aplicación sigue la estructura del App Router de Next.js.
+*   **Layout Principal:** `src/app/layout.tsx` define el `<html>` y `<body>` e incluye los proveedores de contexto globales (`AppStateProvider`, `DebugProvider`, `I18nProvider`).
+*   **Layout de Aplicación:** `src/components/layout/AppLayout.tsx` implementa la barra lateral persistente y la cabecera superior, renderizando el contenido de la página actual.
+    *   Utiliza el componente `Sidebar` de `@/components/ui/sidebar` (una personalización de ShadCN).
+*   **Páginas Principales:** Residen en `src/app/` (ej. `src/app/page.tsx`, `src/app/configuracion/page.tsx`).
 
-## Tutorial de Uso Detallado
+### Páginas y Componentes Clave
 
-### 1. Navegación y Barra Lateral
+(Solo se listan algunos ejemplos, la lista completa sería demasiado extensa)
 
-*   La interfaz principal cuenta con una **Barra Lateral** a la izquierda para acceder a todas las secciones.
-    *   **Panel de Control**: (Icono: `LayoutDashboard`) Página de bienvenida y punto de partida.
-        *   Muestra el logo `FlaskConical` y el título "Bienvenido a CodeAlchemist".
-        *   Descripción concisa de la aplicación.
-        *   Sección **"Características Principales"**: Cuadrícula de tarjetas interactivas (icono, título, descripción) que enlazan a cada funcionalidad, con efectos hover.
-        *   Sección **"Guía Rápida de Inicio"**: Lista numerada de pasos recomendados para nuevos usuarios, con enlaces.
-    *   **Generar Código**: (Icono: `CodeXml`)
-    *   **Generar Proyecto**: (Icono: `FolderPlus`)
-    *   **Refactorizar Proyecto**: (Icono: `GitPullRequestDraft`)
-    *   **Analizar Código**: (Icono: `ScanLine`)
-    *   **Analizar Proyecto**: (Icono: `FolderSearch`)
-    *   **AutoUpdate**: (Icono: `Sparkles`)
-    *   **Versiones Guardadas**: (Icono: `GitCompareArrows`)
-    *   **Chat con IA**: (Icono: `MessageCircle`)
-    *   **Agentes IA**: (Icono: `Users2`)
-    *   **Grupos de Trabajo IA**: (Icono: `Workflow`)
-    *   **Configuración**: (Icono: `SettingsIcon`)
-*   La barra lateral se oculta/muestra con el botón `ChevronsLeft`/`ChevronsRight` (arriba a la derecha del header del sidebar en escritorio).
-*   En móviles, un icono `Menu` (hamburguesa) en la cabecera superior izquierda controla el panel deslizable de la barra lateral.
+*   **`src/app/page.tsx` (Panel de Control)**
+    *   **Ruta:** `/`
+    *   **Propósito:** Página de bienvenida, accesos directos a funcionalidades.
+    *   **Estructura:** `div` principal, `header` con logo (`FlaskConical`) y títulos, sección `grid` para tarjetas de características (`Card`), sección para guía rápida (`Card`).
+    *   **Textos (ejemplos en español, gestionados por i18n):**
+        *   Título: "Bienvenido a CodeAlchemist" (h1, text-4xl md:text-5xl font-bold).
+        *   Descripción: "Tu plataforma de desarrollo asistido por IA..." (p, text-lg md:text-xl text-muted-foreground).
+    *   **Botones (ejemplo):** "Ir a Configuración" (`Button` primario, size lg).
+*   **`src/app/configuracion/page.tsx` (Configuración)**
+    *   **Ruta:** `/configuracion`
+    *   **Propósito:** Ajustar parámetros globales.
+    *   **Estructura:** `Card` principal con `PageSectionHeader`. Múltiples `Card` anidadas para secciones (LLM, Git, Idioma, Debug).
+    *   **Elementos (ejemplos):**
+        *   `PageSectionHeader`: Icono `SettingsIcon`, título `t('settings.title')`. Acciones: botones "Importar", "Exportar", "Guardar".
+        *   **LLM:** `Label` `t('settings.llm.providerLabel')`, `Select` para proveedor, `Input` para URL API (placeholder `t('settings.llm.apiUrlPlaceholder')`), `Input` tipo password para API Key, `Select` para Modelo. `Button` `t('settings.llm.testConnectionButton')`.
+        *   **Idioma:** `Label` `t('settings.language.selectLabel')`, `Select` para idioma.
+*   **`src/components/ui/card.tsx` (Componente Card de ShadCN)**
+    *   Usado extensamente para contener secciones de contenido.
+    *   Clases: `rounded-lg border bg-card text-card-foreground shadow-sm`.
+    *   Hijos: `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`.
+*   **`src/components/llm-config-selector.tsx`**
+    *   **Propósito:** Selector reutilizable para fuente de configuración LLM.
+    *   **Estructura:** `Button` que abre un `Dialog`. `DialogContent` con `ScrollArea` y lista de opciones.
+    *   **Textos (ejemplos):** Botón muestra selección actual (ej. `t('common.globalSettings')`), título del diálogo es `label` prop.
 
-### 2. Configuración (Sección "Configuración")
+### Estilos Visuales
+Definidos principalmente en `src/app/globals.css` usando variables CSS HSL y clases de Tailwind CSS.
 
-Accede mediante `SettingsIcon`.
-*   **Configuración del Proveedor LLM**:
-    *   Selector `Proveedor LLM`.
-    *   Campo `URL del Endpoint de API` (auto-rellenada, editable).
-    *   Campo `Clave API` (tipo contraseña).
-    *   Selector `Nombre del Modelo` (dinámico según proveedor).
-    *   Botón `Probar Conexión (Proveedor LLM)`.
-*   **Configuración de Git**:
-    *   Campos `URL del Repositorio Git`, `Nombre de Usuario Git`, `Email de Git`, `Token de Acceso Personal (PAT)`.
-    *   Botón `Probar Conexión Git`.
-*   **Modo Depuración**:
-    *   Interruptor `Activar modo Debug`. Muestra panel de logs inferior (expandible, con botones `Copy`, `Trash2`, `ChevronUp`/`ChevronDown`).
-*   Botones **"Importar" / "Exportar Configuración" / "Guardar Configuración"** en la cabecera de la página.
+*   **Paleta de Colores Principal (Claro por defecto):**
+    *   `--background`: `210 17% 94%` (#ECEFF1) - Fondo principal.
+    *   `--foreground`: `233 30% 15%` - Texto principal.
+    *   `--card`: `0 0% 100%` (#FFFFFF) - Fondo de tarjetas.
+    *   `--card-foreground`: `233 30% 15%`.
+    *   `--popover`: `0 0% 100%`.
+    *   `--popover-foreground`: `233 30% 15%`.
+    *   `--primary`: `233 63% 30%` (#1A237E) - Color primario (azul oscuro).
+    *   `--primary-foreground`: `210 17% 85%` - Texto sobre primario.
+    *   `--secondary`: `210 17% 88%` - Color secundario (gris claro).
+    *   `--secondary-foreground`: `233 30% 20%`.
+    *   `--muted`: `210 17% 90%`.
+    *   `--muted-foreground`: `233 20% 40%`.
+    *   `--accent`: `174 60% 40%` (#26A69A) - Color de acento (teal).
+    *   `--accent-foreground`: `210 17% 15%`.
+    *   `--destructive`: `0 84.2% 60.2%` (Rojo).
+    *   `--destructive-foreground`: `0 0% 10%`.
+    *   `--border`: `210 17% 85%`.
+    *   `--input`: `210 17% 85%`.
+    *   `--ring`: `174 60% 40%` (Anillo de enfoque, teal).
+    *   **Sidebar (Claro):**
+        *   `--sidebar-background`: `220 13% 95%` (#F0F2F5).
+        *   `--sidebar-foreground`: `233 30% 25%`.
+        *   ... otras variables de sidebar.
+*   **Paleta de Colores (Oscuro):** Definida en `globals.css` bajo el selector `.dark { ... }`.
+    *   `--background`: `233 30% 12%`.
+    *   `--foreground`: `210 17% 85%`.
+    *   ... y equivalentes oscuros para las demás variables.
+*   **Tipografía:**
+    *   **Fuente Principal (Sans-serif):** Geist Sans (de `geist/font/sans`). Aplicada al `body`.
+    *   **Fuente Monoespaciada:** Geist Mono (de `geist/font/mono`). Usada para bloques de código, logs.
+*   **Iconografía:**
+    *   **Biblioteca Principal:** Lucide Icons (`lucide-react`).
+    *   **Logo de la Aplicación:** `FlaskConical` (matraz de alquimista). Color: `text-primary`.
+*   **Layout General:**
+    *   Diseño responsivo usando Tailwind CSS.
+    *   Esquinas redondeadas (`rounded-md`, `rounded-lg` de ShadCN/Tailwind).
+    *   Sombras sutiles (`shadow-sm`, `shadow-lg`).
+*   **Animaciones y Transiciones:**
+    *   Transiciones de color/fondo en hover para botones y elementos interactivos (definidas por Tailwind/ShadCN).
+    *   Animaciones de acordeón (`accordion-down`, `accordion-up` en `tailwind.config.ts`).
+    *   Animaciones de entrada/salida para diálogos y popovers (definidas por Radix UI/ShadCN).
 
-*(El tutorial detallado para cada sección principal (Generar Código, Generar Proyecto, etc.) sigue la descripción de "Características Principales" ya proporcionada, detallando cada campo y botón como se describe en ese apartado del PRD. Omitido aquí por brevedad pero se asume cubierto por dicha sección.)*
+### Interacciones del Usuario (Ejemplos)
+*   **Click en Botón:**
+    *   "Generar Código": Abre `ConfirmDialog`, luego llama a flujo Genkit.
+    *   "Guardar Configuración": Actualiza `AppStateContext` y `localStorage`.
+    *   "Aplicar Sugerencia" (AutoUpdate): Abre `ConfirmDialog`, marca estado en UI.
+*   **Selección en `Select`:**
+    *   Proveedor LLM (Configuración): Actualiza `currentLLMConfig`, recarga modelos si es Groq.
+    *   Idioma (Configuración): Llama a `setI18nLanguage`.
+*   **Entrada en `Textarea` / `Input`:**
+    *   Formularios controlados por estado React.
+    *   `CodeEditor` persiste en `localStorage` al cambiar o perder foco.
+*   **Responsive Design:**
+    *   Barra lateral colapsa a modo "icono" en escritorio o se convierte en panel deslizable (`Sheet`) en móviles.
+    *   Grids (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) se adaptan.
+    *   Elementos Flexbox (`flex-col sm:flex-row`) cambian dirección.
 
-## Flujo de Trabajo con IA
+## 4. Lógica y Backend
 
-### Selección de Fuente de Configuración LLM
+### Servicios y Endpoints (Flujos Genkit)
+La lógica de IA se maneja mediante flujos Genkit definidos en `src/ai/flows/`. Estos se ejecutan en el servidor. Son llamados desde el frontend mediante funciones wrapper en `src/utils/apiClient.ts`.
 
-En la mayoría de las secciones que utilizan IA, el selector **"Usar Configuración LLM De:"** permite elegir:
-1.  **Ajustes Globales**: Usa la configuración de la sección "Configuración".
-2.  **Agente: [Nombre del Agente]**: Usa la configuración y el Mensaje de Sistema del agente seleccionado.
-3.  **Grupo: [Nombre del Grupo]**: La tarea se pasa al `OrquestadorFlujoAgentes` del grupo. El contexto del grupo (su tarea principal o el prompt del orquestador) guía la IA.
+*   **`generateCodeFromDescriptionFlow`**:
+    *   Input: `{ description: string, agentSystemPrompt?: string }`
+    *   Output: `{ explanation: string, code: string, groupLog?: string }`
+    *   Lógica: Pasa la descripción (y contexto opcional) al LLM para generar código y una explicación.
+*   **`generateProjectStructureFlow`**:
+    *   Input: `{ description: string, agentSystemPrompt?: string }`
+    *   Output: `{ projectName: string, aiNotes: string, files: GeneratedFile[], groupLog?: string }`
+    *   Lógica: Pasa descripción al LLM para generar estructura de proyecto, nombres de archivo, contenido y notas.
+*   **`refactorProjectWithAIFlow`**:
+    *   Input: `RefactorProjectWithAIInput` (incluye `projectSource`, `goals`, `priority`, `searchDepth`, `focusArea`, `agentSystemPrompt`)
+    *   Output: `RefactorProjectWithAIOutput` (incluye `projectOverview`, `suggestions`, `groupLog`)
+    *   Lógica: Analiza código (referencia) y parámetros para sugerir refactorizaciones.
+*   **`analyzeCodeSnippetFlow`**:
+    *   Input: `AnalyzeCodeSnippetInput` (incluye `code`, `userPrompt`, `language`, `agentSystemPrompt`)
+    *   Output: `AnalyzeCodeSnippetOutput` (incluye `explanation`, `originalCode`, `suggestedCode`)
+*   **`analyzeSelfCodeFlow` (`analyzeProjectCodeFlow`)**:
+    *   Input: `AnalyzeCodeInput` (incluye `sourceCodeLocation`, `projectContent`, `gitRepoUrl`, `focusArea`, `searchDepth`, `agentSystemPrompt`)
+    *   Output: `AnalyzeCodeOutput` (incluye `analysisTitle`, `generalAssessment`, `identifiedAreas`, `detailedSuggestions` con `suggestedPromptForImplementation`, `overallImprovementIdeas`, `groupLog`)
+*   **`chatWithAgentOrGlobalFlow`**:
+    *   Input: `{ userMessage: string, agentSystemPrompt?: string }`
+    *   Output: `{ aiResponse: string }`
+*   **`chatWithAIGroupFlow`**:
+    *   Input: `ChatWithAIGroupInput` (incluye `userMessage`, `groupMainTask`, `participatingAgents`, `orchestratorAgentSystemPrompt`)
+    *   Output: `{ orchestratorResponse: string }` (JSON con decisión del orquestador)
+*   **`suggestAgentDefinitionFlow`**:
+    *   Input: `{ roleDescription: string }`
+    *   Output: `SuggestAgentDefinitionOutput` (nombre, descripción, prompt, capacidades)
+*   **`suggestGroupDefinitionFlow`**:
+    *   Input: `{ groupTaskDescription: string, availableAgents: AgentInfoForGroupSuggestion[] }`
+    *   Output: `SuggestGroupDefinitionOutput` (nombre, descripción, tarea principal, agentIds)
+*   **`autoFixErrorWithGroupFlow`**:
+    *   Input: `AutoFixErrorWithGroupInput` (incluye `errorMessage`, `codeContext`, `userInstructions`)
+    *   Output: `AutoFixErrorWithGroupOutput` (incluye `suggestedSolution`, `diagnosticNotes`, `initialGroupLog`)
+*   **Manejo de Errores en Flujos:** Los flujos Genkit pueden lanzar errores si el LLM falla. `apiClient.ts` los captura, los parsea a `AppError` y los relanza para que la UI los maneje. Implementa reintentos para errores transitorios.
 
-### Agentes y Grupos de Trabajo
+### Bases de Datos
+No hay una base de datos backend tradicional. El estado persistente de la aplicación (configuraciones, agentes, grupos, snapshots) se guarda en el `localStorage` del navegador del usuario.
 
-*   **Agentes**: Entidades IA individuales con Mensaje de Sistema, Capacidades y Configuración LLM. Son especialistas.
-*   **Grupos de Trabajo**: Equipos de agentes para tareas complejas.
-    *   `OrquestadorFlujoAgentes`: Componente central obligatorio. Recibe tarea, gestiona flujo, evalúa respuestas, decide siguiente agente, asegura coordinación. La comunicación entre agentes pasa por él.
+### Agentes y Grupos (Definiciones por Defecto en `src/lib/constants.ts`)
+*   **Roles de Usuario:** No hay un sistema formal de roles de usuario con diferentes permisos a nivel de aplicación. Todas las funcionalidades están disponibles para cualquier usuario.
+*   **Autenticación/Autorización:** No implementadas. La aplicación es de uso local en el navegador y no requiere login. Las claves API se guardan localmente.
+*   **Agentes por Defecto:**
+    *   **`OrquestadorFlujoAgentes`**:
+        *   **ID:** `orquestador-flujo-agentes`
+        *   **Descripción:** Gestiona flujo de trabajo entre agentes en un grupo.
+        *   **Prompt de Sistema:** Instruye para analizar tarea, decidir siguiente agente, formular instrucción y devolver decisión en JSON: `{"next_agent_id": "...", "instruction_for_next_agent": "...", "reasoning": "..."}`. Si la tarea está completa, `next_agent_id` es "COMPLETADO".
+        *   **Capacidades:** Ninguna peligrosa.
+        *   **No editable, no eliminable.**
+    *   **`RefactorizadorCodigoExperto`**:
+        *   **ID:** `refactorizador-codigo-experto`
+        *   **Descripción:** Especializado en análisis y refactorización.
+        *   **Prompt de Sistema:** Instruye para sugerir mejoras (Clean Code, SOLID), devolver en JSON con `area`, `description`, `priority`, `snippetSuggested` (opcional), `fullFileContentSuggested` (opcional).
+        *   **Capacidades:** `accessOwnCode: true`.
+    *   **`JefeDeProducto`**: Define requisitos, historias de usuario.
+    *   **`ArquitectoSoftware`**: Diseña arquitectura, selecciona tecnologías.
+    *   **`DesarrolladorSoftware`**: Escribe código. Capacidades: `accessOwnCode`, `execution`, `readWrite`.
+    *   **`IngenieroPruebas`**: Escribe y ejecuta pruebas. Capacidades: `accessOwnCode`, `execution`.
+    *   **`IngenieroDevOps`**: Gestiona infraestructura, CI/CD. Capacidades: `execution`, `virtualEnv`, `readWrite`.
+    *   **`RepresentanteUsuario`**: Proporciona feedback de usuario.
+    *   **`ValidadorCodigo`**: Analiza resultados de refactorización. Capacidades: `accessOwnCode`, `execution`.
+*   **Grupo de Trabajo por Defecto:**
+    *   **`EquipoDesarrolloSoftware`**:
+        *   **ID:** `equipo-desarrollo-software`
+        *   **Descripción:** Simula un equipo de producción de software completo.
+        *   **Tarea Principal:** Ser un equipo versátil para desarrollo y mejorar el sistema "Auto-Fix" de CodeAlchemist (priorización dinámica, aprendizaje predictivo, validación robusta, sincronización con Orquestador).
+        *   **Agentes Participantes:** `JefeDeProducto`, `ArquitectoSoftware`, `DesarrolladorSoftware`, `RefactorizadorCodigoExperto`, `ValidadorCodigo`, `IngenieroPruebas`, `IngenieroDevOps`, `RepresentanteUsuario`.
 
-## Manejo de Errores
+## 5. Configuración Técnica
 
-*   **Visualización Clara**: Errores de API LLM, Git, internos, etc., se muestran cerca de donde ocurren o como toasts.
-*   **Copia de Errores**: Botón `Copiar Error` junto a la mayoría de mensajes.
-*   **Auto-Fix**: En secciones como "AutoUpdate" y "Chat con IA". Botón `Auto-Fix` envía error y contexto a IA configurada, que propone soluciones en diálogo modal.
-    *   **Refuerzo del Sistema Auto-Fix**: Se consideran estrategias de Priorización dinámica, Aprendizaje predictivo, Validación robusta y Sincronización con Orquestador.
-*   **Errores de API LLM**:
-    *   Gestión de errores `429 Too Many Requests` (límites de tasa) con reintentos y backoff exponencial.
-    *   Fragmentación de datos grandes en "AutoUpdate".
-    *   Timeouts configurados para llamadas a APIs LLM.
+### Dependencias
+Ver el archivo `package.json` para la lista completa de dependencias y devDependencies. Algunas clave son:
+*   `next`, `react`, `react-dom`
+*   `@genkit-ai/googleai`, `genkit`
+*   `lucide-react` (iconos)
+*   `tailwindcss`, `tailwind-merge`, `tailwindcss-animate`
+*   ShadCN UI (Radix UI) componentes: `@radix-ui/react-dialog`, `@radix-ui/react-select`, etc.
+*   `zod` (validación de esquemas para Genkit)
+*   `jszip` (creación de ZIPs en cliente)
+*   `simple-git` (operaciones Git en Server Actions)
+*   `glob` (búsqueda de archivos en Server Actions)
+*   `groq-sdk` (para la API de modelos de Groq)
+*   ESLint, Prettier y plugins asociados.
 
-## Cuestiones Técnicas
+### Variables de Entorno (`.env.local`)
+*   `GOOGLE_API_KEY`: Requerida si se usa el plugin `googleAI` de Genkit con modelos de Google.
+*   Otras claves API (ej. `GROQ_API_KEY`, `OPENAI_API_KEY`) no se gestionan típicamente como variables de entorno para esta aplicación, sino que se ingresan en la UI (sección Configuración) y se guardan en `localStorage`. La `GROQ_API_KEY` se usa en una Server Action si se pasa desde el cliente.
 
-*   **Stack Principal**:
-    *   **Next.js (con App Router)**: Framework React para la estructura de la aplicación y enrutamiento.
-    *   **React**: Biblioteca para la construcción de la interfaz de usuario.
-    *   **TypeScript**: Para tipado estático y mejora de la calidad del código.
-    *   **ShadCN UI**: Colección de componentes de UI reutilizables, construidos sobre Radix UI y Tailwind CSS.
-    *   **Tailwind CSS**: Framework CSS de utilidad para estilizado rápido y consistente.
-    *   **Genkit (de Google)**: Framework para construir flujos de IA que interactúan con modelos de lenguaje grandes (LLMs). Se usa para todas las interacciones con IA.
-    *   **Lucide Icons**: Biblioteca de iconos SVG.
-*   **Gestión de Estado**:
-    *   Principalmente React Context (`AppStateContext` para estado global de la aplicación como configuraciones, agentes, grupos; `DebugContext` para logs de depuración).
-    *   `useLocalStorage` hook para persistir el estado en el almacenamiento local del navegador.
-*   **Interacciones Backend/Servidor**:
-    *   Las funciones definidas en archivos con la directiva `"use server";` (Server Actions de Next.js) se utilizan para operaciones que requieren acceso al entorno del servidor, como `getApplicationSourceBundle` en `src/app/autoupdate/actions.ts` que lee el sistema de archivos.
-    *   Los flujos de Genkit (en `src/ai/flows/`) también se ejecutan en el entorno del servidor.
-*   **Persistencia de Datos del Usuario**:
-    *   Configuraciones, agentes creados por el usuario, grupos y snapshots se guardan en el `localStorage` del navegador. Esto significa que son específicos del navegador y la máquina del usuario.
-*   **Manejo de Errores Centralizado**:
-    *   `src/utils/apiClient.ts` envuelve las llamadas a los flujos Genkit, implementando reintentos y parseando errores en un `AppError` personalizado.
-    *   `src/app/error.tsx` actúa como Error Boundary global de Next.js.
-    *   Listeners globales en `AppLayout.tsx` para errores de JavaScript no capturados.
-*   **Limitaciones del Frontend**:
-    *   **Modificación Directa de Archivos**: CodeAlchemist no puede modificar directamente los archivos de su propio código fuente en el servidor ni los archivos de proyectos subidos/clonados desde el navegador debido a restricciones de seguridad. Las funciones de "aplicar sugerencia" marcan cambios en la UI, y el usuario debe aplicar los cambios manualmente en su entorno de desarrollo.
-    *   **Generación de ZIPs Complejos**: La generación de archivos ZIP con estructuras de directorios complejas directamente en el cliente es limitada. Las descargas ZIP de "proyectos" suelen ser un archivo JSON con la estructura del proyecto. La descarga ZIP del "código actual" en AutoUpdate utiliza `JSZip` en el cliente sobre datos obtenidos de una Server Action, lo cual es una aproximación.
-    *   **Operaciones Git Directas**: Funciones como "Subir a Git" en AutoUpdate requerirían una Server Action robusta con `simple-git` y manejo seguro de credenciales; la UI actual prepara para esta interacción.
+### Pruebas
+*   **Linting y Formateo:** ESLint y Prettier están configurados.
+    *   `npm run lint`: Verifica el código.
+    *   `npm run lint:fix`: Intenta corregir errores de linting.
+    *   `npm run format`: Formatea el código con Prettier.
+*   **Pruebas Unitarias/Integración:** No hay un framework de pruebas (Jest, RTL) configurado actualmente. Se recomienda implementarlo.
+*   **Pruebas E2E:** No configuradas. Se recomienda Playwright o Cypress.
 
-## Diseño (Aspectos Visuales)
+### Despliegue
+*   **Plataforma Recomendada:** Vercel (por los creadores de Next.js), ya que ofrece una integración óptima.
+*   **Otros:** Cualquier plataforma que soporte Node.js (Netlify, AWS Amplify, DigitalOcean App Platform, Heroku, VPS con PM2 o Docker).
+*   **Build:** `npm run build` crea una versión optimizada para producción.
+*   **Variables de Entorno en Producción:** Se deben configurar las mismas variables de entorno que en desarrollo (ej. `GOOGLE_API_KEY`) en la plataforma de despliegue.
+*   **Flujos Genkit:** Si los flujos Genkit se despliegan como parte de la app Next.js (comportamiento por defecto con `@genkit-ai/next`), se escalarán con la aplicación. Si se despliegan como un servicio separado (ej. Cloud Functions, Cloud Run), la app Next.js necesitaría la URL de ese endpoint.
+*   **Caching:** Next.js maneja caching de datos y renderizado. Se pueden configurar cabeceras HTTP para caching de assets estáticos en el servidor de despliegue.
 
-CodeAlchemist utiliza una interfaz de usuario moderna y profesional, diseñada para ser intuitiva y funcional.
+## 6. Documentación Adicional
 
-*   **Paleta de Colores Principal** (definida en `src/app/globals.css` usando variables HSL CSS):
-    *   **Fondo (Background)**: Gris claro (`hsl(210 17% 94%)` - `#ECEFF1`). Proporciona un lienzo limpio y minimiza la fatiga visual.
-    *   **Texto Principal (Foreground)**: Gris muy oscuro (`hsl(233 30% 15%)`). Alto contraste para legibilidad.
-    *   **Color Primario (Primary)**: Azul oscuro intenso (`hsl(233 63% 30%)` - `#1A237E`). Usado para acciones principales, botones destacados, marca.
-    *   **Texto sobre Primario (Primary Foreground)**: Gris claro (`hsl(210 17% 85%)`). Buen contraste sobre el azul primario.
-    *   **Color Secundario (Secondary)**: Gris ligeramente más oscuro que el fondo (`hsl(210 17% 88%)`). Usado para bordes sutiles, fondos de inputs.
-    *   **Texto sobre Secundario (Secondary Foreground)**: Gris oscuro (`hsl(233 30% 20%)`).
-    *   **Color de Acento (Accent)**: Verde azulado/Teal (`hsl(174 60% 40%)` - `#26A69A`). Usado para énfasis, enlaces, iconos informativos.
-    *   **Texto sobre Acento (Accent Foreground)**: Gris oscuro (`hsl(210 17% 15%)`).
-    *   **Color Destructivo (Destructive)**: Rojo vibrante (`hsl(0 84.2% 60.2%)`). Para acciones de eliminación, errores críticos.
-    *   **Texto sobre Destructivo (Destructive Foreground)**: Gris muy oscuro (`hsl(0 0% 10%)`).
-    *   **Fondo de Tarjetas/Popovers (Card/Popover Background)**: Blanco (`hsl(0 0% 100%)` - `#FFFFFF`).
-    *   **Texto sobre Tarjetas/Popovers (Card/Popover Foreground)**: Gris muy oscuro (`hsl(233 30% 15%)`).
-    *   **Colores Muted**: Fondos (`hsl(210 17% 90%)`), Texto (`hsl(233 20% 40%)`).
-    *   **Bordes Generales (Border)**: Gris claro (`hsl(210 17% 85%)`).
-    *   **Fondo de Inputs (Input Background)**: Gris claro (`hsl(210 17% 85%)`).
-    *   **Anillo de Enfoque (Ring/Focus Ring)**: Color de acento Teal (`hsl(174 60% 40%)`).
-    *   **Colores de Sidebar**: Variables específicas (`--sidebar-background`, etc.) definidas en `globals.css` para temas claro y oscuro, manteniendo coherencia.
-*   **Iconografía**:
-    *   Se utiliza **Lucide Icons** consistentemente para representar secciones, acciones y conceptos.
-    *   El icono principal/logo de la aplicación es `FlaskConical` (matraz de alquimista estilizado), simbolizando la transformación y experimentación.
-*   **Tipografía**:
-    *   **Fuente Principal (Sans-serif)**: **Geist Sans**. Moderna y legible para toda la interfaz.
-    *   **Fuente Monoespaciada**: **Geist Mono**. Para visualización de código, logs, snippets.
-*   **Diseño General y Estructura de Páginas**:
-    *   Diseño moderno, responsivo, con jerarquía visual clara.
-    *   Uso de componentes ShadCN UI: `Card` como contenedor principal en la mayoría de las páginas, `Textarea` amplias, `ScrollArea` para contenido extenso.
-    *   Esquinas redondeadas (`rounded-md`, `rounded-lg`) y sombras sutiles (`shadow-sm`, `shadow-lg`) para elementos de UI, aportando modernidad y profundidad.
-    *   Barra lateral izquierda colapsable; panel de depuración (si activo) fijo en la parte inferior.
+### Errores Comunes y Soluciones
+*   **"Module not found" (ej. `jszip`, `glob`, `simple-git`, `groq-sdk`):** Asegúrate de haber ejecutado `npm install` o `yarn install` después de clonar el repositorio o después de que se añadan nuevas dependencias al `package.json`.
+*   **Errores de API LLM (401, 403, 429):**
+    *   **401/403 (No autorizado/Prohibido):** Verifica que la Clave API ingresada en Configuración sea correcta y tenga los permisos necesarios para el modelo seleccionado.
+    *   **429 (Demasiadas Solicitudes):** Has alcanzado el límite de tasa de la API. Espera un momento e inténtalo de nuevo. Considera modelos menos demandados o planes de API superiores si ocurre frecuentemente.
+*   **Errores de API LLM (500, 503):** Indican un problema en el servidor del proveedor LLM. Inténtalo más tarde. La app tiene reintentos automáticos para esto.
+*   **Errores de CORS (si se usan endpoints de API personalizados):** Asegúrate de que el servidor LLM (especialmente para modelos locales) esté configurado para permitir solicitudes desde el origen donde se ejecuta CodeAlchemist.
+*   **Problemas de Traducción (claves mostradas en lugar de texto):**
+    1.  Reinicia el servidor de desarrollo.
+    2.  Verifica que la clave exista exactamente (sensible a mayúsculas/minúsculas y anidación) en `src/lib/i18n/translations.ts` para el idioma activo y el de por defecto.
+    3.  Asegúrate de que el componente que usa `t()` sea un Client Component (`"use client";`).
+*   **"Hydration failed" (Errores de Hidratación de React):** Generalmente indican una diferencia entre el HTML renderizado en servidor y el primer renderizado en cliente. A menudo relacionado con el uso de APIs de navegador (como `localStorage` o `window`) directamente en la lógica de renderizado inicial. Asegúrate de que dichos accesos estén dentro de `useEffect` o se manejen de forma que el primer renderizado sea consistente.
 
-## Notas Importantes y Consideraciones
+### Contribución
+*   **Flujo de Trabajo Git:** Se recomienda seguir un flujo como GitFlow (ramas `feature`, `develop`, `main`).
+*   **Estilo de Código:** Ejecuta `npm run lint:fix` y `npm run format` antes de hacer commit.
+*   **Mensajes de Commit:** Sigue un estándar (ej. Conventional Commits).
+*   **Comentarios:** Documenta el código nuevo o modificado con JSDoc.
 
-*   **Sugerencias de IA**: Son recomendaciones. Revisa y prueba exhaustivamente cualquier código o cambio antes de aplicarlo en producción.
-*   **Límites de API y Timeouts**: El uso intensivo puede alcanzar límites de proveedores LLM. La aplicación intenta gestionar esto, pero pueden ocurrir interrupciones.
-*   **Seguridad**:
-    *   "Aplicar Sugerencia" en AutoUpdate: la modificación real de archivos no ocurre desde el navegador. Procede con precaución si implementas una solución backend.
-    *   Capacidades de agente peligrosas (Ejecución, Lectura/Escritura): Habilítalas solo si comprendes los riesgos.
-    *   Claves API (si se ingresan en la UI): Se guardan en `localStorage`. Considera implicaciones de seguridad.
-*   **Costes de API**: Proveedores LLM en la nube pueden incurrir en costes. Modelos locales (LM Studio, Ollama) requieren recursos computacionales propios.
-*   **Privacidad**: Al usar LLMs en la nube, datos como código y prompts se envían a esos proveedores. Revisa sus políticas de privacidad. Considera modelos locales para máxima privacidad.
+### Licencia y Créditos
+*   **Licencia:** (Asumir MIT si no hay archivo LICENSE.md. El desarrollador debe añadirlo).
+*   **Iconos:** Lucide Icons (Licencia ISC).
+*   **Componentes UI:** ShadCN UI (Licencia MIT).
+*   **Fuentes:** Geist Sans, Geist Mono (Licencia OFL).
+
+## 7. Detalles Olvidados
+
+### Aspectos Técnicos Adicionales
+*   **Server Actions:** Se utilizan para operaciones del lado del servidor que necesitan acceso al sistema de archivos (ej. `getApplicationSourceBundle` en `autoupdate/actions.ts`) o para interactuar con librerías Node.js pesadas (ej. `simple-git` en `autoupdate/actions.ts` para la subida a Git, o `groq-sdk` en `configuracion/actions.ts`). Esto mantiene la lógica sensible fuera del cliente.
+*   **Seguridad:**
+    *   Las claves API ingresadas en la UI se guardan en `localStorage`. Esto es conveniente pero tiene implicaciones si el navegador del usuario está comprometido.
+    *   La funcionalidad de "Subir a Git" en AutoUpdate requiere un PAT que, si es comprometido, podría dar acceso al repositorio.
+    *   Las capacidades "peligrosas" de los agentes (ejecución, lectura/escritura) deben usarse con extrema precaución.
+*   **Actualización de Traducciones:** Actualmente, las traducciones están en `src/lib/i18n/translations.ts`. Para añadir/modificar, se edita este archivo directamente. No hay un CMS de traducciones integrado.
+*   **Persistencia del Estado:** El estado principal de la aplicación (configuración, agentes, grupos, snapshots, idioma) se persiste en `localStorage` usando el hook `useLocalStorage`.
+
+### Ejemplos de Uso / Pruebas Críticas
+*   **Probar Configuración LLM:** Ve a "Configuración", selecciona un proveedor (ej. Groq), ingresa tu clave API y modelo, y pulsa "Probar Conexión". Para Groq, la lista de modelos debería cargarse dinámicamente.
+*   **Probar Internacionalización:** Ve a "Configuración", cambia el idioma a "English". Navega por la aplicación; la mayoría de los textos de la UI deberían cambiar. Cambia de nuevo a "Español".
+*   **Probar Creación de Agente con IA:** Ve a "Agentes IA", pulsa "Crear con IA", describe un rol (ej. "un agente que escribe código Python para web scraping"), y observa cómo se pre-rellena el formulario.
+*   **Probar Ejecución de Grupo:** Ve a "Grupos de Trabajo IA", selecciona "EquipoDesarrolloSoftware", pulsa "Ejecutar". En el modal, introduce una tarea simple como "Resume los objetivos principales de este grupo de trabajo" y observa el log de ejecución (será una simulación de turnos con el orquestador).
+*   **Probar AutoUpdate (Análisis Local):** Ve a "AutoUpdate", selecciona "Local" y un agente (ej. `RefactorizadorCodigoExperto`), y pulsa "Iniciar Auto-Análisis". Observa las sugerencias. Intenta descargar el "Código Actual (ZIP)" (recordando que usa la Server Action para obtener los archivos del servidor y JSZip en cliente).
+
+Este README exhaustivo debería servir como una guía completa para entender, ejecutar, y contribuir al proyecto CodeAlchemist.
