@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react'; // Added useCallback
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -106,8 +106,8 @@ export default function AgentForm({
       const result = await getGroqModels(apiKey);
       if (result.success && result.models) {
         const models = result.models.length > 0 ? result.models : getModelsForProvider("Groq");
-        setCustomGroqModels(result.models); // Store what Groq returned
-        setAvailableModels(models); // Use Groq's if available, else static
+        setCustomGroqModels(result.models);
+        setAvailableModels(models);
         previousCustomApiKeyRef.current = apiKey;
 
         if (result.models.length > 0) {
@@ -134,6 +134,7 @@ export default function AgentForm({
     } finally {
       setIsLoadingCustomGroqModels(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customGroqModels, getModelsForProvider, t, toast, formData.llmConfig.customConfig]);
 
   useEffect(() => {
@@ -199,7 +200,8 @@ export default function AgentForm({
 
 
     }
-  }, [isOpen, editingAgent, getModelsForProvider, globalLLMConfig, fetchAndSetCustomGroqModels]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingAgent, getModelsForProvider, globalLLMConfig]);
 
   useEffect(() => {
     if (!formData.llmConfig.useGlobal && formData.llmConfig.customConfig?.provider === "Groq" && formData.llmConfig.customConfig.apiKey) {
@@ -211,7 +213,8 @@ export default function AgentForm({
     } else if (!formData.llmConfig.useGlobal && formData.llmConfig.customConfig) {
         setAvailableModels(getModelsForProvider(formData.llmConfig.customConfig.provider));
     }
-  }, [formData.llmConfig.customConfig?.provider, formData.llmConfig.customConfig?.apiKey, formData.llmConfig.useGlobal, customGroqModels, fetchAndSetCustomGroqModels, getModelsForProvider]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.llmConfig.customConfig?.provider, formData.llmConfig.customConfig?.apiKey, formData.llmConfig.useGlobal, customGroqModels]);
 
   const handleFormChange = (field: keyof AgentFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -276,7 +279,7 @@ export default function AgentForm({
 
   const handleSubmit = () => {
     if (!formData.name.trim()) {
-      toast({ variant: "destructive", title: t('agents.form.toast.nameRequired.title'), description: t('agents.form.toast.nameRequired.description') });
+      toast({ variant: "destructive", title: t('agents.form.toast.nameRequired.title' as TranslationKey), description: t('agents.form.toast.nameRequired.description' as TranslationKey) });
       return;
     }
 
@@ -308,41 +311,41 @@ export default function AgentForm({
           <ScrollArea className="h-full pr-6 -mr-6"> 
             <div className="space-y-4 py-4">
               <div className="space-y-1">
-                <Label htmlFor="agent-name">{t('agents.form.label.name')}</Label>
+                <Label htmlFor="agent-name">{t('agents.form.label.name' as TranslationKey)}</Label>
                 <Input id="agent-name" value={formData.name} onChange={(e) => handleFormChange('name', e.target.value)} disabled={editingAgent?.isNameEditable === false} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="agent-description">{t('agents.form.label.description')}</Label>
+                <Label htmlFor="agent-description">{t('agents.form.label.description' as TranslationKey)}</Label>
                 <Textarea id="agent-description" value={formData.description} onChange={(e) => handleFormChange('description', e.target.value)} rows={2} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="agent-systemPrompt">{t('agents.form.label.systemPrompt')}</Label>
-                <Textarea id="agent-systemPrompt" value={formData.systemPrompt} onChange={(e) => handleFormChange('systemPrompt', e.target.value)} rows={5} placeholder={t('agents.form.placeholder.systemPrompt')} />
+                <Label htmlFor="agent-systemPrompt">{t('agents.form.label.systemPrompt' as TranslationKey)}</Label>
+                <Textarea id="agent-systemPrompt" value={formData.systemPrompt} onChange={(e) => handleFormChange('systemPrompt', e.target.value)} rows={5} placeholder={t('agents.form.placeholder.systemPrompt' as TranslationKey)} />
               </div>
 
-              <Label className="font-semibold">{t('agents.form.label.capabilities')}</Label>
+              <Label className="font-semibold">{t('agents.form.label.capabilities' as TranslationKey)}</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 {(Object.keys(formData.capabilities) as Array<keyof AgentFormData['capabilities']>).map((key) => (
                   <div key={key} className="flex items-center space-x-2">
                     <Switch id={`cap-${key}`} checked={formData.capabilities[key]} onCheckedChange={(checked) => handleCapabilityChange(key, checked)} />
                     <Label htmlFor={`cap-${key}`} className="font-normal">
                       {t(`agents.form.capability.${key}` as TranslationKey)} 
-                      {(key === 'execution' || key === 'readWrite') && <span className="text-destructive text-xs ml-1">{t('agents.form.capability.dangerousTooltip')}</span>}
+                      {(key === 'execution' || key === 'readWrite') && <span className="text-destructive text-xs ml-1">{t('agents.form.capability.dangerousTooltip' as TranslationKey)}</span>}
                     </Label>
                   </div>
                 ))}
               </div>
 
-              <Label className="font-semibold">{t('agents.form.label.llmConfig')}</Label>
+              <Label className="font-semibold">{t('agents.form.label.llmConfig' as TranslationKey)}</Label>
               <div className="space-y-3 p-3 border rounded-md">
                 <div className="flex items-center space-x-2">
                   <Switch id="use-global-llm" checked={formData.llmConfig.useGlobal} onCheckedChange={(checked) => handleLlmConfigChange('useGlobal', checked)} />
-                  <Label htmlFor="use-global-llm" className="font-normal">{t('agents.form.llm.useGlobal')}</Label>
+                  <Label htmlFor="use-global-llm" className="font-normal">{t('agents.form.llm.useGlobal' as TranslationKey)}</Label>
                 </div>
                 {!formData.llmConfig.useGlobal && formData.llmConfig.customConfig && (
                   <div className="space-y-2 pl-2 border-l-2 ml-2">
                     <div className="space-y-1">
-                      <Label htmlFor="custom-llm-provider" className="text-xs">{t('agents.form.llm.custom.providerLabel')}</Label>
+                      <Label htmlFor="custom-llm-provider" className="text-xs">{t('agents.form.llm.custom.providerLabel' as TranslationKey)}</Label>
                       <Select
                         value={formData.llmConfig.customConfig.provider}
                         onValueChange={(val) => handleLlmConfigChange('provider', val as LLMProvider)}
@@ -353,7 +356,7 @@ export default function AgentForm({
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="custom-llm-model" className="text-xs flex items-center">
-                          {t('agents.form.llm.custom.modelLabel')}
+                          {t('agents.form.llm.custom.modelLabel' as TranslationKey)}
                           {formData.llmConfig.customConfig.provider === "Groq" && isLoadingCustomGroqModels && <Loader2 className="h-3 w-3 animate-spin ml-2" />}
                       </Label>
                       <Select
@@ -363,39 +366,39 @@ export default function AgentForm({
                       >
                         <SelectTrigger id="custom-llm-model"><SelectValue placeholder={
                           (["Google Gemini", "LM Studio", "Ollama"].includes(formData.llmConfig.customConfig.provider))
-                            ? t('agents.form.llm.custom.modelPlaceholder.geminiLlm', { provider: formData.llmConfig.customConfig.provider })
+                            ? t('agents.form.llm.custom.modelPlaceholder.geminiLlm' as TranslationKey, { provider: formData.llmConfig.customConfig.provider })
                             : availableModels.length === 0
-                              ? t('agents.form.llm.custom.modelPlaceholder.selectProvider')
-                              : t('agents.form.llm.custom.modelPlaceholder.default')
+                              ? t('agents.form.llm.custom.modelPlaceholder.selectProvider' as TranslationKey)
+                              : t('agents.form.llm.custom.modelPlaceholder.default' as TranslationKey)
                         } /></SelectTrigger>
                         <SelectContent>{availableModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                       </Select>
                       {(["Google Gemini", "LM Studio", "Ollama"].includes(formData.llmConfig.customConfig.provider)) && (
                         <p className="text-xs text-muted-foreground">
-                          {t('agents.form.llm.custom.geminiModelDescription', {provider: formData.llmConfig.customConfig.provider})}
+                          {t('agents.form.llm.custom.geminiModelDescription' as TranslationKey, {provider: formData.llmConfig.customConfig.provider})}
                         </p>
                       )}
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="custom-llm-apiUrl" className="text-xs">{t('agents.form.llm.custom.apiUrlLabel')}</Label>
+                      <Label htmlFor="custom-llm-apiUrl" className="text-xs">{t('agents.form.llm.custom.apiUrlLabel' as TranslationKey)}</Label>
                       <Input
                         id="custom-llm-apiUrl"
                         value={formData.llmConfig.customConfig.apiUrl || ''}
                         onChange={(e) => handleLlmConfigChange('apiUrl', e.target.value )}
-                        placeholder={LLM_PROVIDER_DEFAULT_API_URLS[formData.llmConfig.customConfig.provider] || t('agents.form.llm.custom.apiUrlPlaceholder')}
+                        placeholder={LLM_PROVIDER_DEFAULT_API_URLS[formData.llmConfig.customConfig.provider] || t('agents.form.llm.custom.apiUrlPlaceholder' as TranslationKey)}
                       />
                       <p className="text-xs text-muted-foreground">
-                          {t('agents.form.llm.custom.apiUrlDescription')}
+                          {t('agents.form.llm.custom.apiUrlDescription' as TranslationKey)}
                       </p>
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="custom-llm-apiKey" className="text-xs">{t('agents.form.llm.custom.apiKeyLabel')}</Label>
+                      <Label htmlFor="custom-llm-apiKey" className="text-xs">{t('agents.form.llm.custom.apiKeyLabel' as TranslationKey)}</Label>
                       <Input
                         id="custom-llm-apiKey"
                         type="password"
                         value={formData.llmConfig.customConfig.apiKey || ''}
                         onChange={(e) => handleLlmConfigChange('apiKey', e.target.value )}
-                        placeholder={t('agents.form.llm.custom.apiKeyPlaceholder')}
+                        placeholder={t('agents.form.llm.custom.apiKeyPlaceholder' as TranslationKey)}
                       />
                     </div>
                   </div>
@@ -405,9 +408,9 @@ export default function AgentForm({
           </ScrollArea> 
         </div>
         <DialogFooter className="pt-4 border-t mt-auto"> {/* Ensure footer is not part of scrollable area */}
-          <DialogClose asChild><Button variant="outline">{t('common.cancel')}</Button></DialogClose>
+          <DialogClose asChild><Button variant="outline">{t('common.cancel' as TranslationKey)}</Button></DialogClose>
           <Button onClick={handleSubmit}>
-            {editingAgent && !editingAgent.id.startsWith('suggested-') ? t('agents.form.button.saveChanges') : (formData.id && formData.id.startsWith('suggested-') ? t('agents.form.button.createAgentWithSuggestion') : t('agents.form.button.createAgent'))}
+            {editingAgent && !editingAgent.id.startsWith('suggested-') ? t('agents.form.button.saveChanges' as TranslationKey) : (formData.id && formData.id.startsWith('suggested-') ? t('agents.form.button.createAgentWithSuggestion' as TranslationKey) : t('agents.form.button.createAgent' as TranslationKey))}
           </Button>
         </DialogFooter>
       </DialogContent>
