@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +17,7 @@ import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { getGroqModels } from '@/app/configuracion/actions';
 import { Loader2 } from 'lucide-react';
+import { getModelsForProvider } from '@/lib/utils'; // Import from utils
 
 /**
  * @fileOverview AgentForm component for creating and editing AI Agents.
@@ -43,12 +44,7 @@ interface AgentFormProps {
   editingAgent: Agent | null;
   /** Callback function invoked when the form is submitted with valid data. */
   onSubmit: (formData: AgentFormData) => void;
-  /**
-   * Function to get a list of available model names for a given LLM provider.
-   * @param {LLMProvider} provider - The LLM provider.
-   * @returns {string[]} An array of model names.
-   */
-  getModelsForProvider: (provider: LLMProvider) => string[];
+  // getModelsForProvider prop is removed as we'll use the imported version
   /** The global LLM configuration from application settings, used for defaults. */
   globalLLMConfig: LLMSettings;
 }
@@ -76,7 +72,6 @@ export default function AgentForm({
   onOpenChange,
   editingAgent,
   onSubmit,
-  getModelsForProvider,
   globalLLMConfig,
 }: AgentFormProps) {
   const { toast } = useToast();
@@ -92,6 +87,7 @@ export default function AgentForm({
     if (!apiKey) {
       setCustomGroqModels([]);
       setAvailableModels(getModelsForProvider("Groq"));
+      previousCustomApiKeyRef.current = null; // Ensure it's reset
       return;
     }
     if (apiKey === previousCustomApiKeyRef.current && customGroqModels.length > 0) {
@@ -101,40 +97,55 @@ export default function AgentForm({
 
     setIsLoadingCustomGroqModels(true);
     toast({ title: t('settings.llm.testingConnectionButton'), description: `${t('settings.llm.providerLabel')}: Groq` });
+    console.log(`[AgentForm CLIENT] Fetching Groq models for API key: ${apiKey.substring(0,5)}...`);
 
     try {
       const result = await getGroqModels(apiKey);
+      console.log('[AgentForm CLIENT] Result from getGroqModels Server Action:', result);
+
       if (result.success && result.models) {
-        const models = result.models.length > 0 ? result.models : getModelsForProvider("Groq");
         setCustomGroqModels(result.models);
-        setAvailableModels(models);
+        const modelsToUse = result.models.length > 0 ? result.models : getModelsForProvider("Groq");
+        setAvailableModels(modelsToUse);
         previousCustomApiKeyRef.current = apiKey;
 
         if (result.models.length > 0) {
           toast({ title: t('settings.toast.groqModelsLoadSuccess.title'), description: t('settings.toast.groqModelsLoadSuccess.description', { count: result.models.length }) });
         } else {
-          toast({ title: t('settings.toast.groqModelsLoadNoModels.title'), description: t('settings.toast.groqModelsLoadNoModels.description') });
+          toast({ title: t('settings.toast.groqModelsLoadNoModels.title'), description: result.error || t('settings.toast.groqModelsLoadNoModels.description')});
         }
-         // Auto-select first model if current is not in new list
-        if (formData.llmConfig.customConfig && !models.includes(formData.llmConfig.customConfig.model || '')) {
-            handleLlmConfigChange('model', models[0] || '');
+        if (result.error && result.models.length === 0) {
+            toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: result.error });
         }
-
+        // Auto-select first model if current is not in new list (for custom config)
+        if (formData.llmConfig.customConfig && formData.llmConfig.customConfig.provider === "Groq" && !modelsToUse.includes(formData.llmConfig.customConfig.model || '')) {
+            setFormData(prev => ({ 
+                ...prev, 
+                llmConfig: { 
+                    ...prev.llmConfig, 
+                    customConfig: { 
+                        ...prev.llmConfig.customConfig!, 
+                        model: modelsToUse[0] || '' 
+                    } 
+                } 
+            }));
+        }
       } else {
         setCustomGroqModels([]);
         setAvailableModels(getModelsForProvider("Groq"));
         previousCustomApiKeyRef.current = null;
         toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: result.error || t('common.unknownError') });
+        if(result.debug) console.error('[AgentForm CLIENT] Debug info from Server Action (getGroqModels):', result.debug);
       }
     } catch (error: any) {
       setCustomGroqModels([]);
       setAvailableModels(getModelsForProvider("Groq"));
       previousCustomApiKeyRef.current = null;
       toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: error.message || t('common.unknownError') });
+      console.error('[AgentForm CLIENT] Error calling getGroqModels:', error);
     } finally {
       setIsLoadingCustomGroqModels(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customGroqModels, getModelsForProvider, t, toast, formData.llmConfig.customConfig]);
 
   useEffect(() => {
@@ -144,7 +155,11 @@ export default function AgentForm({
       let initialModel: string | undefined;
 
       if (editingAgent) {
-        const agentConfig = editingAgent.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, model: globalLLMConfig.model, apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] };
+        // Ensure customConfig is initialized if it's undefined but useGlobal is false
+        const customCfg = editingAgent.llmConfig.useGlobal 
+          ? { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, model: globalLLMConfig.model, apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] }
+          : (editingAgent.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, model: globalLLMConfig.model, apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] });
+
         setFormData({
           id: editingAgent.id,
           name: editingAgent.name,
@@ -153,68 +168,81 @@ export default function AgentForm({
           capabilities: { ...editingAgent.capabilities },
           llmConfig: {
             useGlobal: editingAgent.llmConfig.useGlobal,
-            customConfig: { ...agentConfig }
+            customConfig: { ...customCfg } // Use the ensured customCfg
           },
         });
-        initialProvider = agentConfig.provider;
-        initialApiKey = agentConfig.apiKey;
-        initialModel = agentConfig.model;
-      } else {
+        initialProvider = customCfg.provider;
+        initialApiKey = customCfg.apiKey;
+        initialModel = customCfg.model;
+      } else { // Creating new agent or from suggestion (editingAgent.id starts with 'suggested-')
         const defaultProvider = globalLLMConfig.provider || DEFAULT_LLM_SETTINGS.provider;
         initialModel = globalLLMConfig.model || getModelsForProvider(defaultProvider)[0] || '';
-        setFormData({
-          ...initialAgentFormData,
-          llmConfig: {
-            useGlobal: true,
-            customConfig: {
-              ...DEFAULT_LLM_SETTINGS,
-              provider: defaultProvider,
-              model: initialModel,
-              apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[defaultProvider] || ''
+        const initialFormState = editingAgent?.id?.startsWith('suggested-') ? 
+          { // Pre-fill from suggestion
+            id: editingAgent.id,
+            name: editingAgent.name,
+            description: editingAgent.description,
+            systemPrompt: editingAgent.systemPrompt,
+            capabilities: { ...editingAgent.capabilities },
+            llmConfig: { // Default to global for suggestions initially, or derive from editingAgent if present
+              useGlobal: editingAgent.llmConfig?.useGlobal ?? true,
+              customConfig: editingAgent.llmConfig?.customConfig ?? {
+                ...DEFAULT_LLM_SETTINGS,
+                provider: defaultProvider,
+                model: initialModel,
+                apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[defaultProvider] || ''
+              }
             }
-          }
-        });
-        initialProvider = defaultProvider;
-        initialApiKey = DEFAULT_LLM_SETTINGS.apiKey;
+          } : 
+          { // Completely new agent
+            ...initialAgentFormData,
+            llmConfig: {
+              useGlobal: true,
+              customConfig: {
+                ...DEFAULT_LLM_SETTINGS,
+                provider: defaultProvider,
+                model: initialModel,
+                apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[defaultProvider] || ''
+              }
+            }
+          };
+        setFormData(initialFormState as AgentFormData);
+        initialProvider = (initialFormState.llmConfig.customConfig as LLMSettings).provider;
+        initialApiKey = (initialFormState.llmConfig.customConfig as LLMSettings).apiKey;
+        initialModel = (initialFormState.llmConfig.customConfig as LLMSettings).model;
       }
       
-      if (initialProvider === "Groq" && initialApiKey && !editingAgent?.llmConfig.useGlobal) { // Only fetch if custom config is active
+      // Initial model list setup
+      if (initialProvider === "Groq" && initialApiKey && !formData.llmConfig.useGlobal) { 
         fetchAndSetCustomGroqModels(initialApiKey);
-      } else {
+      } else if (initialProvider) {
         setAvailableModels(getModelsForProvider(initialProvider));
+      } else {
+        setAvailableModels([]);
       }
-      // Ensure model is set if availableModels are updated
-      if (initialModel && !getModelsForProvider(initialProvider).includes(initialModel) && initialProvider !== "Groq") {
-         const models = getModelsForProvider(initialProvider);
-         setFormData(prev => ({
-             ...prev,
-             llmConfig: {
-                 ...prev.llmConfig,
-                 customConfig: {
-                     ...prev.llmConfig.customConfig!,
-                     model: models[0] || ''
-                 }
-             }
-         }));
-      }
-
-
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, editingAgent, getModelsForProvider, globalLLMConfig]);
+  }, [isOpen, editingAgent, globalLLMConfig]); // fetchAndSetCustomGroqModels removed to avoid loop, handled by other effect
 
+  // Effect to fetch Groq models when custom provider/API key changes
   useEffect(() => {
-    if (!formData.llmConfig.useGlobal && formData.llmConfig.customConfig?.provider === "Groq" && formData.llmConfig.customConfig.apiKey) {
-        if (formData.llmConfig.customConfig.apiKey !== previousCustomApiKeyRef.current) {
-             fetchAndSetCustomGroqModels(formData.llmConfig.customConfig.apiKey);
-        } else if (customGroqModels.length > 0) {
-            setAvailableModels(customGroqModels);
+    if (!isOpen || formData.llmConfig.useGlobal) return; // Only run if form is open and custom config is active
+    
+    const customConfig = formData.llmConfig.customConfig;
+    if (customConfig?.provider === "Groq" && customConfig.apiKey) {
+        if (customConfig.apiKey !== previousCustomApiKeyRef.current || customGroqModels.length === 0) {
+             fetchAndSetCustomGroqModels(customConfig.apiKey);
+        } else {
+            setAvailableModels(customGroqModels); // Use cached if API key hasn't changed
         }
-    } else if (!formData.llmConfig.useGlobal && formData.llmConfig.customConfig) {
-        setAvailableModels(getModelsForProvider(formData.llmConfig.customConfig.provider));
+    } else if (customConfig) {
+        setAvailableModels(getModelsForProvider(customConfig.provider));
+        setCustomGroqModels([]); // Clear Groq models if provider is not Groq
+        previousCustomApiKeyRef.current = null;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.llmConfig.customConfig?.provider, formData.llmConfig.customConfig?.apiKey, formData.llmConfig.useGlobal, customGroqModels]);
+  }, [isOpen, formData.llmConfig.useGlobal, formData.llmConfig.customConfig?.provider, formData.llmConfig.customConfig?.apiKey]);
+
 
   const handleFormChange = (field: keyof AgentFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -230,26 +258,29 @@ export default function AgentForm({
   const handleLlmConfigChange = (field: keyof AgentLLMConfiguration | keyof LLMSettings, value: any) => {
     setFormData(prev => {
       const newFormState = { ...prev };
-      let newCustomConfig = { ...(newFormState.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] || '' }) };
+      let newCustomConfig = { ...(newFormState.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] || '', model: globalLLMConfig.model || '' }) };
 
       if (field === 'useGlobal') {
         newFormState.llmConfig.useGlobal = !!value;
-        if (!!value === false) { 
-          const currentProvider = newFormState.llmConfig.customConfig?.provider || globalLLMConfig.provider || DEFAULT_LLM_SETTINGS.provider;
-          newCustomConfig.provider = currentProvider;
-          newCustomConfig.apiUrl = newFormState.llmConfig.customConfig?.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[currentProvider] || '';
-          
-          let models: string[];
-          if (currentProvider === "Groq" && newCustomConfig.apiKey) {
-            fetchAndSetCustomGroqModels(newCustomConfig.apiKey);
-            models = customGroqModels.length > 0 ? customGroqModels : getModelsForProvider(currentProvider);
-          } else {
-            models = getModelsForProvider(currentProvider);
-            setAvailableModels(models);
-            setCustomGroqModels([]);
-          }
-          newCustomConfig.model = newFormState.llmConfig.customConfig?.model || models[0] || '';
-          newFormState.llmConfig.customConfig = newCustomConfig;
+        if (!!value === false && !newFormState.llmConfig.customConfig) { // If switching to custom and customConfig is not set up
+          newFormState.llmConfig.customConfig = { 
+            ...DEFAULT_LLM_SETTINGS, 
+            provider: globalLLMConfig.provider, 
+            model: globalLLMConfig.model || getModelsForProvider(globalLLMConfig.provider)[0] || '',
+            apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] || ''
+          };
+           if (globalLLMConfig.provider === "Groq" && globalLLMConfig.apiKey) {
+             fetchAndSetCustomGroqModels(globalLLMConfig.apiKey); // Fetch if global was Groq
+           } else {
+             setAvailableModels(getModelsForProvider(globalLLMConfig.provider));
+           }
+        } else if (!!value === false && newFormState.llmConfig.customConfig) { // Switching to custom, ensure models are loaded for its provider
+           const currentCustomProvider = newFormState.llmConfig.customConfig.provider;
+           if (currentCustomProvider === "Groq" && newFormState.llmConfig.customConfig.apiKey) {
+             fetchAndSetCustomGroqModels(newFormState.llmConfig.customConfig.apiKey);
+           } else {
+             setAvailableModels(getModelsForProvider(currentCustomProvider));
+           }
         }
       } else { 
         newFormState.llmConfig.useGlobal = false; 
@@ -260,13 +291,15 @@ export default function AgentForm({
           newCustomConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[provider] || '';
           let models: string[];
           if (provider === "Groq" && newCustomConfig.apiKey) {
-            fetchAndSetCustomGroqModels(newCustomConfig.apiKey);
-            models = customGroqModels.length > 0 ? customGroqModels : getModelsForProvider(provider);
+            fetchAndSetCustomGroqModels(newCustomConfig.apiKey); // This will set availableModels
+            models = customGroqModels.length > 0 ? customGroqModels : getModelsForProvider(provider); // Use current customGroqModels or fallback
           } else {
             models = getModelsForProvider(provider);
             setAvailableModels(models);
             setCustomGroqModels([]);
+            previousCustomApiKeyRef.current = null;
           }
+          // Ensure model is valid for new provider
           if (!models.includes(newCustomConfig.model || '')) { 
             newCustomConfig.model = models[0] || '';
           }
@@ -285,7 +318,7 @@ export default function AgentForm({
 
     const finalLlmConfig = formData.llmConfig.useGlobal
       ? { useGlobal: true, customConfig: undefined } 
-      : { useGlobal: false, customConfig: formData.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, apiUrl: LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] || '' } };
+      : { useGlobal: false, customConfig: formData.llmConfig.customConfig || { ...DEFAULT_LLM_SETTINGS, provider: globalLLMConfig.provider, apiUrl: globalLLMConfig.apiUrl || LLM_PROVIDER_DEFAULT_API_URLS[globalLLMConfig.provider] || '' , model: globalLLMConfig.model || ''} };
 
     const agentDataToSubmit = { ...formData, llmConfig: finalLlmConfig };
     onSubmit(agentDataToSubmit);
@@ -298,6 +331,8 @@ export default function AgentForm({
     ? 'agents.form.descriptionModal.edit'
     : 'agents.form.descriptionModal.create';
 
+  const currentCustomProvider = formData.llmConfig.customConfig?.provider || DEFAULT_LLM_SETTINGS.provider;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
@@ -307,7 +342,7 @@ export default function AgentForm({
             {t(dialogDescriptionKey as TranslationKey, { name: editingAgent?.name || '' })}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-grow overflow-hidden"> {/* Wrapper for ScrollArea */}
+        <div className="flex-grow overflow-hidden">
           <ScrollArea className="h-full pr-6 -mr-6"> 
             <div className="space-y-4 py-4">
               <div className="space-y-1">
@@ -357,25 +392,30 @@ export default function AgentForm({
                     <div className="space-y-1">
                       <Label htmlFor="custom-llm-model" className="text-xs flex items-center">
                           {t('agents.form.llm.custom.modelLabel' as TranslationKey)}
-                          {formData.llmConfig.customConfig.provider === "Groq" && isLoadingCustomGroqModels && <Loader2 className="h-3 w-3 animate-spin ml-2" />}
+                          {currentCustomProvider === "Groq" && isLoadingCustomGroqModels && <Loader2 className="h-3 w-3 animate-spin ml-2" />}
                       </Label>
                       <Select
                         value={formData.llmConfig.customConfig.model || ''}
                         onValueChange={(val) => handleLlmConfigChange('model', val )}
-                        disabled={availableModels.length === 0 && !["Google Gemini", "LM Studio", "Ollama"].includes(formData.llmConfig.customConfig.provider)}
+                        disabled={availableModels.length === 0 && !["Google Gemini", "LM Studio", "Ollama"].includes(currentCustomProvider)}
                       >
                         <SelectTrigger id="custom-llm-model"><SelectValue placeholder={
-                          (["Google Gemini", "LM Studio", "Ollama"].includes(formData.llmConfig.customConfig.provider))
-                            ? t('agents.form.llm.custom.modelPlaceholder.geminiLlm' as TranslationKey, { provider: formData.llmConfig.customConfig.provider })
+                          (["Google Gemini", "LM Studio", "Ollama"].includes(currentCustomProvider))
+                            ? t('agents.form.llm.custom.modelPlaceholder.geminiLlm' as TranslationKey, { provider: currentCustomProvider })
                             : availableModels.length === 0
                               ? t('agents.form.llm.custom.modelPlaceholder.selectProvider' as TranslationKey)
                               : t('agents.form.llm.custom.modelPlaceholder.default' as TranslationKey)
                         } /></SelectTrigger>
-                        <SelectContent>{availableModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                        <SelectContent>
+                          {availableModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                           {(currentCustomProvider === "Groq" && isLoadingCustomGroqModels && availableModels.length === 0) && (
+                             <div className="p-2 text-center text-xs text-muted-foreground"> {t('common.loading')} </div>
+                           )}
+                        </SelectContent>
                       </Select>
-                      {(["Google Gemini", "LM Studio", "Ollama"].includes(formData.llmConfig.customConfig.provider)) && (
+                      {(["Google Gemini", "LM Studio", "Ollama"].includes(currentCustomProvider)) && (
                         <p className="text-xs text-muted-foreground">
-                          {t('agents.form.llm.custom.geminiModelDescription' as TranslationKey, {provider: formData.llmConfig.customConfig.provider})}
+                          {t('agents.form.llm.custom.geminiModelDescription' as TranslationKey, {provider: currentCustomProvider})}
                         </p>
                       )}
                     </div>
@@ -385,7 +425,7 @@ export default function AgentForm({
                         id="custom-llm-apiUrl"
                         value={formData.llmConfig.customConfig.apiUrl || ''}
                         onChange={(e) => handleLlmConfigChange('apiUrl', e.target.value )}
-                        placeholder={LLM_PROVIDER_DEFAULT_API_URLS[formData.llmConfig.customConfig.provider] || t('agents.form.llm.custom.apiUrlPlaceholder' as TranslationKey)}
+                        placeholder={LLM_PROVIDER_DEFAULT_API_URLS[currentCustomProvider] || t('agents.form.llm.custom.apiUrlPlaceholder' as TranslationKey)}
                       />
                       <p className="text-xs text-muted-foreground">
                           {t('agents.form.llm.custom.apiUrlDescription' as TranslationKey)}
@@ -407,7 +447,7 @@ export default function AgentForm({
             </div>
           </ScrollArea> 
         </div>
-        <DialogFooter className="pt-4 border-t mt-auto"> {/* Ensure footer is not part of scrollable area */}
+        <DialogFooter className="pt-4 border-t mt-auto">
           <DialogClose asChild><Button variant="outline">{t('common.cancel' as TranslationKey)}</Button></DialogClose>
           <Button onClick={handleSubmit}>
             {editingAgent && !editingAgent.id.startsWith('suggested-') ? t('agents.form.button.saveChanges' as TranslationKey) : (formData.id && formData.id.startsWith('suggested-') ? t('agents.form.button.createAgentWithSuggestion' as TranslationKey) : t('agents.form.button.createAgent' as TranslationKey))}
