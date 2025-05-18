@@ -11,12 +11,13 @@
     "groupLogTitle": "Log Detallado del Grupo"
   },
   "logs": {
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}...\\nInput del Usuario: {userInput}...\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
   },
   "confirmDialog": {
     "title": "Confirmar Generación de Código",
     "llmSourceLabel": "Fuente LLM:",
-    "promptLabel": "Prompt:"
+    "promptLabel": "Prompt:",
+    "confirmButtonText": "Sí, Generar Código"
   },
   "toast": {
     "descriptionEmpty": {
@@ -30,10 +31,6 @@
     "generationError": {
       "title": "Error de Generación",
       "description": "Ocurrió un error al generar el código."
-    },
-    "autofixSimulated": {
-      "title": "Auto-Fix (Simulado)",
-      "description": "La IA está analizando el error para proponer una solución."
     }
   }
 }

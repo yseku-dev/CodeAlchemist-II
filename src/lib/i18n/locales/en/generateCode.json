@@ -11,12 +11,13 @@
     "groupLogTitle": "Detailed Group Log"
   },
   "logs": {
-    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
+    "groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}...\\nUser Input: {userInput}...\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
   },
   "confirmDialog": {
     "title": "Confirm Code Generation",
     "llmSourceLabel": "LLM Source:",
-    "promptLabel": "Prompt:"
+    "promptLabel": "Prompt:",
+    "confirmButtonText": "Yes, Generate Code"
   },
   "toast": {
     "descriptionEmpty": {
@@ -30,10 +31,6 @@
     "generationError": {
       "title": "Generation Error",
       "description": "An error occurred while generating the code."
-    },
-    "autofixSimulated": {
-      "title": "Auto-Fix (Simulated)",
-      "description": "AI is analyzing the error to propose a solution."
     }
   }
 }
