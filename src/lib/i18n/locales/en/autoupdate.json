@@ -119,9 +119,13 @@
       "title": "Preparing Project Download (ZIP)...",
       "description": "Getting code from server..."
     },
-    "projectZipDownloadInitiated": {
-      "title": "Download of Project with Suggestions (ZIP containing JSON of changes)",
-      "description": "This ZIP file contains a single JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
+    "downloadProjectZipToast": {
+        "title": "Download of Current Code with Suggestions (ZIP)",
+        "description": "Download of a ZIP containing the project's current source code (from server), with 'applied' suggestions conceptually merged, has started. This file ({filename}) contains a JSON file detailing the suggested changes. To apply these improvements, you'll need the base CodeAlchemist source code (Git) and manually apply the changes from the JSON to your local copy."
+    },
+    "downloadCurrentCodeZipToast": {
+        "title": "Download of Current Code (ZIP)",
+        "description": "Download of a ZIP that contains the project's current source code, obtained from the server, has started. This process may take a few moments. ({filename})"
     },
     "zipError": {
       "title": "Error Generating ZIP",
@@ -163,13 +167,9 @@
       "title": "Simulation: Test in Virtual Env",
       "description": "Simulating test start for {area}."
     },
-     "downloadProjectZipToast": {
-        "title": "Download of Current Code with Suggestions (ZIP)",
-        "description": "Download of a ZIP containing the project's current source code (from server), with 'applied' suggestions conceptually merged, has started. This file ({filename}) contains a JSON file detailing the suggested changes. To apply these improvements, you'll need the base CodeAlchemist source code (Git) and manually apply the changes from the JSON to your local copy."
-    },
-    "downloadCurrentCodeZipToast": {
-        "title": "Download of Current Code (ZIP)",
-        "description": "Download of a ZIP that contains the project's current source code, obtained from the server, has started. This process may take a few moments. ({filename})"
+    "sourceError": {
+      "title": "Code Source Error",
+      "description": "Please select a valid code source or fix the Git URL."
     }
   },
   "downloads": {

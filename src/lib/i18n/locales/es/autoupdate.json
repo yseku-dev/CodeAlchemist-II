@@ -119,9 +119,13 @@
       "title": "Preparando Descarga del Proyecto (ZIP)...",
       "description": "Obteniendo código del servidor..."
     },
-    "projectZipDownloadInitiated": {
-      "title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
-      "description": "Este archivo ZIP contiene un único archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
+    "downloadProjectZipToast": {
+        "title": "Descarga de Código Actual con Sugerencias (ZIP)",
+        "description": "Descarga de un ZIP conteniendo el código fuente actual del proyecto (del servidor), con sugerencias 'aplicadas' conceptualmente, ha iniciado. Este archivo ({filename}) contiene un archivo JSON detallando los cambios sugeridos. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (Git) y aplicar manually los cambios del JSON a tu copia local."
+    },
+    "downloadCurrentCodeZipToast": {
+        "title": "Descarga de Código Actual (ZIP)",
+        "description": "Descarga de un ZIP que contiene el código fuente actual del proyecto, obtenido del servidor, ha iniciado. Este proceso puede tardar unos momentos. ({filename})"
     },
     "zipError": {
       "title": "Error al Generar ZIP",
@@ -163,13 +167,9 @@
       "title": "Simulación: Prueba en Entorno Virtual",
       "description": "Se simula el inicio de pruebas para {area}."
     },
-    "downloadProjectZipToast": {
-        "title": "Descarga de Código Actual con Sugerencias (ZIP)",
-        "description": "Descarga de un ZIP conteniendo el código fuente actual del proyecto (del servidor), con sugerencias 'aplicadas' conceptualmente, ha iniciado. Este archivo ({filename}) contiene un archivo JSON detallando los cambios sugeridos. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (Git) y aplicar manually los cambios del JSON a tu copia local."
-    },
-    "downloadCurrentCodeZipToast": {
-        "title": "Descarga de Código Actual (ZIP)",
-        "description": "Descarga de un ZIP que contiene el código fuente actual del proyecto, obtenido del servidor, ha iniciado. Este proceso puede tardar unos momentos. ({filename})"
+    "sourceError": {
+      "title": "Error de Fuente de Código",
+      "description": "Por favor, selecciona una fuente de código válida o corrige la URL de Git."
     }
   },
   "downloads": {
@@ -194,7 +194,7 @@
       "confirmText": "Sí, Marcar como Aplicada",
       "description": {
         "p1": "Se marcará como aplicada la sugerencia para {area}.",
-        "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:"
+        "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually en tu entorno de desarrollo:"
       }
     },
     "noContentToShow": "Error: No hay contenido para mostrar.",
@@ -217,7 +217,7 @@
     }
   },
   "autofix": {
-    "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
+    "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate (análisis del propio código de CodeAlchemist).",
     "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
   }
 }
