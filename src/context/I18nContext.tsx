@@ -3,8 +3,8 @@
 "use client";
 
 import React, { createContext, useContext, useCallback, ReactNode, useEffect } from 'react';
-import { useAppState } from './AppStateContext'; // To get the current language
-import { translationsData, type TranslationKey, type TranslationSet, isTranslationSet } from '@/lib/i18n/translations';
+import { useAppState } from './AppStateContext';
+import { translationsData, type TranslationKey, type LanguageTranslations, type TranslationSet, isTranslationSet } from '@/lib/i18n/translations';
 import { DEFAULT_LANGUAGE_CODE, SUPPORTED_LANGUAGES } from '@/lib/i18n/constants';
 import type { LanguageCode } from '@/types';
 
@@ -12,7 +12,6 @@ import type { LanguageCode } from '@/types';
  * @fileOverview Provides internationalization (i18n) context and utilities.
  * Manages the current language and provides a translation function `t`.
  * This context relies on `AppStateContext` for language persistence and updates.
- * Translations are now loaded from granular JSON files per language and page/feature.
  */
 
 /**
@@ -41,50 +40,48 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 /**
  * Helper function to recursively get a nested translation string from a specific language's translations.
- * It now expects keys like "dashboard.welcome" or "settings.llm.title", where the first part
- * corresponds to the imported JSON file (e.g., "dashboard", "settings") and the rest is the path within that file.
  *
- * @param {string} key - The translation key (e.g., "dashboard.welcome").
+ * @param {string} key - The translation key (e.g., "dashboard.welcome" or "settings.llm.title").
  * @param {LanguageCode} langToUse - The language code to use for translation.
- * @param {AllTranslations} allTranslations - The complete translations object.
+ * @param {typeof translationsData} allTranslations - The complete translations object.
  * @returns {string | undefined} The translated string or undefined if not found.
  */
-const getNestedTranslation = (key: string, langToUse: LanguageCode, allTranslations: typeof translationsData): string | undefined => {
-  const langData = allTranslations[langToUse];
-  if (!langData || typeof langData !== 'object') {
-    console.warn(`[I18nContext] No translations found for language: "${langToUse}"`);
+const getNestedTranslation = (key: TranslationKey, langToUse: LanguageCode, allTranslations: typeof translationsData): string | undefined => {
+  const languageTranslations: LanguageTranslations | undefined = allTranslations[langToUse];
+
+  // Uncomment these logs for deep debugging if issues persist:
+  // console.log(`[I18nContext DEBUG] getNestedTranslation: key="${key}", langToUse="${langToUse}"`);
+  // if (typeof window !== 'undefined') { // Client-side only log for easier inspection
+  //    console.log(`[I18nContext DEBUG Client] translationsData for ${langToUse}:`, languageTranslations);
+  // }
+
+
+  if (!languageTranslations || typeof languageTranslations !== 'object') {
+    // console.warn(`[I18nContext DEBUG] No translation set or not an object for language: "${langToUse}" (key: "${key}")`);
     return undefined;
   }
 
-  const keys = key.split('.');
-  if (keys.length === 0) return undefined;
-
-  const topLevelKey = keys[0] as keyof typeof langData; // e.g., "dashboard", "settings"
-  let currentObject: string | TranslationSet | undefined = langData[topLevelKey];
-
-  if (!isTranslationSet(currentObject)) {
-     // Handle cases like t('app.title') where "app" might be a direct key in a "layout.json" or "common.json"
-     // This part handles keys that might NOT start with a filename-like segment if translations are merged differently
-     // For our current structure (translationsData.es.dashboard.welcome), this direct check is less likely to be hit first for nested keys.
-    if (Object.prototype.hasOwnProperty.call(langData, key) && typeof langData[key as keyof typeof langData] === 'string') {
-        return langData[key as keyof typeof langData] as string;
-    }
-    // If the topLevelKey itself doesn't point to an object, it means the key structure is wrong for this path.
-    // console.warn(`[I18nContext] Top-level key "${topLevelKey}" not found or not an object in translations for language: "${langToUse}"`);
+  const keys = key.split('.'); // e.g., "autoupdate.config.title" -> ["autoupdate", "config", "title"]
+  if (keys.length === 0) {
+    // console.warn(`[I18nContext DEBUG] Empty key parts for key: "${key}"`);
     return undefined;
   }
 
-  // Traverse the rest of the key parts
-  for (let i = 1; i < keys.length; i++) {
+  let current: TranslationSet | string | undefined = languageTranslations;
+
+  for (let i = 0; i < keys.length; i++) {
     const part = keys[i];
-    if (isTranslationSet(currentObject) && Object.prototype.hasOwnProperty.call(currentObject, part)) {
-      currentObject = currentObject[part];
+    // console.log(`[I18nContext DEBUG] Traversing: part="${part}", current type="${typeof current}"`, current);
+    if (isTranslationSet(current) && Object.prototype.hasOwnProperty.call(current, part)) {
+      current = current[part];
     } else {
-      return undefined; // Path not found
+      // console.warn(`[I18nContext DEBUG] Key segment "${part}" (part ${i+1} of "${key}") not found in language "${langToUse}". Current object segment:`, current);
+      return undefined; // Path segment not found
     }
   }
-
-  return typeof currentObject === 'string' ? currentObject : undefined;
+  
+  // console.log(`[I18nContext DEBUG] Resolved key "${key}" in language "${langToUse}" to:`, typeof current === 'string' ? current : `Not a string (type: ${typeof current})`);
+  return typeof current === 'string' ? current : undefined;
 };
 
 
@@ -101,9 +98,6 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
   const setLanguage = useCallback((langCode: LanguageCode) => {
     if (SUPPORTED_LANGUAGES.some(l => l.code === langCode)) {
       updateAppLanguage(langCode);
-      if (typeof window !== 'undefined') {
-        document.documentElement.lang = langCode;
-      }
     } else {
       console.warn(`[I18nContext] Attempted to set unsupported language: ${langCode}`);
     }
@@ -118,6 +112,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
     }
 
     if (translatedString === undefined) {
+      // This console.error is the one triggering in your screenshot
       console.error(`[I18nContext] Translation definitively not found for key: "${key}" in language: "${activeLanguage}" OR default language "${DEFAULT_LANGUAGE_CODE}".`);
       return key; // Return the key itself if no translation is found
     }
@@ -128,7 +123,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
       }, translatedString);
     }
     return translatedString;
-  }, [activeLanguage]);
+  }, [activeLanguage]); // `translationsData` and `DEFAULT_LANGUAGE_CODE` are static and don't need to be dependencies
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -153,6 +148,8 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
 
 /**
  * Custom hook to access the i18n context.
+ * @returns {I18nContextType} The i18n context object.
+ * @throws {Error} If used outside of an `I18nProvider`.
  */
 export const useI18n = (): I18nContextType => {
   const context = useContext(I18nContext);

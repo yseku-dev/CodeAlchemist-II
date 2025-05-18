@@ -60,31 +60,40 @@ export type TranslationSet = {
 };
 
 /**
+ * Defines the structure for a single language's complete set of translations,
+ * organized by feature or page.
+ */
+export interface LanguageTranslations {
+  common: TranslationSet;
+  dashboard: TranslationSet;
+  settings: TranslationSet;
+  generateCode: TranslationSet;
+  generateProject: TranslationSet;
+  analyzeCode: TranslationSet;
+  analyzeProject: TranslationSet;
+  refactorProject: TranslationSet;
+  autoupdate: TranslationSet;
+  versions: TranslationSet;
+  chat: TranslationSet;
+  agents: TranslationSet;
+  groups: TranslationSet;
+  layout: TranslationSet;
+  error: TranslationSet;
+  flows: TranslationSet;
+  fileTree: TranslationSet;
+  codeEditor: TranslationSet;
+  // Allow any other string keys for flexibility during development
+  // This helps if a new JSON file is added but not yet typed in LanguageTranslations
+  [key: string]: TranslationSet | undefined;
+}
+
+
+/**
  * Type for all translations, mapping language codes (e.g., 'es', 'en')
- * to their respective `TranslationSet`.
+ * to their respective `LanguageTranslations`.
  */
 export type AllTranslations = {
-  [lang in LanguageCode]: {
-    common: TranslationSet;
-    dashboard: TranslationSet;
-    settings: TranslationSet;
-    generateCode: TranslationSet;
-    generateProject: TranslationSet;
-    analyzeCode: TranslationSet;
-    analyzeProject: TranslationSet;
-    refactorProject: TranslationSet;
-    autoupdate: TranslationSet;
-    versions: TranslationSet;
-    chat: TranslationSet;
-    agents: TranslationSet;
-    groups: TranslationSet;
-    layout: TranslationSet;
-    error: TranslationSet;
-    flows: TranslationSet;
-    fileTree: TranslationSet;
-    codeEditor: TranslationSet;
-    // Add new top-level keys here as you add more JSON files
-  };
+  [lang in LanguageCode]: LanguageTranslations;
 };
 
 /**
