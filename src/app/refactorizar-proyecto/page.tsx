@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -12,8 +13,8 @@ import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, RefactorSuggestion, RefactorProjectWithAIInput, RefactorProjectWithAIOutput as AIResult, AppSourceFile } from '@/types';
-import { GENERAL_PRIORITIES, GeneralPriority } from '@/lib/constants';
+import type { LLMConfigSourceOption, RefactorSuggestion, RefactorProjectWithAIInput, RefactorProjectWithAIOutput as AIResult } from '@/types';
+import { GENERAL_PRIORITIES, type GeneralPriority } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import CodeBlock from '@/components/code-block';
 import ConfirmDialog from '@/components/confirm-dialog';
@@ -40,13 +41,14 @@ const NINGUNA_PRIORITY_VALUE = "__none__";
  * All UI texts are internationalized.
  */
 export default function RefactorizarProyectoPage() {
-  const { agents, groups, getAgentById, getGroupById } = useAppState();
+  const { getAgentById, getGroupById } = useAppState();
   const router = useRouter();
   const { t } = useI18n();
 
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(undefined);
 
   useEffect(() => {
+    const { agents } = useAppState.getState(); // Get latest state directly
     if (agents && agents.length > 0 && llmConfigSource === undefined) {
       const defaultAgentFound = agents.find(a => a.name === "RefactorizadorCodigoExperto");
       setLlmConfigSource(defaultAgentFound
@@ -57,7 +59,7 @@ export default function RefactorizarProyectoPage() {
         setLlmConfigSource({ type: 'Ajustes Globales' as const });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agents]);
+  }, []); // Run once on mount
 
 
   const [projectSourceType, setProjectSourceType] = useState<ProjectSourceType>("upload");
@@ -101,7 +103,7 @@ export default function RefactorizarProyectoPage() {
 
   const handleAnalyze = async () => {
     setIsLoading(true);
-    setLoadingMessage(t('common.processing'));
+    setLoadingMessage(t('common.processing' as TranslationKey));
     setError(null);
     setAnalysisResult(null);
     setSuggestions([]);
@@ -110,37 +112,34 @@ export default function RefactorizarProyectoPage() {
     let projectContentForAI = "";
 
     if (projectSourceType === "upload" && uploadedFile) {
-      setLoadingMessage(t('refactorProject.toast.processingFile'));
+      setLoadingMessage(t('refactorProject.toast.processingFile' as TranslationKey));
       try {
-        projectContentForAI = await uploadedFile.text(); // Assuming text-based files or JSON for now
-        // For ZIP, actual unzipping and file reading would need a server-side component
-        // or a client-side library like JSZip if it's a flat structure or specific known files.
-        // For this example, we'll pass the name as a reference if it's a ZIP.
+        projectContentForAI = await uploadedFile.text();
         if (uploadedFile.type === 'application/zip') {
             projectContentForAI = `Contenido del archivo ZIP: ${uploadedFile.name}. La IA debe inferir la estructura y contenido relevante.`;
         }
         addLog({message: `Analyzing uploaded file for refactor: ${uploadedFile.name}`, flowName});
       } catch (readError: any) {
-        toast({ variant: "destructive", title: t('refactorProject.toast.fileReadError.title'), description: t('refactorProject.toast.fileReadError.description', { error: readError.message }) });
+        toast({ variant: "destructive", title: t('refactorProject.toast.fileReadError.title' as TranslationKey), description: t('refactorProject.toast.fileReadError.description' as TranslationKey, { error: readError.message }) });
         setIsLoading(false);
         setLoadingMessage(null);
         return;
       }
     } else if (projectSourceType === "git" && gitUrl) {
-      setLoadingMessage(t('refactorProject.toast.fetchingGit'));
+      setLoadingMessage(t('refactorProject.toast.fetchingGit' as TranslationKey));
       addLog({message: `Fetching Git URL for refactor: ${gitUrl}`, flowName});
       try {
         const gitResult = await fetchRemoteGitRepository(gitUrl);
         if (gitResult.success && gitResult.files) {
-          projectContentForAI = gitResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
+          projectContentForAI = gitResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${f.fileName} ---\n${f.content}`).join('\n\n');
           if (gitResult.logsBuilt) {
             gitResult.logsBuilt.forEach(logMsg => addLog({ source: 'FetchRemoteGit(Refactor)', message: logMsg }));
           }
         } else {
-          throw new Error(gitResult.error || t('refactorProject.toast.gitFetchError.unknown'));
+          throw new Error(gitResult.error || t('refactorProject.toast.gitFetchError.unknown' as TranslationKey));
         }
       } catch (gitError: any) {
-        toast({ variant: "destructive", title: t('refactorProject.toast.gitFetchError.title'), description: gitError.message });
+        toast({ variant: "destructive", title: t('refactorProject.toast.gitFetchError.title' as TranslationKey), description: gitError.message });
         setError(gitError.message);
         setIsLoading(false);
         setLoadingMessage(null);
@@ -153,13 +152,13 @@ export default function RefactorizarProyectoPage() {
       return;
     }
 
-    if (!projectContentForAI && projectSourceType !== 'git') { // Git might fetch empty content if repo is empty
-        toast({ variant: "destructive", title: t('refactorProject.toast.noContentToAnalyze.title'), description: t('refactorProject.toast.noContentToAnalyze.description') });
+    if (!projectContentForAI && projectSourceType !== 'git') { 
+        toast({ variant: "destructive", title: t('refactorProject.toast.noContentToAnalyze.title' as TranslationKey), description: t('refactorProject.toast.noContentToAnalyze.description' as TranslationKey) });
         setIsLoading(false);
         setLoadingMessage(null);
         return;
     }
-    setLoadingMessage(t('refactorProject.toast.analyzingWithAI'));
+    setLoadingMessage(t('refactorProject.toast.analyzingWithAI' as TranslationKey));
 
     let agentSystemPrompt: string | undefined;
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
@@ -174,7 +173,7 @@ export default function RefactorizarProyectoPage() {
     }
 
     const input: RefactorProjectWithAIInput = {
-      projectSource: projectContentForAI, // Pass actual content
+      projectSource: projectContentForAI,
       goals: refactorGoals || undefined,
       priority: generalPriority === NINGUNA_PRIORITY_VALUE ? undefined : generalPriority,
       searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
@@ -189,11 +188,13 @@ export default function RefactorizarProyectoPage() {
       let finalResult: AIResult = { ...aiResultData };
 
       if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
+         const group = getGroupById(llmConfigSource.id || '');
+         const orchestratorAgent = getAgentById('orquestador-flujo-agentes');
          finalResult.groupLog = t('refactorProject.logs.groupContextLog' as TranslationKey, {
             groupName: llmConfigSource.name,
-            groupTask: (getGroupById(llmConfigSource.id || '')?.mainTask || 'N/A').substring(0,150),
+            groupTask: (group?.mainTask || 'N/A').substring(0,150),
             userInput: (input.focusArea || t('autoupdate.analysis.general' as TranslationKey)),
-            orchestratorContext: (getAgentById('orquestador-flujo-agentes')?.systemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
+            orchestratorContext: (orchestratorAgent?.systemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
             flowName: 'refactorProjectWithAI'
         });
       }
@@ -202,7 +203,7 @@ export default function RefactorizarProyectoPage() {
       toast({ title: t('refactorProject.toast.analysisComplete.title' as TranslationKey), description: t('refactorProject.toast.analysisComplete.description' as TranslationKey) });
       addLog({message: "Refactoring analysis successful.", data: finalResult, flowName});
     } catch (e: any) {
-      addLog({source:"RefactorProjectPage", message: "Refactoring analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      addLog({source:"RefactorProjectPage", message: "Refactoring analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
         toast({ variant: "destructive", title: t('refactorProject.toast.analysisError.title' as TranslationKey), description: e.friendlyMessage });
@@ -210,7 +211,7 @@ export default function RefactorizarProyectoPage() {
           router.push(e.redirectTo);
         }
       } else {
-        const errorMsg = e.message || "Ocurrió un error durante el análisis de refactorización.";
+        const errorMsg = (e as Error).message || t('refactorProject.toast.analysisError.description' as TranslationKey) ;
         setError(errorMsg);
         toast({ variant: "destructive", title: t('refactorProject.toast.analysisError.title' as TranslationKey), description: errorMsg });
       }
@@ -263,7 +264,7 @@ export default function RefactorizarProyectoPage() {
           <div className="space-y-2">
             <Label>{t('refactorProject.projectSourceLabel' as TranslationKey)}</Label>
             <Select value={projectSourceType} onValueChange={(value) => setProjectSourceType(value as ProjectSourceType)} disabled={isLoading}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t('common.selectPlaceholder' as TranslationKey)} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="upload">{t('refactorProject.sourceUpload' as TranslationKey)}</SelectItem>
                 <SelectItem value="git">{t('refactorProject.sourceGit' as TranslationKey)}</SelectItem>
@@ -306,7 +307,15 @@ export default function RefactorizarProyectoPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NINGUNA_PRIORITY_VALUE}>{t('refactorProject.priorityNone' as TranslationKey)}</SelectItem>
-                {GENERAL_PRIORITIES.map(p => <SelectItem key={p} value={p}>{t(`refactorProject.priorities.${p.replace(/\\s+/g, '')}` as TranslationKey, {defaultValue: p} )}</SelectItem>)}
+                {GENERAL_PRIORITIES.map(p => {
+                  const keyForTranslation = `refactorProject.priorities.${p.replace(/\s+/g, '')}`;
+                  // console.log(`[RefactorPage] Original Priority: "${p}", Key for t(): "${keyForTranslation}"`);
+                  return (
+                    <SelectItem key={p} value={p}>
+                      {t(keyForTranslation as TranslationKey, { defaultValue: p })}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -320,8 +329,8 @@ export default function RefactorizarProyectoPage() {
           </div>
 
           <Button onClick={handleAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isLoading ? loadingMessage : t('refactorProject.analyzeButton' as TranslationKey)}
+            {isLoading && (status === 'loading_source' || status === 'analyzing') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isLoading && loadingMessage ? loadingMessage : t('refactorProject.analyzeButton' as TranslationKey)}
           </Button>
         </CardContent>
       </Card>
@@ -330,7 +339,7 @@ export default function RefactorizarProyectoPage() {
         <PageSectionHeader
             icon={ListChecks}
             title={t('refactorProject.results.title' as TranslationKey)}
-            actions={suggestions.length > 0 ? (
+            actions={suggestions.length > 0 && analysisResult ? (
                 <Button onClick={handleApplyAll} size="sm" variant="outline" disabled={isLoading || suggestions.every(s => s.status !== 'pending')}>
                     {t('refactorProject.results.applyAllButton' as TranslationKey)}
                 </Button>
@@ -338,7 +347,7 @@ export default function RefactorizarProyectoPage() {
         />
         <CardContent>
           {error && <ErrorDisplay error={error} />}
-          {isLoading && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{loadingMessage || t('common.processing')}...</p></div>}
+          {isLoading && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{loadingMessage || t('common.processing' as TranslationKey)}</p></div>}
 
           {!isLoading && !analysisResult && !error && <p className="text-muted-foreground text-center py-10">{t('refactorProject.results.noSuggestions' as TranslationKey)}</p>}
 
@@ -348,7 +357,7 @@ export default function RefactorizarProyectoPage() {
                 {analysisResult.projectOverview && (
                     <Card className="mb-4 bg-muted/30">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-lg flex items-center gap-2"><Info className="h-5 w-5 text-blue-600" />{t('refactorProject.results.projectSummaryCard.title' as TranslationKey)}</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2"><Info className="h-5 w-5 text-primary" />{t('refactorProject.results.projectSummaryCard.title' as TranslationKey)}</CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm">
                         <p className="whitespace-pre-wrap">{analysisResult.projectOverview || t('refactorProject.results.projectSummaryCard.noSummary' as TranslationKey)}</p>
@@ -408,7 +417,7 @@ export default function RefactorizarProyectoPage() {
         onClose={() => setShowDiffModal(false)}
         onConfirm={() => setShowDiffModal(false)}
         title={t('refactorProject.diffModal.title' as TranslationKey)}
-        confirmText={t('common.close')}
+        confirmText={t('common.close' as TranslationKey)}
         cancelText=""
       >
         {currentDiff && (
@@ -427,3 +436,5 @@ export default function RefactorizarProyectoPage() {
     </div>
   );
 }
+
+    
