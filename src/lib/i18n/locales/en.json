@@ -319,6 +319,9 @@
         "title": "Self-Analysis Complete",
         "description": "Suggestions for the code have been generated."
       },
+      "analyzingWithAI": {
+        "title": "Analyzing with AI..."
+      },
       "analysisError": {
         "title": "Self-Analysis Error"
       },
@@ -407,7 +410,8 @@
       "getServerSourceFailedZip": "Could not get server source code for ZIP.",
       "unknownZipError": "Unknown error generating ZIP.",
       "unknownGitUploadError": "Unknown error during Git upload.",
-      "autofixHelperFailed": "Could not get AI help for this error."
+      "autofixHelperFailed": "Could not get AI help for this error.",
+      "unknownSourceError": "Error de origen desconocido."
     },
     "dialogs": {
       "applySuggestion": {
@@ -440,6 +444,9 @@
     "autofix": {
       "errorContext": "Error to analyze: {error}\n\nContext: Error occurred in CodeAlchemist's AutoUpdate feature.",
       "focusArea": "Explain the following error and propose a solution or debugging steps: \"{error}\""
+    },
+    "config": {
+      "gitUrlRequired": "Git repository URL is required."
     }
   },
   "refactorProject": {
@@ -657,6 +664,7 @@
       "aiNotesLabel": "AI Notes:",
       "generatedFilesLabel": "Generated Files:",
       "downloadButton": "Download Project (ZIP)",
+      "downloadNote": "Note: The download will be a JSON file with the project structure.",
       "groupLogTitle": "Detailed Group Log",
       "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
     },
@@ -685,12 +693,12 @@
         "description": "There is no project structure to download."
       },
       "zipDownloadSuccess": {
-        "title": "Project Downloaded (ZIP)",
-        "description": "A ZIP file ({filename}) with the AI-generated project structure and content for \"{projectName}\" has been downloaded."
+        "title": "Project Downloaded (JSON)",
+        "description": "A JSON file ({filename}) with the project structure and content for \"{projectName}\" has been downloaded. You can use this file to create the files manually or with a script. Direct ZIP file generation is not supported by this browser function."
       },
       "zipDownloadError": {
-        "title": "ZIP Download Error",
-        "description": "Could not generate the ZIP file: {error}"
+        "title": "JSON Download Error",
+        "description": "Could not generate the JSON file: {error}"
       },
       "autofixSimulated": {
         "title": "Auto-Fix (Simulated)",
@@ -1191,49 +1199,51 @@
       }
     },
     "deleteSingleModal": {
-      "title": "Confirm Deletion: {name}",
-      "description": "Are you sure you want to delete this workgroup? This action cannot be undone."
+      "title": "Confirmar Eliminación: {name}",
+      "description": "¿Estás seguro de que quieres eliminar este grupo de trabajo? Esta acción no se puede deshacer."
     }
   },
   "appLayout": {
     "debugPanel": {
-      "title": "Debug Panel",
-      "copyButton": "Copy Logs",
-      "clearButton": "Clear Logs",
-      "collapseButton": "Collapse",
-      "expandButton": "Expand",
-      "noLogs": "No logs."
+      "title": "Panel de Depuración",
+      "copyButton": "Copiar Logs",
+      "clearButton": "Borrar Logs",
+      "collapseButton": "Contraer",
+      "expandButton": "Expandir",
+      "noLogs": "No hay logs."
     },
     "toast": {
       "unexpectedError": {
-        "title": "Unexpected Error",
-        "description": "An unexpected error occurred in the application. We are working on it."
+        "title": "Error Inesperado",
+        "description": "Ocurrió un error inesperado en la aplicación. Ya estamos trabajando en ello."
       }
     }
   },
   "fileTree": {
-    "isFolder": "This is a folder.",
-    "emptyFile": "Empty file or content not viewable here."
+    "isFolder": "Esto es una carpeta.",
+    "emptyFile": "Archivo vacío o contenido no visualizable aquí."
   },
   "codeEditor": {
     "toast": {
       "loadError": {
-        "title": "Loading Error",
-        "description": "Could not load saved editor state for {id}."
+        "title": "Error de Carga",
+        "description": "No se pudo cargar el estado guardado del editor para {id}."
       }
     }
   },
   "globalError": {
-    "title": "Oops! Something went wrong",
-    "description": "We're sorry, an unexpected error occurred. Our team has been notified.",
-    "recoverySuggestion": "You can try reloading the page or going back to the previous action.",
-    "devDetailsTitle": "Error Details (Development Only):",
-    "retryButton": "Try Again",
-    "homeButton": "Go to Homepage"
+    "title": "¡Ups! Algo salió mal",
+    "description": "Lo sentimos, encontramos un error inesperado. Nuestro equipo ha sido notificado.",
+    "recoverySuggestion": "Puedes intentar recargar la página o volver a la acción anterior.",
+    "devDetailsTitle": "Detalles del Error (Solo Desarrollo):",
+    "retryButton": "Intentar de Nuevo",
+    "homeButton": "Ir a la Página Principal"
   },
   "flows": {
     "common": {
-      "aiError": "Error in AI flow: {flowName}"
+      "aiError": "Error en el flujo de IA: {flowName}"
     }
   }
 }
+
+    

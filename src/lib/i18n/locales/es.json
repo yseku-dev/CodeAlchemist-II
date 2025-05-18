@@ -319,6 +319,9 @@
         "title": "Auto-Análisis Completado",
         "description": "Se han generado sugerencias para el código."
       },
+      "analyzingWithAI": {
+        "title": "Analizando con IA..."
+      },
       "analysisError": {
         "title": "Error de Auto-Análisis"
       },
@@ -407,7 +410,8 @@
       "getServerSourceFailedZip": "No se pudo obtener el código fuente del servidor para el ZIP.",
       "unknownZipError": "Error desconocido al generar ZIP.",
       "unknownGitUploadError": "Error desconocido durante la subida a Git.",
-      "autofixHelperFailed": "No se pudo obtener ayuda de la IA para este error."
+      "autofixHelperFailed": "No se pudo obtener ayuda de la IA para este error.",
+      "unknownSourceError": "Error de origen desconocido."
     },
     "dialogs": {
       "applySuggestion": {
@@ -415,7 +419,7 @@
         "confirmText": "Sí, Marcar como Aplicada",
         "description": {
           "p1": "Se marcará como aplicada la sugerencia para {area}.",
-          "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:"
+          "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually en tu entorno de desarrollo:"
         }
       },
       "noContentToShow": "Error: No hay contenido para mostrar.",
@@ -440,6 +444,9 @@
     "autofix": {
       "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
       "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
+    },
+    "config": {
+      "gitUrlRequired": "Se requiere la URL del repositorio Git."
     }
   },
   "refactorProject": {
@@ -657,6 +664,7 @@
       "aiNotesLabel": "Notas de la IA:",
       "generatedFilesLabel": "Archivos Generados:",
       "downloadButton": "Descargar Proyecto (ZIP)",
+      "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
       "groupLogTitle": "Log Detallado del Grupo",
       "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
     },
@@ -685,12 +693,12 @@
         "description": "No hay estructura de proyecto para descargar."
       },
       "zipDownloadSuccess": {
-        "title": "Proyecto Descargado (ZIP)",
-        "description": "Se ha descargado un archivo ZIP ({filename}) con la estructura y contenido del proyecto \"{projectName}\" generado por la IA."
+        "title": "Proyecto Descargado (JSON)",
+        "description": "Se ha descargado un archivo JSON ({filename}) con la estructura y contenido del proyecto \"{projectName}\". Puedes usar este archivo para crear los archivos manualmente o con un script. La generación directa de archivos ZIP no es soportada por esta función en el navegador."
       },
       "zipDownloadError": {
-        "title": "Error de Descarga ZIP",
-        "description": "No se pudo generar el archivo ZIP: {error}"
+        "title": "Error de Descarga JSON",
+        "description": "No se pudo generar el archivo JSON: {error}"
       },
       "autofixSimulated": {
         "title": "Auto-Fix (Simulado)",
@@ -1237,3 +1245,5 @@
     }
   }
 }
+
+    
