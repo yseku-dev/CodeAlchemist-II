@@ -73,7 +73,7 @@ const analyzeCodeSnippetFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await prompt(input);
-    const output = llmResponse.output();
+    const output = llmResponse.output; // Corrected: property access
     if (!output) {
       throw new Error("La IA no pudo analizar el fragmento de código.");
     }
@@ -81,3 +81,4 @@ const analyzeCodeSnippetFlow = ai.defineFlow(
     return { ...output, originalCode: input.code };
   }
 );
+

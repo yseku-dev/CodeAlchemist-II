@@ -24,6 +24,7 @@ const AnalyzeCodeInputSchema = z.object({
   analysisPreferences: z.string().optional().describe('Specific areas or concerns to focus the analysis on. Used as focusArea.'),
   searchDepth: z.number().int().positive().optional().describe('How deep the analysis should go, e.g., number of levels in directory structure or call stack. 1 is superficial. If not provided, assume a comprehensive/total analysis.'),
   focusArea: z.string().optional().describe('Specific functional area, module, or quality attribute (e.g., "performance", "security", "UI rendering logic") to concentrate the analysis on.'),
+  agentSystemPrompt: z.string().optional().describe('El prompt de sistema de un agente, si la refactorización es impulsada por un agente o grupo.'),
 });
 
 const AnalyzeCodeOutputSchema = z.object({
@@ -52,15 +53,12 @@ const analyzeCodePrompt = ai.definePrompt({
   name: 'analyzeProjectCodePrompt', // Renamed for clarity
   input: {schema: AnalyzeCodeInputSchema},
   output: {schema: AnalyzeCodeOutputSchema},
-  prompt: `Eres un experto analista de código y arquitecto de software. Tu tarea es analizar el código fuente del proyecto proporcionado.
-{{#if isLocal}}
-Estás analizando el código fuente local de la aplicación CodeAlchemist.
-{{/if}}
-{{#if isGit}}
-Estás analizando el código fuente del repositorio Git: {{{gitRepoUrl}}}.
-{{/if}}
-{{#if isUploadedString}}
-Estás analizando el contenido del proyecto proporcionado directamente.
+  prompt: `{{#if agentSystemPrompt}}
+{{{agentSystemPrompt}}}
+
+Analiza el código fuente del proyecto proporcionado. Tu respuesta debe estar en castellano y seguir el formato de salida JSON especificado.
+{{else}}
+Eres un experto analista de código y arquitecto de software. Tu tarea es analizar el código fuente del proyecto proporcionado. Tu respuesta debe estar en castellano.
 {{/if}}
 
 Parámetros de Análisis:
@@ -118,10 +116,12 @@ const analyzeSelfCodeFlow = ai.defineFlow( // Keeping flow name for now
         isUploadedString,
     };
 
-    const {output} = await analyzeCodePrompt(promptInput);
+    const response = await analyzeCodePrompt(promptInput); // More explicit
+    const output = response.output; // Corrected: property access
     if (!output) {
       throw new Error("La IA no pudo generar el análisis del proyecto.");
     }
     return output;
   }
 );
+

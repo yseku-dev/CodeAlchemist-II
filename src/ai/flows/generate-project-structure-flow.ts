@@ -56,16 +56,16 @@ const promptLines = [
   '    *   Cualquier consideración importante sobre la estructura.',
   '3.  **files**: Un array de objetos, donde cada objeto representa un archivo o carpeta.',
   '    *   Cada objeto debe tener:',
-  '        *   \\\`path\\\`: Una cadena con la ruta relativa del archivo o carpeta (ej. "src/components/Button.tsx", "README.md", "public/"). Las carpetas deben terminar con una barra inclinada (\\\`/\`\\\`).',
-  '        *   \\\`content\\\`: Una cadena con el contenido del archivo. Para carpetas, el contenido puede ser una cadena vacía o un comentario como "/* Carpeta para... */".',
-  '        *   \\\`isFolder\\\`: (opcional, booleano) Indica explícitamente si es una carpeta. Si \\\`path\\\` termina en \\\`/\`\\\`, se asume que es una carpeta.',
-  '    *   Incluye archivos comunes como \\\`README.md\\\`, \\\`.gitignore\\\` (si aplica), un archivo de configuración de empaquetador (ej. \\\`package.json\\\` si es Node.js, \\\`pom.xml\\\` si es Maven, etc.), y algunos archivos de código fuente iniciales basados en la descripción.',
+  '        *   `path`: Una cadena con la ruta relativa del archivo o carpeta (ej. "src/components/Button.tsx", "README.md", "public/"). Las carpetas deben terminar con una barra inclinada (`/`).',
+  '        *   `content`: Una cadena con el contenido del archivo. Para carpetas, el contenido puede ser una cadena vacía o un comentario como "/* Carpeta para... */".',
+  '        *   `isFolder`: (opcional, booleano) Indica explícitamente si es una carpeta. Si `path` termina en `/`, se asume que es una carpeta.',
+  '    *   Incluye archivos comunes como `README.md`, `.gitignore` (si aplica), un archivo de configuración de empaquetador (ej. `package.json` si es Node.js, `pom.xml` si es Maven, etc.), y algunos archivos de código fuente iniciales basados en la descripción.',
   '    *   Asegúrate de que las rutas de los archivos sean coherentes y representen una estructura de proyecto lógica.',
   '',
   'Toda la salida, incluyendo nombres de archivo, contenido y notas, debe estar en castellano.',
   'La respuesta DEBE ser un único objeto JSON que se adhiera estrictamente al esquema de salida especificado. No incluyas ningún texto explicativo fuera del objeto JSON.',
-  'Ejemplo de un objeto \'file\' para una carpeta: \\\`{ "path": "src/", "content": "", "isFolder": true }\\\`',
-  'Ejemplo de un objeto \'file\' para un archivo: \\\`{ "path": "src/index.js", "content": "console.log(\\"Hola Mundo\\");" }\\\`'
+  'Ejemplo de un objeto \\'file\\' para una carpeta: `{ "path": "src/", "content": "", "isFolder": true }`',
+  'Ejemplo de un objeto \\'file\\' para un archivo: `{ "path": "src/index.js", "content": "console.log(\\"Hola Mundo\\");" }`'
 ];
 
 const prompt = ai.definePrompt({
@@ -83,12 +83,12 @@ const generateProjectStructureFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await prompt(input);
-    const output = llmResponse.output();
+    const output = llmResponse.output; // Corrected: property access
 
     if (!output) {
       throw new Error("La IA no pudo generar la estructura del proyecto.");
     }
-    
+
     // Ensure files have isFolder correctly set if path ends with /
     const processedFiles = output.files.map(file => ({
       ...file,
@@ -98,3 +98,4 @@ const generateProjectStructureFlow = ai.defineFlow(
     return { ...output, files: processedFiles };
   }
 );
+

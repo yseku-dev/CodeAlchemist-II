@@ -20,8 +20,8 @@ import {z} from 'genkit';
 const ChatWithAgentOrGlobalInputSchema = z.object({
   /** The message sent by the user. */
   userMessage: z.string().describe('The message from the user.'),
-  /** 
-   * Optional system prompt of a specific AI agent. 
+  /**
+   * Optional system prompt of a specific AI agent.
    * If provided, the chat interaction will be contextualized by this agent's persona and instructions.
    * If not provided, a default assistant persona is used.
    */
@@ -92,7 +92,7 @@ const chatWithAgentOrGlobalFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await chatPrompt(input);
-    const output = llmResponse.output();
+    const output = llmResponse.output; // Corrected: property access
     if (!output) {
         throw new Error("No output from LLM for chatWithAgentOrGlobalFlow");
     }
@@ -101,3 +101,4 @@ const chatWithAgentOrGlobalFlow = ai.defineFlow(
     return { aiResponse: output.aiResponse };
   }
 );
+

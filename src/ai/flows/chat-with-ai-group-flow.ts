@@ -17,7 +17,7 @@ const AgentInfoSchema = z.object({
     name: z.string(),
     description: z.string(),
     systemPrompt: z.string(),
-    capabilities: z.custom<AgentCapabilities>(), 
+    capabilities: z.custom<AgentCapabilities>(),
     llmConfig: z.custom<AgentLLMConfiguration>(),
     systemPromptSummary: z.string().optional().describe('A summary of the system prompt, truncated for display.')
 });
@@ -44,7 +44,7 @@ export async function chatWithAIGroup(
 const orchestratorInteractionPrompt = ai.definePrompt({
   name: 'orchestratorInteractionPrompt',
   input: {schema: ChatWithAIGroupInputSchema},
-  output: {schema: ChatWithAIGroupOutputSchema}, 
+  output: {schema: ChatWithAIGroupOutputSchema},
   prompt: `{{{orchestratorAgentSystemPrompt}}}
 
 La tarea principal asignada a este grupo es:
@@ -80,9 +80,9 @@ const chatWithAIGroupFlow = ai.defineFlow(
       ...input,
       participatingAgents: agentsWithSummaries,
     };
-    
+
     const llmResponse = await orchestratorInteractionPrompt(promptInput);
-    const output = llmResponse.output();
+    const output = llmResponse.output; // Corrected: property access
 
     if (!output) {
       throw new Error("No output from Orchestrator LLM");
@@ -91,4 +91,3 @@ const chatWithAIGroupFlow = ai.defineFlow(
   }
 );
 
-// Removed Handlebars import and custom helper registration

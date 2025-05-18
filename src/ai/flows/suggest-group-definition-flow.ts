@@ -40,26 +40,7 @@ const prompt = ai.definePrompt({
   name: 'suggestGroupDefinitionPrompt',
   input: { schema: SuggestGroupDefinitionInputSchema },
   output: { schema: SuggestGroupDefinitionOutputSchema },
-  prompt: `Eres un experto en el diseño de equipos colaborativos de agentes de inteligencia artificial. Basado en la siguiente descripción de la tarea de un grupo y la lista de agentes disponibles, genera una definición completa para el grupo de trabajo.
-La definición debe incluir un nombre para el grupo, una descripción, una "Tarea Principal del Grupo" (que será el prompt para el agente Orquestador), y una lista de IDs de los agentes que deberían participar.
-Todas las salidas deben estar en castellano. El nombre del grupo debe ser en CamelCase.
-
-Descripción de la Tarea del Grupo:
-{{{groupTaskDescription}}}
-
-Agentes Disponibles (selecciona los más relevantes para la tarea):
-{{#if availableAgents.length}}
-{{#each availableAgents}}
-- ID: {{{this.id}}}, Nombre: {{{this.name}}}, Descripción: "{{{this.description}}}"
-{{/each}}
-{{else}}
-- No hay agentes específicos disponibles para seleccionar. Considera crear agentes primero si la tarea lo requiere. Si no se necesitan agentes específicos, puedes devolver una lista vacía de agentIds.
-{{/if}}
-
-Proporciona la definición en el formato JSON especificado por el esquema de salida.
-Para 'agentIds', selecciona los IDs de los agentes más adecuados de la lista de "Agentes Disponibles" para cumplir con la 'groupTaskDescription'. Si ningún agente parece adecuado o necesario, puedes devolver un array vacío, pero es preferible seleccionar al menos uno si la tarea lo justifica.
-La 'mainTask' debe ser un prompt detallado para el agente Orquestador, guiándolo sobre cómo coordinar a los agentes seleccionados para lograr el objetivo del grupo.
-`,
+  prompt: `Eres un experto en el diseño de equipos colaborativos de agentes de inteligencia artificial. Basado en la siguiente descripción de la tarea de un grupo y la lista de agentes disponibles, genera una definición completa para el grupo de trabajo.\nLa definición debe incluir un nombre para el grupo, una descripción, una \"Tarea Principal del Grupo\" (que será el prompt para el agente Orquestador), y una lista de IDs de los agentes que deberían participar.\nTodas las salidas deben estar en castellano. El nombre del grupo debe ser en CamelCase.\n\nDescripción de la Tarea del Grupo:\n{{{groupTaskDescription}}}\n\nAgentes Disponibles (selecciona los más relevantes para la tarea):\n{{#if availableAgents.length}}\n{{#each availableAgents}}\n- ID: {{{this.id}}}, Nombre: {{{this.name}}}, Descripción: \"{{{this.description}}}\"\n{{/each}}\n{{else}}\n- No hay agentes específicos disponibles para seleccionar. Considera crear agentes primero si la tarea lo requiere. Si no se necesitan agentes específicos, puedes devolver una lista vacía de agentIds.\n{{/if}}\n\nProporciona la definición en el formato JSON especificado por el esquema de salida.\nPara 'agentIds', selecciona los IDs de los agentes más adecuados de la lista de \"Agentes Disponibles\" para cumplir con la 'groupTaskDescription'. Si ningún agente parece adecuado o necesario, puedes devolver un array vacío, pero es preferible seleccionar al menos uno si la tarea lo justifica.\nLa 'mainTask' debe ser un prompt detallado para el agente Orquestador, guiándolo sobre cómo coordinar a los agentes seleccionados para lograr el objetivo del grupo.\n`,
 });
 
 const suggestGroupDefinitionFlow = ai.defineFlow(
@@ -70,7 +51,7 @@ const suggestGroupDefinitionFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await prompt(input);
-    const output = llmResponse.output();
+    const output = llmResponse.output; // Corrected: property access
     if (!output) {
       throw new Error("La IA no pudo generar una definición de grupo.");
     }
@@ -83,3 +64,4 @@ const suggestGroupDefinitionFlow = ai.defineFlow(
     return { ...output, agentIds: validAgentIds };
   }
 );
+

@@ -40,21 +40,7 @@ const prompt = ai.definePrompt({
   name: 'suggestAgentDefinitionPrompt',
   input: { schema: SuggestAgentDefinitionInputSchema },
   output: { schema: SuggestAgentDefinitionOutputSchema },
-  prompt: `Eres un experto en el diseño de agentes de inteligencia artificial. Basado en la siguiente descripción del rol de un agente, genera una definición completa para él.
-La definición debe incluir un nombre, una descripción, un prompt de sistema detallado y un conjunto de capacidades booleanas sugeridas (accessOwnCode, execution, virtualEnv, readWrite).
-Todas las salidas deben estar en castellano. El nombre del agente debe ser en CamelCase.
-
-Descripción del Rol del Agente:
-{{{roleDescription}}}
-
-Proporciona la definición en el formato JSON especificado por el esquema de salida. Asegúrate de que el systemPrompt sea completo y guíe claramente el comportamiento del agente.
-Para las capacidades, considera cuidadosamente qué permisos necesitaría un agente con el rol descrito. Por ejemplo:
-- 'accessOwnCode': si el agente necesita leer el código fuente de la aplicación actual (CodeAlchemist).
-- 'execution': si el agente necesita ejecutar scripts o comandos (esto es peligroso y debe usarse con precaución).
-- 'virtualEnv': si el agente necesita gestionar dependencias o ejecutar código en entornos aislados.
-- 'readWrite': si el agente necesita modificar archivos del sistema (esto también es peligroso).
-Piensa si el rol implica analizar código, generar archivos, ejecutar procesos externos, etc.
-`,
+  prompt: `Eres un experto en el diseño de agentes de inteligencia artificial. Basado en la siguiente descripción del rol de un agente, genera una definición completa para él.\nLa definición debe incluir un nombre, una descripción, un prompt de sistema detallado y un conjunto de capacidades booleanas sugeridas (accessOwnCode, execution, virtualEnv, readWrite).\nTodas las salidas deben estar en castellano. El nombre del agente debe ser en CamelCase.\n\nDescripción del Rol del Agente:\n{{{roleDescription}}}\n\nProporciona la definición en el formato JSON especificado por el esquema de salida. Asegúrate de que el systemPrompt sea completo y guíe claramente el comportamiento del agente.\nPara las capacidades, considera cuidadosamente qué permisos necesitaría un agente con el rol descrito. Por ejemplo:\n- 'accessOwnCode': si el agente necesita leer el código fuente de la aplicación actual (CodeAlchemist).\n- 'execution': si el agente necesita ejecutar scripts o comandos (esto es peligroso y debe usarse con precaución).\n- 'virtualEnv': si el agente necesita gestionar dependencias o ejecutar código en entornos aislados.\n- 'readWrite': si el agente necesita modificar archivos del sistema (esto también es peligroso).\nPiensa si el rol implica analizar código, generar archivos, ejecutar procesos externos, etc.\n`,
 });
 
 const suggestAgentDefinitionFlow = ai.defineFlow(
@@ -65,7 +51,7 @@ const suggestAgentDefinitionFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await prompt(input);
-    const output = llmResponse.output();
+    const output = llmResponse.output; // Corrected: property access
     if (!output) {
       throw new Error("La IA no pudo generar una definición de agente.");
     }
@@ -79,3 +65,4 @@ const suggestAgentDefinitionFlow = ai.defineFlow(
     return { ...output, capabilities: completeCapabilities };
   }
 );
+
