@@ -64,8 +64,8 @@ const promptLines = [
   '',
   'Toda la salida, incluyendo nombres de archivo, contenido y notas, debe estar en castellano.',
   'La respuesta DEBE ser un único objeto JSON que se adhiera estrictamente al esquema de salida especificado. No incluyas ningún texto explicativo fuera del objeto JSON.',
-  'Ejemplo de un objeto \\'file\\' para una carpeta: `{ "path": "src/", "content": "", "isFolder": true }`',
-  'Ejemplo de un objeto \\'file\\' para un archivo: `{ "path": "src/index.js", "content": "console.log(\\"Hola Mundo\\");" }`'
+  "Ejemplo de un objeto 'file' para una carpeta: \`{ \"path\": \"src/\", \"content\": \"\", \"isFolder\": true }\`",
+  "Ejemplo de un objeto 'file' para un archivo: \`{ \"path\": \"src/index.js\", \"content\": \"console.log(\\\"Hola Mundo\\\");\" }\`"
 ];
 
 const prompt = ai.definePrompt({
@@ -83,7 +83,7 @@ const generateProjectStructureFlow = ai.defineFlow(
   },
   async (input) => {
     const llmResponse = await prompt(input);
-    const output = llmResponse.output; // Corrected: property access
+    const output = llmResponse.output; 
 
     if (!output) {
       throw new Error("La IA no pudo generar la estructura del proyecto.");
