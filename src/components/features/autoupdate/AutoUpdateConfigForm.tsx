@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react'; // Added useState and useEffect
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
 import { Separator } from '@/components/ui/separator';
 import { useI18n } from '@/context/I18nContext';
+import type { TranslationKey } from '@/lib/i18n/translations';
 
 type AutoUpdateSourceType = "Local" | "Git";
 
@@ -52,6 +53,37 @@ export default function AutoUpdateConfigForm({
   isAnalysisInProgress,
 }: AutoUpdateConfigFormProps) {
   const { t } = useI18n();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    // Render placeholder or skeleton during SSR and initial client render
+    // to match server output.
+    return (
+        <Card className="lg:col-span-1">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                <Sparkles className="h-7 w-7 text-primary" />
+                <span>{t('autoupdate.config.title')}</span>
+                </CardTitle>
+                <CardDescription>{t('autoupdate.config.description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {/* Placeholder for LLMConfigSelector */}
+                <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
+                {/* Placeholder for SourceType Selector */}
+                <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
+                {/* Placeholder for Analysis Preferences */}
+                <div className="h-20 w-full bg-muted rounded-md animate-pulse"></div>
+                {/* Placeholder for Button */}
+                <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
+            </CardContent>
+        </Card>
+    );
+  }
 
   return (
     <Card className="lg:col-span-1">
@@ -72,7 +104,7 @@ export default function AutoUpdateConfigForm({
         <div className="space-y-2">
           <Label>{t('autoupdate.config.codeSourceLabel')}</Label>
           <Select value={sourceType} onValueChange={(value) => onSourceTypeChange(value as AutoUpdateSourceType)} disabled={isLoading}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={t('common.selectPlaceholder')} /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Local">{t('autoupdate.config.sourceLocal')}</SelectItem>
               <SelectItem value="Git">{t('autoupdate.config.sourceGit')}</SelectItem>
@@ -107,7 +139,7 @@ export default function AutoUpdateConfigForm({
           />
         </div>
 
-        <Button onClick={onStartAnalysis} disabled={isLoading} className="w-full">
+        <Button onClick={onStartAnalysis} disabled={isLoading || !llmConfigSource } className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4"/>}
           {isLoading ? t('autoupdate.config.startButtonLoading') : t('autoupdate.config.startButton')}
         </Button>
@@ -118,3 +150,5 @@ export default function AutoUpdateConfigForm({
     </Card>
   );
 }
+
+    
