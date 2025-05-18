@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from "@/hooks/use-toast";
-import { useDebug } from '@/context/DebugContext';
+import { useDebug, type DebugLogEntry } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, AutoUpdateSuggestion, AnalyzeCodeInput, AnalyzeCodeOutput, AppSourceFile } from '@/types';
 import { callAnalyzeSelfCode } from '@/utils/apiClient';
@@ -40,7 +40,7 @@ type AutoUpdateSourceType = "Local" | "Git";
  * @returns {JSX.Element} The rendered AutoUpdate page.
  */
 export default function AutoUpdatePage() {
-  const { agents, groups, settings: globalSettings, getAgentById, getGroupById } = useAppState();
+  const { agents, groups, settings: globalSettings, getAgentById, getGroupById } = useAppState(); // Correct hook call
   const { addLog: addDebugLog } = useDebug();
   const { toast } = useToast();
   const router = useRouter();
@@ -86,11 +86,18 @@ export default function AutoUpdatePage() {
   const [isUploadingGit, setIsUploadingGit] = useState(false);
   const [detailedLogs, setDetailedLogs] = useState<string[]>([]);
 
-
+  /**
+   * Processes the raw AI analysis output into a format suitable for the page's state.
+   * Maps AI suggestions to `AutoUpdateSuggestion` objects and generates a unified prompt.
+   * @param {AnalyzeCodeOutput} aiResult - The raw output from the AI analysis flow.
+   * @param {LLMConfigSourceOption | undefined} currentLlmConfigSource - The LLM configuration source used for the analysis.
+   * @param {AppSourceFile[]} [currentProjectFiles] - The project files that were analyzed (local or from Git).
+   * @returns {{ analysisOutput: AnalyzeCodeOutput; mappedSuggestions: AutoUpdateSuggestion[]; generatedUnifiedPrompt: string | null }} Processed analysis data.
+   */
   const _processAiAnalysisOutput = useCallback((
     aiResult: AnalyzeCodeOutput,
     currentLlmConfigSource: LLMConfigSourceOption | undefined,
-    currentProjectFiles?: AppSourceFile[] // Files used for original analysis (local or git)
+    currentProjectFiles?: AppSourceFile[]
   ): { analysisOutput: AnalyzeCodeOutput; mappedSuggestions: AutoUpdateSuggestion[]; generatedUnifiedPrompt: string | null } => {
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisProcessingComplete' as TranslationKey), data: { outputTitle: aiResult.analysisTitle, numSuggestions: aiResult.detailedSuggestions.length }});
 
@@ -142,90 +149,24 @@ export default function AutoUpdatePage() {
     }
 
     return { analysisOutput: finalResultOutput, mappedSuggestions, generatedUnifiedPrompt: generatedUnifiedPromptText };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getAgentById, getGroupById, addDebugLog, t, analysisPreferences]); // Removed 'projectFiles' as it's passed as argument
+  }, [getAgentById, getGroupById, addDebugLog, t, analysisPreferences]);
 
-  const handleStartAnalysis = useCallback(async () => {
-    setIsAnalyzing(true);
-    setLoadingMessage(t('autoupdate.toast.gettingLocalCode.title' as TranslationKey));
-    setAnalysisError(null);
-    setAnalysisResult(null);
-    setSuggestions([]);
-    setUnifiedPrompt(null);
-    setProgress(0);
-    setDetailedLogs([]);
-    const flowName = 'callAnalyzeSelfCode (AutoUpdate)';
-    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisStarting' as TranslationKey), data: { sourceType, config: JSON.stringify(llmConfigSource) }, flowName});
 
-    let projectFilesForAnalysis: AppSourceFile[] | undefined;
-    let projectContentStringForAnalysis: string | undefined;
-    let sourceLocationForAI: AnalyzeCodeInput['sourceCodeLocation'] = sourceType;
-
-    if (sourceType === 'Local') {
-      toast({ title: t('autoupdate.toast.gettingLocalCode.title' as TranslationKey), description: t('autoupdate.toast.gettingLocalCode.description' as TranslationKey)});
-      const bundleResult = await getApplicationSourceBundle(false);
-      if(bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
-
-      if (!bundleResult.success || !bundleResult.files) {
-        const errorMsg = bundleResult.error || t('autoupdate.errors.getLocalSourceFailed' as TranslationKey);
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.errors.getLocalSourceBundleFailed' as TranslationKey), data: { error: errorMsg }, flowName});
-        setAnalysisError(errorMsg);
-        toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title' as TranslationKey), description: errorMsg });
-        setIsAnalyzing(false);
-        setLoadingMessage(null);
-        return;
-      }
-      projectFilesForAnalysis = bundleResult.files;
-      projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
-      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.localCodeObtained' as TranslationKey), data: { numFiles: projectFilesForAnalysis.length }});
-      sourceLocationForAI = "Local";
-    } else if (sourceType === 'Git' && gitRepoUrl) {
-        setLoadingMessage(t('refactorProject.toast.fetchingGit' as TranslationKey));
-        toast({ title: t('refactorProject.toast.fetchingGit' as TranslationKey), description: gitRepoUrl });
-        const gitResult = await fetchRemoteGitRepository(gitRepoUrl);
-        if(gitResult.logsBuilt) setDetailedLogs(prev => [...prev, ...gitResult.logsBuilt!]);
-
-        if (!gitResult.success || !gitResult.files) {
-            const errorMsg = gitResult.error || t('refactorProject.toast.gitFetchError.unknown' as TranslationKey);
-            addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `Error fetching Git repo for AutoUpdate: ${errorMsg}`, data: { gitRepoUrl }, flowName});
-            setAnalysisError(errorMsg);
-            toast({ variant: "destructive", title: t('refactorProject.toast.gitFetchError.title' as TranslationKey), description: errorMsg });
-            setIsAnalyzing(false);
-            setLoadingMessage(null);
-            return;
-        }
-        projectFilesForAnalysis = gitResult.files;
-        projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Git repo content obtained for AutoUpdate: ${gitRepoUrl}`, data: { numFiles: projectFilesForAnalysis.length }});
-        sourceLocationForAI = "Git";
-    } else {
-        const errorMsg = sourceType === 'Git' && !gitRepoUrl ? t('autoupdate.config.gitUrlRequired' as TranslationKey) : t('autoupdate.errors.unknownSourceError' as TranslationKey);
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `Invalid source for AutoUpdate: ${errorMsg}`, data: { sourceType, gitRepoUrl }, flowName});
-        setAnalysisError(errorMsg);
-        toast({ variant: "destructive", title: t('autoupdate.toast.sourceError.title' as TranslationKey), description: errorMsg });
-        setIsAnalyzing(false);
-        setLoadingMessage(null);
-        return;
-    }
-    setLoadingMessage(t('autoupdate.toast.analyzingWithAI.title' as TranslationKey));
-
-    const currentAgent = llmConfigSource?.type === 'Agente' ? getAgentById(llmConfigSource.id || '') : undefined;
-    const currentGroup = llmConfigSource?.type === 'Grupo' ? getGroupById(llmConfigSource.id || '') : undefined;
-
-    const input: AnalyzeCodeInput = {
-      sourceCodeLocation: sourceLocationForAI,
-      gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
-      projectContent: projectContentStringForAnalysis,
-      focusArea: analysisPreferences || undefined,
-      agentSystemPrompt: currentAgent
-        ? currentAgent.systemPrompt
-        : currentGroup
-        ? currentGroup.mainTask
-        : undefined,
-    };
-
+  /**
+   * Handles the core logic of calling the AI analysis flow and processing its results.
+   * @param {AnalyzeCodeInput} analysisInput - The input for the AI analysis flow.
+   * @param {LLMConfigSourceOption | undefined} currentLlmConfigSource - The LLM configuration being used.
+   * @param {AppSourceFile[]} [currentProjectFiles] - The project files being analyzed.
+   * @returns {Promise<void>}
+   */
+  const _executeAnalysisAndProcessResults = useCallback(async (
+    analysisInput: AnalyzeCodeInput,
+    currentLlmConfigSource: LLMConfigSourceOption | undefined,
+    currentProjectFiles?: AppSourceFile[]
+  ) => {
+    const flowName = 'callAnalyzeSelfCode (AutoUpdate via _executeAnalysisAndProcessResults)';
     try {
-      if (llmConfigSource?.type !== 'Grupo') {
+      if (currentLlmConfigSource?.type !== 'Grupo') {
         let currentProgressVal = 0;
         const intervalId = setInterval(() => {
           currentProgressVal += 10;
@@ -236,10 +177,10 @@ export default function AutoUpdatePage() {
           }
         }, 300);
 
-        await callAnalyzeSelfCode(input)
+        await callAnalyzeSelfCode(analysisInput)
           .then((aiResult) => {
             clearInterval(intervalId);
-            const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = _processAiAnalysisOutput(aiResult, llmConfigSource, projectFilesForAnalysis);
+            const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = _processAiAnalysisOutput(aiResult, currentLlmConfigSource, currentProjectFiles);
             setAnalysisResult(analysisOutput);
             setSuggestions(mappedSuggestions);
             setUnifiedPrompt(generatedUnifiedPrompt);
@@ -250,12 +191,12 @@ export default function AutoUpdatePage() {
           })
           .catch(err => {
             clearInterval(intervalId);
-            throw err;
+            throw err; // Re-throw to be caught by the outer catch
           });
-      } else {
-        setProgress(50);
-        const aiResult = await callAnalyzeSelfCode(input);
-        const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = _processAiAnalysisOutput(aiResult, llmConfigSource, projectFilesForAnalysis);
+      } else { // Group-based analysis
+        setProgress(50); // Initial progress for group
+        const aiResult = await callAnalyzeSelfCode(analysisInput);
+        const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = _processAiAnalysisOutput(aiResult, currentLlmConfigSource, currentProjectFiles);
         setAnalysisResult(analysisOutput);
         setSuggestions(mappedSuggestions);
         setUnifiedPrompt(generatedUnifiedPrompt);
@@ -275,13 +216,113 @@ export default function AutoUpdatePage() {
         setAnalysisError(errorMsg);
         toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title' as TranslationKey), description: errorMsg });
       }
-      setProgress(0);
-    } finally {
-      setIsAnalyzing(false);
-      setLoadingMessage(null);
+      setProgress(0); // Reset progress on error
     }
-  }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, getAgentById, getGroupById, _processAiAnalysisOutput, toast, addDebugLog, router, t]);
+  }, [_processAiAnalysisOutput, toast, addDebugLog, router, t, getAgentById, getGroupById]);
 
+  /**
+   * Initiates the self-analysis process.
+   * Fetches source code (local via Server Action or from Git via Server Action),
+   * then calls the AI analysis flow.
+   */
+  const handleStartAnalysis = useCallback(async () => {
+    setIsAnalyzing(true);
+    setLoadingMessage(t('autoupdate.toast.gettingLocalCode.title' as TranslationKey));
+    setAnalysisError(null);
+    setAnalysisResult(null);
+    setSuggestions([]);
+    setUnifiedPrompt(null);
+    setProgress(0);
+    setDetailedLogs([]);
+    const flowName = 'callAnalyzeSelfCode (AutoUpdate)';
+    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisStarting' as TranslationKey), data: { sourceType, config: JSON.stringify(llmConfigSource) }, flowName});
+
+    let projectFilesForAnalysis: AppSourceFile[] | undefined;
+    let projectContentStringForAnalysis: string | undefined;
+    let sourceLocationForAI: AnalyzeCodeInput['sourceCodeLocation'] = sourceType;
+
+    if (sourceType === 'Local') {
+      toast({ title: t('autoupdate.toast.gettingLocalCode.title' as TranslationKey), description: t('autoupdate.toast.gettingLocalCode.description' as TranslationKey)});
+      try {
+        const bundleResult = await getApplicationSourceBundle(false); // Server Action call
+        if(bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
+
+        if (!bundleResult.success || !bundleResult.files) {
+          const errorMsg = bundleResult.error || t('autoupdate.errors.getLocalSourceFailed' as TranslationKey);
+          throw new AppError(errorMsg, bundleResult, 'server');
+        }
+        projectFilesForAnalysis = bundleResult.files;
+        projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.localCodeObtained' as TranslationKey), data: { numFiles: projectFilesForAnalysis.length }});
+        sourceLocationForAI = "Local";
+      } catch (e: any) {
+        const appErr = e instanceof AppError ? e : new AppError(t('autoupdate.errors.getLocalSourceFailed' as TranslationKey), e, 'server');
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.errors.getLocalSourceBundleFailed' as TranslationKey), data: { error: appErr.friendlyMessage, originalError: appErr.originalError }, flowName});
+        setAnalysisError(appErr.friendlyMessage);
+        toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title' as TranslationKey), description: appErr.friendlyMessage });
+        setIsAnalyzing(false);
+        setLoadingMessage(null);
+        return;
+      }
+    } else if (sourceType === 'Git' && gitRepoUrl) {
+        setLoadingMessage(t('refactorProject.toast.fetchingGit' as TranslationKey));
+        toast({ title: t('refactorProject.toast.fetchingGit' as TranslationKey), description: gitRepoUrl });
+        try {
+          const gitResult = await fetchRemoteGitRepository(gitRepoUrl); // Server Action call
+          if(gitResult.logsBuilt) setDetailedLogs(prev => [...prev, ...gitResult.logsBuilt!]);
+
+          if (!gitResult.success || !gitResult.files) {
+              const errorMsg = gitResult.error || t('refactorProject.toast.gitFetchError.unknown' as TranslationKey);
+              throw new AppError(errorMsg, gitResult, 'server');
+          }
+          projectFilesForAnalysis = gitResult.files;
+          projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
+          addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Git repo content obtained for AutoUpdate: ${gitRepoUrl}`, data: { numFiles: projectFilesForAnalysis.length }});
+          sourceLocationForAI = "Git";
+        } catch (e: any) {
+          const appErr = e instanceof AppError ? e : new AppError(t('refactorProject.toast.gitFetchError.title' as TranslationKey), e, 'server');
+          addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `Error fetching Git repo for AutoUpdate: ${appErr.friendlyMessage}`, data: { gitRepoUrl, originalError: appErr.originalError }, flowName});
+          setAnalysisError(appErr.friendlyMessage);
+          toast({ variant: "destructive", title: t('refactorProject.toast.gitFetchError.title' as TranslationKey), description: appErr.friendlyMessage });
+          setIsAnalyzing(false);
+          setLoadingMessage(null);
+          return;
+        }
+    } else {
+        const errorMsg = sourceType === 'Git' && !gitRepoUrl ? t('autoupdate.config.gitUrlRequired' as TranslationKey) : t('autoupdate.errors.unknownSourceError' as TranslationKey);
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `Invalid source for AutoUpdate: ${errorMsg}`, data: { sourceType, gitRepoUrl }, flowName});
+        setAnalysisError(errorMsg);
+        toast({ variant: "destructive", title: t('autoupdate.toast.sourceError.title' as TranslationKey), description: errorMsg });
+        setIsAnalyzing(false);
+        setLoadingMessage(null);
+        return;
+    }
+    setLoadingMessage(t('autoupdate.toast.analyzingWithAI.title' as TranslationKey));
+
+    const currentAgent = llmConfigSource?.type === 'Agente' ? getAgentById(llmConfigSource.id || '') : undefined;
+    const currentGroup = llmConfigSource?.type === 'Grupo' ? getGroupById(llmConfigSource.id || '') : undefined;
+
+    const input: AnalyzeCodeInput = {
+      sourceCodeLocation: sourceLocationForAI,
+      gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
+      projectContent: projectContentStringForAnalysis,
+      focusArea: analysisPreferences || undefined, // Use analysisPreferences as focusArea
+      agentSystemPrompt: currentAgent
+        ? currentAgent.systemPrompt
+        : currentGroup
+        ? currentGroup.mainTask // For groups, their main task might serve as the high-level prompt context for analysis
+        : undefined,
+    };
+    await _executeAnalysisAndProcessResults(input, llmConfigSource, projectFilesForAnalysis);
+    setIsAnalyzing(false);
+    setLoadingMessage(null);
+  }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, getAgentById, getGroupById, _executeAnalysisAndProcessResults, toast, addDebugLog, t, _processAiAnalysisOutput]);
+
+
+  /**
+   * Opens the confirmation dialog for applying a suggestion.
+   * @param {AutoUpdateSuggestion} suggestion - The suggestion to be applied.
+   */
   const handleApplySuggestionClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     if (!(suggestion.userEditedContent !== undefined || suggestion.fullFileContentSuggested !== undefined)) {
         toast({variant: "destructive", title: t('autoupdate.toast.noContentToApply.title' as TranslationKey), description: t('autoupdate.toast.noContentToApply.description' as TranslationKey)});
@@ -291,6 +332,10 @@ export default function AutoUpdatePage() {
     setShowConfirmApplyDialog(true);
   }, [toast, t]);
 
+  /**
+   * Marks a suggestion as "applied" in the UI.
+   * Actual file modification is not performed due to browser limitations.
+   */
   const confirmApplySuggestion = useCallback(() => {
     if (!suggestionToApply) return;
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionMarkedApplied' as TranslationKey, { area: suggestionToApply.area })});
@@ -300,6 +345,11 @@ export default function AutoUpdatePage() {
     setSuggestionToApply(null);
   }, [suggestionToApply, toast, addDebugLog, t]);
 
+
+  /**
+   * Handles the download of suggestions or the conceptual project with applied suggestions.
+   * @param {'JSON_SUGGESTIONS' | 'ZIP_PROJECT'} format - The desired download format.
+   */
   const handleDownload = useCallback(async (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => {
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.downloadRequested' as TranslationKey, { format: format })});
 
@@ -335,18 +385,18 @@ export default function AutoUpdatePage() {
       toast({ title: t('autoupdate.toast.downloadComplete.title' as TranslationKey), description: t('autoupdate.toast.downloadComplete.suggestionsJsonDescription' as TranslationKey, { filename: t('autoupdate.downloads.suggestionsJsonFilename' as TranslationKey) }) });
       addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionsDownloadedJson' as TranslationKey)});
     } else if (format === 'ZIP_PROJECT') {
-        setIsAnalyzing(true);
+        setIsAnalyzing(true); // Re-use isAnalyzing to indicate processing
         setLoadingMessage(t('autoupdate.toast.preparingProjectZip.title' as TranslationKey));
         toast({ title: t('autoupdate.toast.preparingProjectZip.title' as TranslationKey), description: t('autoupdate.toast.preparingProjectZip.description' as TranslationKey)});
+        let filesToPackage: AppSourceFile[] = [];
         try {
-            const bundleResult = await getApplicationSourceBundle(false);
+            const bundleResult = await getApplicationSourceBundle(false); // Call Server Action
             if(bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
 
             if (!bundleResult.success || !bundleResult.files) {
                 throw new Error(bundleResult.error || t('autoupdate.errors.getServerSourceFailedZip' as TranslationKey));
             }
-
-            let filesToPackage: AppSourceFile[] = bundleResult.files;
+            filesToPackage = bundleResult.files; // Real files from server
             addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'DEBUG', message: `Archivos base para ZIP (del servidor): ${filesToPackage.length}` });
 
             if (suggestions && suggestions.length > 0) {
@@ -379,9 +429,7 @@ export default function AutoUpdatePage() {
             filesToPackage.forEach(file => {
                 zip.file(file.fileName, file.content);
             });
-
-            const zipFileName = t('autoupdate.downloads.currentCodeZipFilename' as TranslationKey); // Changed from projectZipFilename
-
+            const zipFileName = t('autoupdate.downloads.currentCodeZipFilename' as TranslationKey);
             const zipBlob = await zip.generateAsync({ type: "blob" });
             const url = URL.createObjectURL(zipBlob);
             const link = document.createElement('a');
@@ -408,6 +456,9 @@ export default function AutoUpdatePage() {
     }
   }, [suggestions, toast, addDebugLog, t, analysisResult, setIsAnalyzing, setLoadingMessage]);
 
+  /**
+   * Opens the dialog for entering a Git commit message.
+   */
   const handleOpenCommitDialog = () => {
     if (!globalSettings.gitConfig.repoUrl || !globalSettings.gitConfig.username || !globalSettings.gitConfig.email || !globalSettings.gitConfig.pat) {
       toast({ variant: "destructive", title: t('autoupdate.toast.gitConfigIncomplete.title' as TranslationKey), description: t('autoupdate.toast.gitConfigIncomplete.description' as TranslationKey) });
@@ -417,6 +468,9 @@ export default function AutoUpdatePage() {
     setShowCommitDialog(true);
   };
 
+  /**
+   * Performs the Git upload operation by calling the Server Action.
+   */
   const performGitUpload = useCallback(async () => {
     if (!commitMessage.trim()) {
       toast({ variant: "destructive", title: t('autoupdate.toast.commitMessageRequired.title' as TranslationKey) });
@@ -428,9 +482,11 @@ export default function AutoUpdatePage() {
     setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] [INFO] ${t('autoupdate.logs.initiatingGitUpload' as TranslationKey)}`]);
     toast({ title: t('autoupdate.toast.uploadingToGit.title' as TranslationKey), description: t('autoupdate.toast.uploadingToGit.description' as TranslationKey, { repo: globalSettings.gitConfig.repoUrl.split('/').pop()?.replace('.git','') || 'repositorio' }) });
     addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.gitUploadInProgress' as TranslationKey, { message: commitMessage }), data: { repoUrl: globalSettings.gitConfig.repoUrl }});
+    const tempLogs: string[] = []; // Create a new array for this specific action's logs
 
     try {
-      const result = await handleUploadToGit(globalSettings.gitConfig, commitMessage, detailedLogs);
+      const result = await handleUploadToGit(globalSettings.gitConfig, commitMessage, tempLogs); // Pass tempLogs
+      setDetailedLogs(prev => [...prev, ...tempLogs]); // Append Server Action logs to page logs
 
       if (result.success) {
         toast({ title: t('autoupdate.toast.gitUploadSuccess.title' as TranslationKey), description: result.message, duration: 7000 });
@@ -438,7 +494,7 @@ export default function AutoUpdatePage() {
         setShowCommitDialog(false);
         setCommitMessage('');
       } else {
-        setAnalysisError(result.message); // Store Git error to potentially be fixed
+        setAnalysisError(result.message);
         toast({ title: t('autoupdate.toast.gitUploadError.title' as TranslationKey), description: result.message, variant: "destructive", duration: 10000 });
         addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.gitUploadError' as TranslationKey, { error: result.message }), data: result });
       }
@@ -451,27 +507,29 @@ export default function AutoUpdatePage() {
     } finally {
       setIsUploadingGit(false);
     }
-  }, [globalSettings.gitConfig, commitMessage, toast, addDebugLog, t, detailedLogs]);
+  }, [globalSettings.gitConfig, commitMessage, toast, addDebugLog, t]);
 
 
+  /**
+   * Attempts to get an AI-driven fix for a displayed error.
+   * @param {string} errorMsg - The error message to analyze.
+   */
   const handleAutoFixError = useCallback(async (errorMsg: string) => {
     const autoFixFlowName = 'callAnalyzeSelfCode (AutoFix Error)';
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.attemptingAutofix' as TranslationKey, { error: errorMsg }), flowName: autoFixFlowName});
     setIsAnalyzing(true);
-    setAnalysisError(null); // Clear previous analysis error if fixing a new one
+    setAnalysisError(null);
     setLoadingMessage(t('autoupdate.toast.autofixAttempt.description' as TranslationKey));
     try {
       const agentForFix = getAgentById('refactorizador-codigo-experto') || (agents.length > 0 ? getAgentById(agents[0].id) : undefined);
       const result = await callAnalyzeSelfCode({
-        sourceCodeLocation: 'Local', // Context for Auto-Fix is "local" error
+        sourceCodeLocation: 'Local',
         projectContent: t('autoupdate.autofix.errorContext' as TranslationKey, { error: errorMsg }),
         focusArea: t('autoupdate.autofix.focusArea' as TranslationKey, { error: errorMsg }),
         agentSystemPrompt: agentForFix?.systemPrompt,
       });
       toast({ title: t('autoupdate.toast.autofixSuggestion.title' as TranslationKey), description: result.generalAssessment, duration: 10000 });
-      // Potentially show `result` in a modal or append to logs
       addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Sugerencia de Auto-Fix recibida: ${result.analysisTitle}`, data: result, flowName: autoFixFlowName});
-
     } catch (e: any) {
       const appErr = e instanceof AppError ? e : new AppError(t('autoupdate.errors.autofixHelperFailed' as TranslationKey), e, 'ai');
       toast({ variant: "destructive", title: t('autoupdate.toast.autofixError.title' as TranslationKey), description: appErr.friendlyMessage });
@@ -483,6 +541,10 @@ export default function AutoUpdatePage() {
     }
   }, [addDebugLog, toast, router, getAgentById, agents, t, setIsAnalyzing, setAnalysisError, setLoadingMessage]);
 
+  /**
+   * Toggles the editing mode for a suggestion.
+   * @param {string} suggestionId - The ID of the suggestion.
+   */
   const handleToggleEdit = useCallback((suggestionId: string) => {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
@@ -496,29 +558,51 @@ export default function AutoUpdatePage() {
     }));
   }, []);
 
+  /**
+   * Handles changes to the content of a suggestion being edited.
+   * @param {string} suggestionId - The ID of the suggestion.
+   * @param {string} newContent - The new content.
+   */
   const handleSuggestionContentChange = useCallback((suggestionId: string, newContent: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, userEditedContent: newContent } : s));
   }, []);
 
+  /**
+   * Saves the edited content of a suggestion.
+   * @param {string} suggestionId - The ID of the suggestion.
+   */
   const handleSaveEdit = useCallback((suggestionId: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, isEditing: false } : s));
     toast({title: t('autoupdate.toast.editSaved.title' as TranslationKey), description: t('autoupdate.toast.editSaved.description' as TranslationKey)})
   }, [toast, t]);
 
+  /**
+   * Cancels editing for a suggestion, reverting any changes.
+   * @param {string} suggestionId - The ID of the suggestion.
+   */
   const handleCancelEdit = useCallback((suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
+        // Revert to original AI suggestion or clear if no original AI suggestion
         return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested ?? undefined };
       }
       return s;
     }));
   }, []);
 
+  /**
+   * Opens the dialog for testing a suggestion.
+   * @param {AutoUpdateSuggestion} suggestion - The suggestion to test.
+   */
   const handleTestSuggestionClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     setSuggestionToTest(suggestion);
     setShowTestDialog(true);
   }, []);
 
+  /**
+   * Opens the dialog for conceptually testing a suggestion in a virtual environment.
+   * @param {AutoUpdateSuggestion} suggestion - The suggestion to test.
+   */
   const handleTestInVenvClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     setSuggestionToTestInVenv(suggestion);
     setShowTestInVenvDialog(true);
@@ -634,7 +718,7 @@ export default function AutoUpdatePage() {
         </ConfirmDialog>
 
         {(analysisResult?.groupLog || detailedLogs.length > 0 || (isAnalyzing && !analysisResult && llmConfigSource?.type === 'Grupo')) && (
-            <div className="lg:col-span-3 mt-4">
+            <div className="mt-4"> {/* Removed lg:col-span-3 to allow natural flow */}
             <LogsDisplay
               title={t('autoupdate.logs.detailedExecutionLogsTitle' as TranslationKey)}
               logs={detailedLogs.length > 0 ? detailedLogs : (analysisResult?.groupLog || (isAnalyzing ? [t('autoupdate.logs.analyzingWithGroup' as TranslationKey)] : [t('autoupdate.logs.waitingForGroup' as TranslationKey)]))}

@@ -41,14 +41,14 @@ const NINGUNA_PRIORITY_VALUE = "__none__";
  * All UI texts are internationalized.
  */
 export default function RefactorizarProyectoPage() {
-  const { getAgentById, getGroupById } = useAppState();
+  const { agents, getAgentById, getGroupById } = useAppState(); // Correct hook call
   const router = useRouter();
   const { t } = useI18n();
 
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(undefined);
 
   useEffect(() => {
-    const { agents } = useAppState.getState(); // Get latest state directly
+    // Ensure agents is available before trying to set llmConfigSource
     if (agents && agents.length > 0 && llmConfigSource === undefined) {
       const defaultAgentFound = agents.find(a => a.name === "RefactorizadorCodigoExperto");
       setLlmConfigSource(defaultAgentFound
@@ -58,8 +58,7 @@ export default function RefactorizarProyectoPage() {
     } else if (llmConfigSource === undefined) {
         setLlmConfigSource({ type: 'Ajustes Globales' as const });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  }, [agents, llmConfigSource]);
 
 
   const [projectSourceType, setProjectSourceType] = useState<ProjectSourceType>("upload");
@@ -88,9 +87,11 @@ export default function RefactorizarProyectoPage() {
     if (file) {
       const allowedTypes = ['application/zip', 'application/json', 'text/plain', 'text/javascript', 'text/x-python-script', 'text/css', 'text/html'];
       const allowedExtensions = ['.py', '.js', '.java', '.json', '.html', '.css', '.txt', '.md'];
-      const isAllowedTextFile = allowedExtensions.some(ext => file.name.endsWith(ext)) && file.type.startsWith('text/');
+      // Check if it's a known text type or a common code extension that might be text
+      const isAllowedTextFile = allowedExtensions.some(ext => file.name.endsWith(ext)) && (file.type.startsWith('text/') || file.type === 'application/octet-stream' || file.type === '');
 
-      if ((allowedTypes.includes(file.type) || isAllowedTextFile || file.name.endsWith('.zip')) && file.size <= 10 * 1024 * 1024) {
+
+      if ((allowedTypes.includes(file.type) || isAllowedTextFile || file.name.endsWith('.zip')) && file.size <= 10 * 1024 * 1024) { // 10MB limit
         setUploadedFile(file);
         addLog({message: `File selected for refactor: ${file.name}, type: ${file.type}, size: ${file.size} bytes`, flowName: 'handleFileChange'});
       } else {
@@ -152,7 +153,7 @@ export default function RefactorizarProyectoPage() {
       return;
     }
 
-    if (!projectContentForAI && projectSourceType !== 'git') { 
+    if (!projectContentForAI && projectSourceType !== 'git') {
         toast({ variant: "destructive", title: t('refactorProject.toast.noContentToAnalyze.title' as TranslationKey), description: t('refactorProject.toast.noContentToAnalyze.description' as TranslationKey) });
         setIsLoading(false);
         setLoadingMessage(null);
@@ -275,7 +276,7 @@ export default function RefactorizarProyectoPage() {
           {projectSourceType === "upload" && (
             <div className="space-y-2">
               <Label htmlFor="file-upload">{t('refactorProject.uploadLabel' as TranslationKey)}</Label>
-              <Input id="file-upload" type="file" ref={fileInputRef} onChange={handleFileChange} disabled={isLoading} accept=".zip,.json,.js,.ts,.py,.java,.html,.css,.txt,.md" />
+              <Input id="file-upload" type="file" ref={fileInputRef} onChange={handleFileChange} disabled={isLoading} accept=".zip,application/zip,.json,application/json,.js,.ts,.jsx,.tsx,.py,.java,.html,.css,.txt,.md" />
               {uploadedFile && <p className="text-xs text-muted-foreground">{t('common.fileSelected' as TranslationKey, { name: uploadedFile.name })}</p>}
             </div>
           )}
@@ -296,7 +297,7 @@ export default function RefactorizarProyectoPage() {
           <div className="space-y-2">
             <Label htmlFor="general-priority" className="text-sm font-normal">{t('refactorProject.priorityLabel' as TranslationKey)}</Label>
             <Select
-              value={generalPriority === '' ? NINGUNA_PRIORITY_VALUE : generalPriority}
+              value={generalPriority}
               onValueChange={(selectedValue) => {
                 setGeneralPriority(selectedValue as GeneralPriority | typeof NINGUNA_PRIORITY_VALUE);
               }}
@@ -308,11 +309,10 @@ export default function RefactorizarProyectoPage() {
               <SelectContent>
                 <SelectItem value={NINGUNA_PRIORITY_VALUE}>{t('refactorProject.priorityNone' as TranslationKey)}</SelectItem>
                 {GENERAL_PRIORITIES.map(p => {
-                  const keyForTranslation = `refactorProject.priorities.${p.replace(/\s+/g, '')}`;
-                  // console.log(`[RefactorPage] Original Priority: "${p}", Key for t(): "${keyForTranslation}"`);
+                  const keyForTranslation = `refactorProject.priorities.${p.replace(/\s+/g, '')}` as TranslationKey;
                   return (
                     <SelectItem key={p} value={p}>
-                      {t(keyForTranslation as TranslationKey, { defaultValue: p })}
+                      {t(keyForTranslation, { defaultValue: p })}
                     </SelectItem>
                   );
                 })}
@@ -329,7 +329,7 @@ export default function RefactorizarProyectoPage() {
           </div>
 
           <Button onClick={handleAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
-            {isLoading && (status === 'loading_source' || status === 'analyzing') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
             {isLoading && loadingMessage ? loadingMessage : t('refactorProject.analyzeButton' as TranslationKey)}
           </Button>
         </CardContent>
