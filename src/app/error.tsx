@@ -16,8 +16,13 @@ import type { TranslationKey } from '@/lib/i18n/translations';
  * This component is internationalized.
  */
 
+/**
+ * Props for the GlobalError component.
+ */
 interface GlobalErrorProps {
+  /** The error object that was caught. */
   error: Error & { digest?: string };
+  /** A function to attempt to re-render the route segment. */
   reset: () => void;
 }
 
@@ -25,8 +30,6 @@ interface GlobalErrorProps {
  * GlobalError component that serves as the root error boundary.
  *
  * @param {GlobalErrorProps} props - The props for the component.
- * @param {Error & { digest?: string }} props.error - The error object.
- * @param {() => void} props.reset - A function to attempt to re-render the route segment.
  * @returns {JSX.Element} The rendered global error fallback UI.
  */
 export default function GlobalError({ error, reset }: GlobalErrorProps): JSX.Element {
@@ -34,7 +37,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps): JSX.Ele
 
   useEffect(() => {
     // Log the error to a centralized monitoring system in production
-    console.error("GlobalError caught an error:", error);
+    console.error("[GlobalError caught an error]:", error);
     if (error.message) {
       console.error("Error Message:", error.message);
     }
@@ -44,7 +47,8 @@ export default function GlobalError({ error, reset }: GlobalErrorProps): JSX.Ele
     if (error.digest) {
       console.error("Error digest (Next.js specific for server errors):", error.digest);
     }
-    // En producción, enviar este 'error' a Sentry:
+    // En producción, enviar este 'error' a Sentry.
+    // Ejemplo:
     // import * as Sentry from "@sentry/nextjs";
     // Sentry.captureException(error);
   }, [error]);
@@ -56,28 +60,28 @@ export default function GlobalError({ error, reset }: GlobalErrorProps): JSX.Ele
           <div className="mx-auto bg-destructive/10 p-3 rounded-full w-fit">
             <AlertTriangle className="h-10 w-10 text-destructive" />
           </div>
-          <CardTitle className="mt-4 text-2xl">{t('globalError.title' as TranslationKey)}</CardTitle>
+          <CardTitle className="mt-4 text-2xl">{t('error.globalError.title' as TranslationKey)}</CardTitle>
           <CardDescription>
-            {t('globalError.description' as TranslationKey)}
+            {t('error.globalError.description' as TranslationKey)}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            {t('globalError.recoverySuggestion' as TranslationKey)}
+            {t('error.globalError.recoverySuggestion' as TranslationKey)}
           </p>
           {process.env.NODE_ENV === 'development' && error?.message && (
             <div className="mt-4 p-3 bg-muted rounded-md text-left text-xs overflow-auto max-h-32">
-              <p className="font-semibold">{t('globalError.devDetailsTitle' as TranslationKey)}</p>
+              <p className="font-semibold">{t('error.globalError.devDetailsTitle' as TranslationKey)}</p>
               <pre className="whitespace-pre-wrap">{error.message}</pre>
             </div>
           )}
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 justify-center">
           <Button onClick={() => reset()} variant="outline">
-            {t('globalError.retryButton' as TranslationKey)}
+            {t('error.globalError.retryButton' as TranslationKey)}
           </Button>
           <Button onClick={() => window.location.href = '/'}>
-            {t('globalError.homeButton' as TranslationKey)}
+            {t('error.globalError.homeButton' as TranslationKey)}
           </Button>
         </CardFooter>
       </Card>
