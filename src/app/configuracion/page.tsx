@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -14,14 +13,13 @@ import { useDebug } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
 import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS, APP_NAME } from '@/lib/constants';
 import type { LLMSettings, GitSettings, LLMProvider, AppSettings, LanguageCode } from '@/types';
-import { Upload, Download, Save, Settings as SettingsIcon, Loader2, Info } from 'lucide-react';
+import { Upload, Download, Save, Settings as SettingsIcon, Loader2, Info, Cpu, GitBranch, Languages, Bug } from 'lucide-react';
 import { getModelsForProvider } from '@/lib/utils';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { getGroqModels } from './actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
 
 /**
  * @fileOverview Page component for application configuration.
@@ -30,26 +28,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
  * Provides functionality to import and export application settings.
  * Internationalized using useI18n.
  */
-
-/**
- * Mock function to simulate testing LLM connection.
- * @param {LLMSettings} config - The LLM configuration to test.
- * @returns {Promise<boolean>} True if connection is successful, false otherwise.
- */
-const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
-  console.info("Testing LLM Connection with:", config);
-  return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
-};
-
-/**
- * Mock function to simulate testing Git connection.
- * @param {GitSettings} config - The Git configuration to test.
- * @returns {Promise<boolean>} True if connection is successful, false otherwise.
- */
-const testGitConnection = async (config: GitSettings): Promise<boolean> => {
-  console.info("Testing Git Connection with:", config);
-  return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
-};
 
 /**
  * ConfigurationPage component.
@@ -94,11 +72,12 @@ export default function ConfiguracionPage(): JSX.Element {
   const fetchAndSetGroqModels = useCallback(async (apiKey: string) => {
     if (!apiKey) {
       setGroqModels([]);
-      setAvailableModels(getModelsForProvider("Groq"));
+      setAvailableModels(getModelsForProvider("Groq")); // Fallback to static if API key is cleared
       previousApiKeyRef.current = null;
       return;
     }
 
+    // Avoid re-fetching if API key hasn't changed and we already have models
     if (apiKey === previousApiKeyRef.current && groqModels.length > 0) {
       addLog({ source: 'ConfiguracionPage', type: 'DEBUG', message: 'Usando modelos Groq cacheados para la API key actual.' });
       setAvailableModels(groqModels);
@@ -117,26 +96,29 @@ export default function ConfiguracionPage(): JSX.Element {
 
       if (result.success && result.models) {
         setGroqModels(result.models);
-        const modelsToUse = result.models.length > 0 ? result.models : getModelsForProvider("Groq");
+        const modelsToUse = result.models.length > 0 ? result.models : getModelsForProvider("Groq"); // Use static as fallback if API returns empty
         setAvailableModels(modelsToUse);
-        previousApiKeyRef.current = apiKey;
+        previousApiKeyRef.current = apiKey; // Mark that we've fetched for this key
 
         if (result.models.length > 0) {
           toast({ title: t('settings.toast.groqModelsLoadSuccess.title'), description: t('settings.toast.groqModelsLoadSuccess.description', { count: result.models.length }) });
+          // If current model is not in the new list, try to select the first one
           if (currentLLMConfig.provider === "Groq" && !modelsToUse.includes(currentLLMConfig.model || '')) {
              setCurrentLLMConfig(prev => ({ ...prev, model: modelsToUse[0] || '' }));
           }
         } else {
+          // Success but no models returned, or Groq API itself reported an error passed in result.error
           toast({ title: t('settings.toast.groqModelsLoadNoModels.title'), description: result.error || t('settings.toast.groqModelsLoadNoModels.description') });
         }
-         if (result.error && result.models?.length === 0) {
+         // If Groq API returned an error that was caught by the server action's specific logic and passed in result.error
+        if (result.error && result.models?.length === 0) { // This condition might be redundant if above handles it
             toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: result.error });
         }
 
-      } else {
+      } else { // result.success is false
         setGroqModels([]);
-        setAvailableModels(getModelsForProvider("Groq"));
-        previousApiKeyRef.current = null; 
+        setAvailableModels(getModelsForProvider("Groq")); // Fallback to static
+        previousApiKeyRef.current = null; // Reset so we can try again
         const errorMsg = result.error || t('common.unknownError');
         toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: errorMsg });
         if(result.debug) {
@@ -146,7 +128,7 @@ export default function ConfiguracionPage(): JSX.Element {
           addLog({ source: 'ConfiguracionPage', type: 'ERROR', message: `[CLIENT] Fallo Server Action getGroqModels: ${errorMsg}` });
         }
       }
-    } catch (error: any) {
+    } catch (error: any) { // Catch errors from the getGroqModels Server Action call itself
       setGroqModels([]);
       setAvailableModels(getModelsForProvider("Groq"));
       previousApiKeyRef.current = null;
@@ -156,19 +138,21 @@ export default function ConfiguracionPage(): JSX.Element {
     } finally {
       setIsLoadingGroqModels(false);
     }
-  }, [t, toast, addLog, currentLLMConfig.provider, currentLLMConfig.model, groqModels]);
+  }, [t, toast, addLog, currentLLMConfig.provider, currentLLMConfig.model, groqModels]); // Added groqModels
 
 
   useEffect(() => {
     if (currentLLMConfig.provider === "Groq" && currentLLMConfig.apiKey) {
-      if (!isLoadingGroqModels) {
+      if (!isLoadingGroqModels) { // Check if not already loading
         fetchAndSetGroqModels(currentLLMConfig.apiKey);
       }
     } else if (currentLLMConfig.provider !== "Groq") {
+      // If provider changes away from Groq, clear Groq-specific models and API key ref
       setGroqModels([]); 
       previousApiKeyRef.current = null;
       setAvailableModels(getModelsForProvider(currentLLMConfig.provider || DEFAULT_LLM_SETTINGS.provider));
     }
+    // This effect should run when provider or API key changes
   }, [currentLLMConfig.provider, currentLLMConfig.apiKey, fetchAndSetGroqModels, isLoadingGroqModels]);
 
   const handleLLMConfigChange = useCallback((field: keyof LLMSettings, value: string | LLMProvider) => {
@@ -179,26 +163,29 @@ export default function ConfiguracionPage(): JSX.Element {
         const newProvider = value as LLMProvider;
         newConfig.apiUrl = LLM_PROVIDER_DEFAULT_API_URLS[newProvider] || ""; 
         
+        // If new provider is NOT Groq, reset Groq models and API key ref for it
         if (newProvider !== "Groq") {
           const modelsForNewProvider = getModelsForProvider(newProvider);
           setAvailableModels(modelsForNewProvider); 
-          setGroqModels([]);
-          previousApiKeyRef.current = null;
+          setGroqModels([]); // Clear Groq models
+          previousApiKeyRef.current = null; // Reset API key ref for Groq
+          // Auto-select first model if current is not in new list
           if (!modelsForNewProvider.includes(newConfig.model || '')) {
             newConfig.model = modelsForNewProvider.length > 0 ? modelsForNewProvider[0] : '';
           }
         } else {
-           if (newConfig.apiKey) {
-             // fetchAndSetGroqModels will be called by the useEffect dependent on apiKey and provider
-           } else {
+           // If provider is Groq, and API key is already present, fetchAndSetGroqModels will be triggered by the useEffect.
+           // If API key is not present, show static list for Groq for now.
+           if (!newConfig.apiKey) {
              setAvailableModels(getModelsForProvider("Groq"));
-             setGroqModels([]);
+             setGroqModels([]); // Clear any previously fetched dynamic models
            }
+           // If newConfig.apiKey exists, the useEffect for provider/apiKey change will handle fetching
         }
       }
       return newConfig;
     });
-  }, []);
+  }, []); // Removed setAvailableModels from dependencies as it's usually a setter from useState
 
   const handleGitConfigChange = (field: keyof GitSettings, value: string) => {
     setCurrentGitConfig({ ...currentGitConfig, [field]: value });
@@ -220,10 +207,24 @@ export default function ConfiguracionPage(): JSX.Element {
   };
 
   const handleLanguageChange = (langCode: LanguageCode) => {
-    setI18nLanguage(langCode); 
-    const langName = supportedLanguages.find(l => l.code === langCode)?.name || langCode.toUpperCase();
+    setI18nLanguage(langCode); // This updates I18nContext, which then updates AppStateContext
+    const langObj = supportedLanguages.find(l => l.code === langCode);
+    const langName = langObj ? langObj.name : langCode.toUpperCase();
     toast({ title: t('settings.toast.languageChanged.title'), description: t('settings.toast.languageChanged.description', { langName }) });
     addLog({source: "ConfiguracionPage", type: "INFO", message:`Language changed to: ${langCode}`});
+  };
+
+
+  const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
+    console.info("Testing LLM Connection with:", config);
+    // Simulate API call
+    return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
+  };
+  
+  const testGitConnection = async (config: GitSettings): Promise<boolean> => {
+    console.info("Testing Git Connection with:", config);
+    // Simulate API call
+    return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
   };
 
 
@@ -305,14 +306,17 @@ export default function ConfiguracionPage(): JSX.Element {
           ) {
             const importedSettings = parsedConfig as AppSettings;
 
+            // Update global state through context functions
             updateLLMConfig(importedSettings.llmConfig);
             updateGitConfig(importedSettings.gitConfig);
-            setI18nLanguage(importedSettings.language);
-            updateSettings({ debugMode: importedSettings.debugMode, language: importedSettings.language }); 
+            setI18nLanguage(importedSettings.language); // This will update AppState via its own effect
+            updateSettings({ debugMode: importedSettings.debugMode, language: importedSettings.language }); // Also ensure main settings object is updated
             
+            // Update local state for the form
             setCurrentLLMConfig(importedSettings.llmConfig);
             setCurrentGitConfig(importedSettings.gitConfig);
             setCurrentDebugMode(importedSettings.debugMode);
+            // The language is handled by i18nLanguage already
             
             toast({ title: t('settings.toast.configImported.title'), description: t('settings.toast.configImported.description') });
             addLog({source: "ConfiguracionPage", type: "INFO", message:"Configuration imported and applied."});
@@ -324,6 +328,7 @@ export default function ConfiguracionPage(): JSX.Element {
           toast({ variant: "destructive", title: t('settings.toast.configImportError.title'), description: errorDesc });
           addLog({source: "ConfiguracionPage", type: "ERROR", message:`Configuration import failed: ${errorDesc}`});
         } finally {
+          // Reset file input
           if (importConfigInputRef.current) {
             importConfigInputRef.current.value = "";
           }
@@ -384,9 +389,12 @@ export default function ConfiguracionPage(): JSX.Element {
       <CardContent className="pt-6 space-y-8">
         {/* LLM Settings Section */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t('settings.llm.title')}</CardTitle>
-            <CardDescription>{t('settings.llm.description')}</CardDescription>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <Cpu className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-xl">{t('settings.llm.title')}</CardTitle>
+              <CardDescription>{t('settings.llm.description')}</CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -407,7 +415,7 @@ export default function ConfiguracionPage(): JSX.Element {
             </div>
 
             <div className="space-y-2">
-              <FieldLabelWithTooltip htmlFor="llm-api-url" labelKey="settings.llm.apiUrlLabel" tooltipKey="settings.llm.apiUrlTooltip" />
+              <FieldLabelWithTooltip htmlFor="llm-api-url" labelKey={'settings.llm.apiUrlLabel' as TranslationKey} tooltipKey={'settings.llm.apiUrlTooltip' as TranslationKey} />
               <Input
                 id="llm-api-url"
                 value={currentLLMConfig.apiUrl || ''}
@@ -420,7 +428,7 @@ export default function ConfiguracionPage(): JSX.Element {
             </div>
 
             <div className="space-y-2">
-              <FieldLabelWithTooltip htmlFor="llm-api-key" labelKey="settings.llm.apiKeyLabel" tooltipKey="settings.llm.apiKeyTooltip" />
+              <FieldLabelWithTooltip htmlFor="llm-api-key" labelKey={'settings.llm.apiKeyLabel' as TranslationKey} tooltipKey={'settings.llm.apiKeyTooltip' as TranslationKey} />
               <Input
                 id="llm-api-key"
                 type="password"
@@ -432,7 +440,7 @@ export default function ConfiguracionPage(): JSX.Element {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                 <FieldLabelWithTooltip htmlFor="llm-model" labelKey="settings.llm.modelNameLabel" tooltipKey="settings.llm.modelNameTooltip" />
+                 <FieldLabelWithTooltip htmlFor="llm-model" labelKey={'settings.llm.modelNameLabel' as TranslationKey} tooltipKey={'settings.llm.modelNameTooltip' as TranslationKey} />
                 {currentLLMConfig.provider === "Groq" && isLoadingGroqModels && <Loader2 className="h-4 w-4 animate-spin" />}
               </div>
               <Select
@@ -476,13 +484,16 @@ export default function ConfiguracionPage(): JSX.Element {
         <Separator />
 
         <Card>
-          <CardHeader>
-            <CardTitle>{t('settings.git.title')}</CardTitle>
-            <CardDescription>{t('settings.git.description')}</CardDescription>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <GitBranch className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-xl">{t('settings.git.title')}</CardTitle>
+              <CardDescription>{t('settings.git.description')}</CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <FieldLabelWithTooltip htmlFor="git-repo-url" labelKey="settings.git.repoUrlLabel" tooltipKey="settings.git.repoUrlTooltip" />
+              <FieldLabelWithTooltip htmlFor="git-repo-url" labelKey={'settings.git.repoUrlLabel' as TranslationKey} tooltipKey={'settings.git.repoUrlTooltip' as TranslationKey} />
               <Input
                 id="git-repo-url"
                 value={currentGitConfig.repoUrl || ''}
@@ -492,25 +503,27 @@ export default function ConfiguracionPage(): JSX.Element {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <FieldLabelWithTooltip htmlFor="git-username" labelKey="settings.git.usernameLabel" tooltipKey="settings.git.usernameTooltip" />
+                <FieldLabelWithTooltip htmlFor="git-username" labelKey={'settings.git.usernameLabel' as TranslationKey} tooltipKey={'settings.git.usernameTooltip' as TranslationKey} />
                 <Input
                   id="git-username"
                   value={currentGitConfig.username || ''}
                   onChange={(e) => handleGitConfigChange('username', e.target.value)}
+                  placeholder={t('settings.git.usernamePlaceholder')}
                 />
               </div>
               <div className="space-y-2">
-                <FieldLabelWithTooltip htmlFor="git-email" labelKey="settings.git.emailLabel" tooltipKey="settings.git.emailTooltip" />
+                <FieldLabelWithTooltip htmlFor="git-email" labelKey={'settings.git.emailLabel' as TranslationKey} tooltipKey={'settings.git.emailTooltip' as TranslationKey} />
                 <Input
                   id="git-email"
                   type="email"
                   value={currentGitConfig.email || ''}
                   onChange={(e) => handleGitConfigChange('email', e.target.value)}
+                  placeholder={t('settings.git.emailPlaceholder')}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <FieldLabelWithTooltip htmlFor="git-pat" labelKey="settings.git.patLabel" tooltipKey="settings.git.patTooltip" />
+              <FieldLabelWithTooltip htmlFor="git-pat" labelKey={'settings.git.patLabel' as TranslationKey} tooltipKey={'settings.git.patTooltip' as TranslationKey} />
               <Input
                 id="git-pat"
                 type="password"
@@ -531,26 +544,32 @@ export default function ConfiguracionPage(): JSX.Element {
         <Separator />
 
         <Card>
-          <CardHeader>
-            <CardTitle>{t('settings.language.title')}</CardTitle>
-            <CardDescription>{t('settings.language.description')}</CardDescription>
+           <CardHeader className="flex flex-row items-center gap-2">
+            <Languages className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-xl">{t('settings.language.title')}</CardTitle>
+              <CardDescription>{t('settings.language.description')}</CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <Label htmlFor="language-select">{t('settings.language.selectLabel')}</Label>
-              <Select
-                value={i18nLanguage} 
-                onValueChange={(value) => handleLanguageChange(value as LanguageCode)}
-              >
-                <SelectTrigger id="language-select">
-                  <SelectValue placeholder={t('settings.language.selectPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {supportedLanguages.map(lang => (
-                    <SelectItem key={lang.code} value={lang.code}>{lang.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={i18nLanguage} 
+                  onValueChange={(value) => handleLanguageChange(value as LanguageCode)}
+                >
+                  <SelectTrigger id="language-select" className="flex-grow">
+                    <SelectValue placeholder={t('settings.language.selectPlaceholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {supportedLanguages.map(lang => (
+                      <SelectItem key={lang.code} value={lang.code}>{lang.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Languages className="h-5 w-5 text-muted-foreground" />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -558,9 +577,12 @@ export default function ConfiguracionPage(): JSX.Element {
         <Separator />
 
         <Card>
-          <CardHeader>
-            <CardTitle>{t('settings.debug.title')}</CardTitle>
-            <CardDescription>{t('settings.debug.description')}</CardDescription>
+          <CardHeader className="flex flex-row items-center gap-2">
+            <Bug className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-xl">{t('settings.debug.title')}</CardTitle>
+              <CardDescription>{t('settings.debug.description')}</CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
