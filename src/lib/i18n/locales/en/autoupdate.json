@@ -11,6 +11,7 @@
     "sourceGit": "Git Repository URL",
     "gitUrlLabel": "Git Repository URL",
     "gitUrlPlaceholder": "HTTPS URL of CodeAlchemist repo",
+    "gitUrlRequired": "Git repository URL is required.",
     "analysisParamsLabel": "Self-Analysis Parameters",
     "analysisPrefsLabel": "Analysis Preferences / Focus Area (optional)",
     "analysisPrefsPlaceholder": "E.g.: Focus on UI optimization. All suggestions in English.",
@@ -218,8 +219,5 @@
   "autofix": {
     "errorContext": "Error to analyze: {error}\n\nContext: Error occurred in CodeAlchemist's AutoUpdate feature.",
     "focusArea": "Explain the following error and propose a solution or debugging steps: \"{error}\""
-  },
-  "config": {
-    "gitUrlRequired": "Git repository URL is required."
   }
 }

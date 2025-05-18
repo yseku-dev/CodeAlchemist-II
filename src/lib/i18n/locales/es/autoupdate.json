@@ -11,6 +11,7 @@
     "sourceGit": "URL del Repositorio Git",
     "gitUrlLabel": "URL del Repositorio Git",
     "gitUrlPlaceholder": "URL HTTPS del repo CodeAlchemist",
+    "gitUrlRequired": "Se requiere la URL del repositorio Git.",
     "analysisParamsLabel": "Parámetros de Auto-Análisis",
     "analysisPrefsLabel": "Preferencias de Análisis / Campo de Enfoque (opcional)",
     "analysisPrefsPlaceholder": "Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano.",
@@ -164,7 +165,7 @@
     },
     "downloadProjectZipToast": {
         "title": "Descarga de Código Actual con Sugerencias (ZIP)",
-        "description": "Descarga de un ZIP conteniendo el código fuente actual del proyecto (del servidor), con sugerencias 'aplicadas' conceptualmente, ha iniciado. Este archivo ({filename}) contiene un archivo JSON detallando los cambios sugeridos. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (Git) y aplicar manualmente los cambios del JSON a tu copia local."
+        "description": "Descarga de un ZIP conteniendo el código fuente actual del proyecto (del servidor), con sugerencias 'aplicadas' conceptualmente, ha iniciado. Este archivo ({filename}) contiene un archivo JSON detallando los cambios sugeridos. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (Git) y aplicar manually los cambios del JSON a tu copia local."
     },
     "downloadCurrentCodeZipToast": {
         "title": "Descarga de Código Actual (ZIP)",
@@ -218,8 +219,5 @@
   "autofix": {
     "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
     "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
-  },
-  "config": {
-      "gitUrlRequired": "Se requiere la URL del repositorio Git."
   }
 }
