@@ -18,7 +18,10 @@
     "settings": "Settings",
     "mobile": {
       "title": "Main Navigation"
-    }
+    },
+    "collapseButton": "Collapse sidebar",
+    "expandButton": "Expand sidebar",
+    "toggleSidebarButton": "Toggle sidebar"
   },
   "appLayout": {
     "debugPanel": {
@@ -27,7 +30,13 @@
       "clearButton": "Clear Logs",
       "collapseButton": "Collapse",
       "expandButton": "Expand",
-      "noLogs": "No logs."
+      "noLogs": "No logs.",
+      "toast": {
+        "copied": {
+            "title": "Logs Copied",
+            "description": "Debug logs have been copied to the clipboard."
+        }
+      }
     },
     "toast": {
       "unexpectedError": {

@@ -18,7 +18,10 @@
     "settings": "Configuración",
     "mobile": {
       "title": "Navegación Principal"
-    }
+    },
+    "collapseButton": "Ocultar barra lateral",
+    "expandButton": "Mostrar barra lateral",
+    "toggleSidebarButton": "Conmutar barra lateral"
   },
   "appLayout": {
     "debugPanel": {
@@ -27,7 +30,13 @@
       "clearButton": "Borrar Logs",
       "collapseButton": "Contraer",
       "expandButton": "Expandir",
-      "noLogs": "No hay logs."
+      "noLogs": "No hay logs.",
+      "toast": {
+        "copied": {
+            "title": "Logs Copiados",
+            "description": "Los logs de depuración han sido copiados al portapapeles."
+        }
+      }
     },
     "toast": {
       "unexpectedError": {

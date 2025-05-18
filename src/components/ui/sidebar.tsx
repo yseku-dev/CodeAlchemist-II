@@ -19,8 +19,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useI18n } from "@/context/I18nContext" // Import useI18n
-import type { TranslationKey } from "@/lib/i18n/translations"; // Import TranslationKey
+import { useI18n } from "@/context/I18nContext";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -180,7 +180,7 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-    const { t } = useI18n(); // Get the translation function
+    const { t } = useI18n();
 
     if (collapsible === "none") {
       return (
@@ -212,7 +212,7 @@ const Sidebar = React.forwardRef<
             side={side}
           >
             <SheetHeader className="p-4 border-b border-sidebar-border text-left">
-              <SheetTitle>{t('sidebar.mobile.title' as TranslationKey)}</SheetTitle>
+              <SheetTitle>{t('layout.sidebar.mobile.title' as TranslationKey)}</SheetTitle>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto">
               {children}
@@ -274,6 +274,7 @@ const SidebarTrigger = React.forwardRef<
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
   const { toggleSidebar } = useSidebar()
+  const { t } = useI18n();
 
   return (
     <Button
@@ -286,10 +287,10 @@ const SidebarTrigger = React.forwardRef<
         onClick?.(event)
         toggleSidebar()
       }}
+      aria-label={t('layout.sidebar.toggleSidebarButton' as TranslationKey)}
       {...props}
     >
       <PanelLeft />
-      <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
 })
@@ -300,15 +301,16 @@ const SidebarRail = React.forwardRef<
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
   const { toggleSidebar } = useSidebar()
+  const { t } = useI18n();
 
   return (
     <button
       ref={ref}
       data-sidebar="rail"
-      aria-label="Toggle Sidebar"
+      aria-label={t('layout.sidebar.toggleSidebarButton' as TranslationKey)}
       tabIndex={-1}
       onClick={toggleSidebar}
-      title="Toggle Sidebar"
+      title={t('layout.sidebar.toggleSidebarButton' as TranslationKey)}
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
         "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
@@ -772,4 +774,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
