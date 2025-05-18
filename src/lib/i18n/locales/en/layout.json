@@ -1,0 +1,39 @@
+
+{
+  "app": {
+    "title": "CodeAlchemist"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "generateCode": "Generate Code",
+    "generateProject": "Generate Project",
+    "refactorProject": "Refactor Project",
+    "analyzeCode": "Analyze Code",
+    "analyzeProject": "Analyze Full Project",
+    "autoupdate": "AutoUpdate",
+    "snapshots": "Saved Versions",
+    "chat": "AI Chat",
+    "agents": "AI Agents",
+    "groups": "AI Workgroups",
+    "settings": "Settings",
+    "mobile": {
+      "title": "Main Navigation"
+    }
+  },
+  "appLayout": {
+    "debugPanel": {
+      "title": "Debug Panel",
+      "copyButton": "Copy Logs",
+      "clearButton": "Clear Logs",
+      "collapseButton": "Collapse",
+      "expandButton": "Expand",
+      "noLogs": "No logs."
+    },
+    "toast": {
+      "unexpectedError": {
+        "title": "Unexpected Error",
+        "description": "An unexpected error occurred in the application. We are already working on it."
+      }
+    }
+  }
+}

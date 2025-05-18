@@ -1,0 +1,110 @@
+
+{
+  "title": "Configuración General",
+  "description": "Ajusta los parámetros globales de la aplicación y gestiona tu configuración.",
+  "importButton": "Importar",
+  "exportButton": "Exportar",
+  "saveButton": "Guardar Configuración",
+  "llm": {
+    "title": "Configuración del Proveedor LLM",
+    "description": "Ajusta la configuración global para la interacción con Modelos de Lenguaje Grandes.",
+    "providerLabel": "Proveedor LLM",
+    "providerPlaceholder": "Selecciona un proveedor",
+    "apiUrlLabel": "URL del Endpoint de API",
+    "apiUrlPlaceholder": "Ej: https://api.openai.com/v1",
+    "apiUrlDescription": "Se auto-rellena al cambiar de proveedor. Modifícala si usas un proxy o un endpoint no estándar.",
+    "apiUrlTooltip": "La URL base para las solicitudes al proveedor LLM. Para modelos locales (LM Studio, Ollama), suele ser una dirección local (ej. http://localhost:1234/v1).",
+    "apiKeyLabel": "Clave API",
+    "apiKeyPlaceholder": "Introduce tu clave API (si es requerida)",
+    "apiKeyTooltip": "Tu clave API para el proveedor LLM seleccionado. Se almacena de forma segura en tu navegador.",
+    "modelNameLabel": "Nombre del Modelo",
+    "modelNamePlaceholder": "Selecciona un modelo",
+    "modelNamePlaceholderLocal": "Selecciona o escribe un modelo (ej: nombre-modelo-local) ({provider})",
+    "modelNamePlaceholderDefault": "Selecciona un proveedor primero",
+    "modelNameDescriptionLocal": "Para {provider}, los modelos comunes se listan aquí pero también puedes escribir uno directamente si no aparece.",
+    "modelNameTooltip": "El modelo específico del proveedor LLM a utilizar. Para Groq, se intenta obtener la lista dinámicamente.",
+    "testConnectionButton": "Probar Conexión LLM",
+    "testingConnectionButton": "Probando..."
+  },
+  "git": {
+    "title": "Configuración de Git (Opcional)",
+    "description": "Configura los detalles para funcionalidades que interactúan con repositorios Git.",
+    "repoUrlLabel": "URL del Repositorio Git",
+    "repoUrlPlaceholder": "Ej: https://github.com/usuario/repo.git",
+    "repoUrlTooltip": "La URL HTTPS completa de tu repositorio Git remoto (ej. GitHub, GitLab).",
+    "usernameLabel": "Nombre de Usuario Git",
+    "usernameTooltip": "Tu nombre de usuario Git que se usará en los commits.",
+    "emailLabel": "Email de Git",
+    "emailTooltip": "Tu dirección de email asociada a tus commits en Git.",
+    "patLabel": "Token de Acceso Personal (PAT)",
+    "patPlaceholder": "Introduce tu PAT de Git",
+    "patTooltip": "Un Token de Acceso Personal (PAT) de tu proveedor Git (ej. GitHub) con permisos de escritura en el repositorio. Trátalo como una contraseña.",
+    "testConnectionButton": "Probar Conexión Git",
+    "testingConnectionButton": "Probando..."
+  },
+  "language": {
+    "title": "Idioma de la Aplicación",
+    "description": "Selecciona el idioma para la interfaz de usuario.",
+    "selectLabel": "Idioma",
+    "selectPlaceholder": "Seleccionar idioma"
+  },
+  "debug": {
+    "title": "Modo Depuración",
+    "description": "Activa un panel de logs detallados en la parte inferior de la aplicación.",
+    "switchLabel": "Activar modo Debug"
+  },
+  "toast": {
+    "saved": {
+      "title": "Configuración Guardada",
+      "description": "Tus ajustes han sido guardados localmente."
+    },
+    "llmConnectionSuccess": {
+      "title": "Conexión Exitosa",
+      "description": "La conexión con el proveedor LLM funciona."
+    },
+    "llmConnectionError": {
+      "title": "Conexión Fallida",
+      "description": "No se pudo conectar con el proveedor LLM. Revisa la configuración."
+    },
+    "gitConnectionSuccess": {
+      "title": "Conexión Git Exitosa",
+      "description": "La conexión con el repositorio Git funciona."
+    },
+    "gitConnectionError": {
+      "title": "Conexión Git Fallida",
+      "description": "No se pudo conectar con el repositorio Git. Revisa la URL y las credenciales."
+    },
+    "configExported": {
+      "title": "Configuración Exportada",
+      "description": "La configuración actual ha sido exportada."
+    },
+    "configExportError": {
+      "title": "Error de Exportación",
+      "description": "No se pudo exportar la configuración: {error}"
+    },
+    "configImported": {
+      "title": "Configuración Importada",
+      "description": "La configuración ha sido importada y aplicada."
+    },
+    "configImportError": {
+      "title": "Error de Importación",
+      "description": "{error}"
+    },
+    "languageChanged": {
+      "title": "Idioma Cambiado",
+      "description": "El idioma de la aplicación se ha establecido a {langName}."
+    },
+    "groqModelsLoadSuccess": {
+      "title": "Modelos Groq Cargados",
+      "description": "Se cargaron {count} modelos de Groq."
+    },
+    "groqModelsLoadNoModels": {
+      "title": "Sin Modelos Groq",
+      "description": "No se encontraron modelos para la clave API de Groq proporcionada."
+    },
+    "groqModelsLoadError": {
+      "title": "Error al Cargar Modelos Groq",
+      "description": "No se pudieron cargar los modelos de Groq. Error: {error}"
+    }
+  }
+}

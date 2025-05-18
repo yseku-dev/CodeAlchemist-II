@@ -1,0 +1,62 @@
+
+{
+  "title": "Análisis de Proyecto Completo",
+  "description": "Realiza un análisis holístico de un proyecto entero, subido o desde Git.",
+  "llmSourceLabel": "Usar Configuración LLM De:",
+  "projectSourceLabel": "Fuente del Proyecto",
+  "sourceUpload": "Subir Archivo (ZIP/JSON)",
+  "sourceGit": "URL de Git",
+  "uploadLabel": "Subir Archivo (.zip, .json)",
+  "gitUrlLabel": "URL de Git",
+  "gitUrlPlaceholder": "https://github.com/usuario/repo.git",
+  "paramsLabel": "Parámetros de Análisis",
+  "depthLabel": "Profundidad de Búsqueda (opcional)",
+  "depthPlaceholder": "Ej: 3 (niveles)",
+  "focusLabel": "Campo de Enfoque del Análisis (opcional)",
+  "focusPlaceholder": "Ej: Rendimiento, Seguridad de API",
+  "analyzeButton": "Analizar Proyecto",
+  "results": {
+    "analyzing": "Analizando proyecto...",
+    "noResults": "Aún no hay resultados. Realiza un análisis para comenzar.",
+    "overallAssessmentLabel": "Evaluación General:",
+    "improvementIdeasLabel": "Ideas Generales de Mejora:",
+    "identifiedAreasLabel": "Áreas Identificadas:",
+    "specificSuggestionsLabel": "Sugerencias Específicas:",
+    "suggestionPriorityLabel": "Prioridad:",
+    "suggestedPromptLabel": "Prompt Sugerido:",
+    "groupLogTitle": "Log Detallado del Análisis",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
+  },
+  "toast": {
+    "invalidFile": {
+      "title": "Archivo Inválido",
+      "description": "Sube un archivo .zip o .json de menos de 25MB."
+    },
+    "readError": {
+      "title": "Error de Lectura",
+      "description": "No se pudo leer el archivo."
+    },
+    "unsupportedFileType": {
+      "title": "Tipo de Archivo no Soportado",
+      "description": "El análisis de este tipo de archivo no está completamente implementado."
+    },
+    "sourceRequired": {
+      "title": "Fuente del Proyecto Requerida",
+      "description": "Sube un archivo o proporciona una URL de Git."
+    },
+    "analysisComplete": {
+      "title": "Análisis Completado",
+      "description": "El proyecto ha sido analizado."
+    },
+    "analysisError": {
+      "title": "Error de Análisis",
+      "description": "Ocurrió un error durante el análisis del proyecto."
+    },
+    "processingFile": "Procesando archivo...",
+    "fetchingGit": "Obteniendo contenido del repositorio Git...",
+    "gitFetchError": {
+        "title": "Error al Obtener de Git",
+        "unknown": "Error desconocido al obtener el repositorio."
+    }
+  }
+}

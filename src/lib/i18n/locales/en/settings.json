@@ -1,0 +1,110 @@
+
+{
+  "title": "General Settings",
+  "description": "Adjust global application parameters and manage your configuration.",
+  "importButton": "Import",
+  "exportButton": "Export",
+  "saveButton": "Save Configuration",
+  "llm": {
+    "title": "LLM Provider Settings",
+    "description": "Adjust global settings for interaction with Large Language Models.",
+    "providerLabel": "LLM Provider",
+    "providerPlaceholder": "Select a provider",
+    "apiUrlLabel": "API Endpoint URL",
+    "apiUrlPlaceholder": "E.g.: https://api.openai.com/v1",
+    "apiUrlDescription": "Auto-fills when changing provider. Modify if using a proxy or non-standard endpoint.",
+    "apiUrlTooltip": "The base URL for requests to the LLM provider. For local models (LM Studio, Ollama), this is typically a local address (e.g., http://localhost:1234/v1).",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "Enter your API key (if required)",
+    "apiKeyTooltip": "Your API key for the selected LLM provider. It's stored securely in your browser.",
+    "modelNameLabel": "Model Name",
+    "modelNamePlaceholder": "Select a model",
+    "modelNamePlaceholderLocal": "Select or type a model (e.g: local-model-name) ({provider})",
+    "modelNamePlaceholderDefault": "Select a provider first",
+    "modelNameDescriptionLocal": "For {provider}, common models are listed, but you can also type one directly if it doesn't appear.",
+    "modelNameTooltip": "The specific model from the LLM provider to use. For Groq, an attempt is made to fetch the list dynamically.",
+    "testConnectionButton": "Test LLM Connection",
+    "testingConnectionButton": "Testing..."
+  },
+  "git": {
+    "title": "Git Settings (Optional)",
+    "description": "Configure details for features interacting with Git repositories.",
+    "repoUrlLabel": "Git Repository URL",
+    "repoUrlPlaceholder": "E.g.: https://github.com/user/repo.git",
+    "repoUrlTooltip": "The full HTTPS URL of your remote Git repository (e.g., GitHub, GitLab).",
+    "usernameLabel": "Git Username",
+    "usernameTooltip": "Your Git username that will be used for commits.",
+    "emailLabel": "Git Email",
+    "emailTooltip": "Your email address associated with your Git commits.",
+    "patLabel": "Personal Access Token (PAT)",
+    "patPlaceholder": "Enter your Git PAT",
+    "patTooltip": "A Personal Access Token (PAT) from your Git provider (e.g., GitHub) with repository write permissions. Treat it like a password.",
+    "testConnectionButton": "Test Git Connection",
+    "testingConnectionButton": "Testing..."
+  },
+  "language": {
+    "title": "Application Language",
+    "description": "Select the language for the user interface.",
+    "selectLabel": "Language",
+    "selectPlaceholder": "Select language"
+  },
+  "debug": {
+    "title": "Debug Mode",
+    "description": "Activates a detailed log panel at the bottom of the application.",
+    "switchLabel": "Enable Debug mode"
+  },
+  "toast": {
+    "saved": {
+      "title": "Settings Saved",
+      "description": "Your settings have been saved locally."
+    },
+    "llmConnectionSuccess": {
+      "title": "Connection Successful",
+      "description": "The connection with the LLM provider works."
+    },
+    "llmConnectionError": {
+      "title": "Connection Failed",
+      "description": "Could not connect to the LLM provider. Check your settings."
+    },
+    "gitConnectionSuccess": {
+      "title": "Git Connection Successful",
+      "description": "The connection with the Git repository works."
+    },
+    "gitConnectionError": {
+      "title": "Git Connection Failed",
+      "description": "Could not connect to the Git repository. Check URL and credentials."
+    },
+    "configExported": {
+      "title": "Configuration Exported",
+      "description": "Current configuration has been exported."
+    },
+    "configExportError": {
+      "title": "Export Error",
+      "description": "Could not export configuration: {error}"
+    },
+    "configImported": {
+      "title": "Configuration Imported",
+      "description": "Configuration has been imported and applied."
+    },
+    "configImportError": {
+      "title": "Import Error",
+      "description": "{error}"
+    },
+    "languageChanged": {
+      "title": "Language Changed",
+      "description": "Application language has been set to {langName}."
+    },
+    "groqModelsLoadSuccess": {
+      "title": "Groq Models Loaded",
+      "description": "Loaded {count} models from Groq."
+    },
+    "groqModelsLoadNoModels": {
+      "title": "No Groq Models",
+      "description": "No models found for the provided Groq API key."
+    },
+    "groqModelsLoadError": {
+      "title": "Error Loading Groq Models",
+      "description": "Could not load Groq models. Error: {error}"
+    }
+  }
+}

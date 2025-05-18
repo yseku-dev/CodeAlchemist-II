@@ -1,0 +1,35 @@
+
+{
+  "title": "Chat con IA",
+  "description": "Interactúa con un asistente IA para consultas, ideas y más.",
+  "inputPlaceholder": "Escribe tu mensaje aquí...",
+  "sendButton": "Enviar",
+  "clearButton": "Borrar Chat",
+  "thinking": "Pensando...",
+  "systemMessage": {
+    "errorPrefix": "Error: ",
+    "autofixErrorPrefix": "Error durante el Auto-Fix: "
+  },
+  "agent": {
+    "assistant": "Asistente IA",
+    "user": "Usuario",
+    "system": "Sistema"
+  },
+  "toast": {
+    "chatCleared": {
+      "title": "Chat Limpiado",
+      "description": "El historial de la conversación ha sido borrado."
+    },
+    "chatError": {
+      "title": "Error de Chat",
+      "description": "Ocurrió un error en la conversación."
+    },
+    "autofixError": {
+      "title": "Error en Auto-Fix",
+      "description": "No se pudo obtener una sugerencia de auto-corrección."
+    }
+  },
+  "autofix": {
+    "userRequest": "Por favor, analiza este error y sugiere una solución: {errorMsg}"
+  }
+}

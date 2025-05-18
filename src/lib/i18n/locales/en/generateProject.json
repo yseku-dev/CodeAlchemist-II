@@ -1,0 +1,54 @@
+
+{
+  "title": "Generate Project",
+  "description": "Create a base structure for new projects from your specifications.",
+  "describeProjectLabel": "Describe your project",
+  "describeProjectPlaceholder": "E.g.: A REST API with Node.js and Express, with routes for users and products, and a PostgreSQL database.",
+  "generateButton": "Generate Project",
+  "results": {
+    "suggestedNameLabel": "Suggested Name:",
+    "aiNotesLabel": "AI Notes:",
+    "generatedFilesLabel": "Generated Files:",
+    "downloadButton": "Download Project (ZIP)",
+    "downloadNote": "Note: The download will be a JSON file with the project structure.",
+    "groupLogTitle": "Detailed Group Log",
+    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
+  },
+  "confirmDialog": {
+    "title": "Confirm Project Generation",
+    "currentPromptLabel": "Current Prompt:",
+    "redefinePromptLabel": "Redefine Prompt (optional):",
+    "llmConfigInfo": "LLM configuration to use:",
+    "confirmButton": "Yes, Generate Project"
+  },
+  "toast": {
+    "descriptionEmpty": {
+      "title": "Empty Description",
+      "description": "Please describe your project."
+    },
+    "projectGenerated": {
+      "title": "Project Generated",
+      "description": "The base structure for project \"{projectName}\" has been generated."
+    },
+    "generationError": {
+      "title": "Generation Error",
+      "description": "An error occurred while generating the project."
+    },
+    "downloadError": {
+      "title": "No Results",
+      "description": "There is no project structure to download."
+    },
+    "zipDownloadSuccess": {
+      "title": "Project Downloaded (ZIP)",
+      "description": "A ZIP file ({filename}) with the project structure and content for \"{projectName}\" has been downloaded."
+    },
+    "zipDownloadError": {
+      "title": "ZIP Download Error",
+      "description": "Could not generate the ZIP file: {error}"
+    },
+    "autofixSimulated": {
+      "title": "Auto-Fix (Simulated)",
+      "description": "AI is analyzing the error to propose a solution."
+    }
+  }
+}

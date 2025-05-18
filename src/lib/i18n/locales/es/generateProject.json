@@ -1,0 +1,54 @@
+
+{
+  "title": "Generar Proyecto",
+  "description": "Crea una estructura base para nuevos proyectos a partir de tus especificaciones.",
+  "describeProjectLabel": "Describe tu proyecto",
+  "describeProjectPlaceholder": "Ej: Un API REST con Node.js y Express, con rutas para usuarios y productos, y una base de datos PostgreSQL.",
+  "generateButton": "Generar Proyecto",
+  "results": {
+    "suggestedNameLabel": "Nombre Sugerido:",
+    "aiNotesLabel": "Notas de la IA:",
+    "generatedFilesLabel": "Archivos Generados:",
+    "downloadButton": "Descargar Proyecto (ZIP)",
+    "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
+    "groupLogTitle": "Log Detallado del Grupo",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
+  },
+  "confirmDialog": {
+    "title": "Confirmar Generación de Proyecto",
+    "currentPromptLabel": "Prompt Actual:",
+    "redefinePromptLabel": "Redefinir Prompt (opcional):",
+    "llmConfigInfo": "Configuración LLM a usar:",
+    "confirmButton": "Sí, Generar Proyecto"
+  },
+  "toast": {
+    "descriptionEmpty": {
+      "title": "Descripción Vacía",
+      "description": "Por favor, describe tu proyecto."
+    },
+    "projectGenerated": {
+      "title": "Proyecto Generado",
+      "description": "La estructura base del proyecto \"{projectName}\" ha sido generada."
+    },
+    "generationError": {
+      "title": "Error de Generación",
+      "description": "Ocurrió un error al generar el proyecto."
+    },
+    "downloadError": {
+      "title": "Sin Resultados",
+      "description": "No hay estructura de proyecto para descargar."
+    },
+    "zipDownloadSuccess": {
+      "title": "Proyecto Descargado (ZIP)",
+      "description": "Se ha descargado un archivo ZIP ({filename}) con la estructura y contenido del proyecto \"{projectName}\"."
+    },
+    "zipDownloadError": {
+      "title": "Error al Descargar ZIP",
+      "description": "No se pudo generar el archivo ZIP: {error}"
+    },
+    "autofixSimulated": {
+      "title": "Auto-Fix (Simulado)",
+      "description": "La IA está analizando el error para proponer una solución."
+    }
+  }
+}

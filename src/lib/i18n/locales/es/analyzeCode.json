@@ -1,0 +1,61 @@
+
+{
+  "title": "Analizar Código",
+  "description": "Obtén análisis detallados y sugerencias de mejora para fragmentos o archivos de código.",
+  "codeSourceLabel": "Fuente del Código:",
+  "uploadFileLabel": "Subir un archivo de código (opcional)",
+  "gitFileUrlLabel": "URL de Archivo Git (opcional, raw content)",
+  "gitFileUrlPlaceholder": "Ej: https://raw.githubusercontent.com/...",
+  "fetchUrlButton": "Obtener",
+  "pasteCodeInstruction": "O pega el código abajo",
+  "pasteCodePlaceholder": "Pega tu código aquí para analizarlo...",
+  "additionalInstructionsLabel": "Instrucciones Adicionales para el Análisis (opcional)",
+  "additionalInstructionsPlaceholder": "Ej: Enfócate en la seguridad, o sugiere alternativas más performantes.",
+  "analyzeButton": "Analizar Código",
+  "results": {
+    "explanationLabel": "Explicación:",
+    "originalCodeLabel": "Código Original:",
+    "suggestedCodeLabel": "Código Sugerido:",
+    "saveOriginalButton": "Guardar Original",
+    "saveSuggestedButton": "Guardar Sugerido",
+    "snapshotName": "Snapshot de Código ({type}) - {time}"
+  },
+  "toast": {
+    "invalidFile": {
+      "title": "Archivo Inválido",
+      "description": "Sube un archivo de texto de menos de 5MB."
+    },
+    "emptyUrl": {
+      "title": "URL Vacía",
+      "description": "Introduce una URL de archivo Git."
+    },
+    "fetchError": {
+      "title": "Error de Obtención",
+      "description": "No se pudo obtener el contenido de la URL."
+    },
+    "codeFetched": {
+      "title": "Código Obtenido",
+      "description": "Contenido de la URL cargado."
+    },
+    "emptyCode": {
+      "title": "Código Vacío",
+      "description": "Introduce o carga código para analizar."
+    },
+    "analysisComplete": {
+      "title": "Análisis Completado",
+      "description": "El código ha sido analizado."
+    },
+    "analysisError": {
+      "title": "Error de Análisis",
+      "description": "Ocurrió un error durante el análisis del código."
+    },
+    "snapshotError": {
+      "title": "Error al Guardar Snapshot",
+      "description": "No hay código {type} para guardar."
+    },
+    "autofixSimulated": {
+      "title": "Auto-Fix (Simulado)",
+      "description": "La IA está analizando el error para proponer una solución."
+    }
+  }
+}

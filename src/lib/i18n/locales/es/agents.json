@@ -1,0 +1,161 @@
+
+{
+  "title": "Gestión de Agentes IA",
+  "description": "Crea, configura, prueba y gestiona agentes IA individuales.",
+  "createWithAIButton": "Crear con IA",
+  "importButton": "Importar",
+  "exportAllButton": "Exportar Todos",
+  "createAgentButton": "Crear Agente",
+  "noAgentsMessage": "No hay agentes creados. ¡Crea uno para empezar!",
+  "defaultAgentBadge": "(Por Defecto)",
+  "llmLabel": "LLM:",
+  "llmGlobalFormat": "Global ({provider})",
+  "llmCustomFormat": "Personalizado ({provider})",
+  "llmNotApplicable": "N/A",
+  "capabilitiesLabel": "Capacidades:",
+  "noCapabilities": "Ninguna",
+  "action": {
+    "test": "Probar Agente",
+    "export": "Exportar Agente",
+    "edit": "Editar Agente",
+    "delete": "Eliminar Agente"
+  },
+  "toast": {
+    "form": {
+      "nameUneditableError": {
+        "title": "Error",
+        "description": "El nombre del agente \"{name}\" no puede ser editado."
+      },
+      "deleteError": {
+        "title": "Error",
+        "description": "El agente \"{name}\" no se puede eliminar."
+      }
+    },
+    "import": {
+      "success": {
+        "title": "Agentes Importados",
+        "description": "{count} agentes importados y/o actualizados."
+      },
+      "invalidFormat": "Formato JSON inválido para agentes.",
+      "error": {
+        "title": "Error de Importación",
+        "description": "Error al importar agentes: {error}"
+      }
+    },
+    "exportAll": {
+      "success": {
+        "title": "Agentes Exportados",
+        "description": "Todos los agentes han sido exportados."
+      }
+    },
+    "exportSingle": {
+      "success": {
+        "title": "Agente Exportado",
+        "description": "Agente \"{name}\" exportado."
+      }
+    },
+    "suggestion": {
+      "roleRequired": {
+        "title": "Descripción Requerida",
+        "description": "Por favor, describe el rol del agente."
+      },
+      "received": {
+        "title": "Sugerencia Recibida",
+        "description": "La IA ha sugerido una definición para el agente {name}."
+      },
+      "error": {
+        "title": "Error de Sugerencia",
+        "description": "No se pudo obtener la sugerencia."
+      }
+    },
+    "created": {
+      "title": "Agente Creado",
+      "description": "Agente \"{name}\" añadido."
+    },
+    "updated": {
+      "title": "Agente Actualizado",
+      "description": "Agente \"{name}\" guardado."
+    },
+    "deleted": {
+      "title": "Agente Eliminado",
+      "description": "Agente \"{name}\" eliminado."
+    }
+  },
+  "form": {
+    "title": {
+      "edit": "Editar Agente",
+      "create": "Crear Nuevo Agente",
+      "reviewSuggestion": "Revisar Sugerencia de Agente"
+    },
+    "descriptionModal": {
+      "edit": "Modifica los detalles del agente \"{name}\".",
+      "create": "Define un nuevo agente especializado para tus tareas de IA."
+    },
+    "label": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "systemPrompt": "Mensaje de Sistema (Prompt)",
+      "capabilities": "Capacidades del Agente",
+      "llmConfig": "Configuración LLM del Agente"
+    },
+    "placeholder": {
+      "systemPrompt": "Define el rol, comportamiento y directrices del agente..."
+    },
+    "capability": {
+      "accessOwnCode": "Acceso a Código Propio",
+      "execution": "Capacidad de Ejecución",
+      "virtualEnv": "Capacidad de Entorno Virtual",
+      "readWrite": "Capacidad Lectura/Escritura",
+      "dangerousTooltip": "(Peligroso)"
+    },
+    "llm": {
+      "useGlobal": "Usar Configuración Global",
+      "custom": {
+        "providerLabel": "Proveedor LLM",
+        "modelLabel": "Modelo",
+        "modelPlaceholder": {
+          "geminiLlm": "Ej: gemini-1.5-pro-latest ({provider})",
+          "selectProvider": "Selecciona proveedor",
+          "default": "Selecciona modelo"
+        },
+        "geminiModelDescription": "Modelos comunes listados. Puedes escribir otro si es necesario.",
+        "apiUrlLabel": "URL API (Opcional)",
+        "apiUrlPlaceholder": "Se auto-rellena al cambiar proveedor",
+        "apiUrlDescription": "Modifícala si usas un proxy o un endpoint no estándar.",
+        "apiKeyLabel": "Clave API (Opcional)",
+        "apiKeyPlaceholder": "Usar global si está vacía"
+      }
+    },
+    "button": {
+      "saveChanges": "Guardar Cambios",
+      "createAgent": "Crear Agente",
+      "createAgentWithSuggestion": "Crear Agente con Sugerencia"
+    },
+    "toast": {
+      "nameRequired": {
+        "title": "Nombre Requerido",
+        "description": "El agente debe tener un nombre."
+      }
+    }
+  },
+  "deleteSingleModal": {
+    "title": "Confirmar Eliminación: {name}",
+    "description": "Estas seguro de que quieres eliminar este agente? Esta acción no se puede deshacer."
+  },
+  "suggestionDialog": {
+    "title": "Sugerir Definición de Agente con IA",
+    "description": "Describe el rol o la tarea principal del agente que necesitas, y la IA sugerirá una definición.",
+    "textareaLabel": "Descripción del Rol del Agente",
+    "textareaPlaceholder": "Ej: Un agente que resume textos largos en puntos clave.",
+    "submitButton": "Obtener Sugerencia"
+  },
+  "testChatDialog": {
+    "title": "Probando Agente: {name}",
+    "description": "Interactúa directamente con el agente. Su prompt de sistema se muestra abajo.",
+    "systemMessage": "Estás probando el agente: {name}.\n--- Inicio del Prompt de Sistema del Agente ---\n{systemPrompt}\n--- Fin del Prompt de Sistema del Agente ---",
+    "inputPlaceholder": "Escribe tu mensaje al agente...",
+    "sendButton": "Enviar",
+    "thinking": "Agente está pensando...",
+    "errorPrefix": "Error: "
+  }
+}

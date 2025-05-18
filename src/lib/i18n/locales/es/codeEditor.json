@@ -1,0 +1,9 @@
+
+{
+    "toast": {
+        "loadError": {
+            "title": "Error de Carga del Editor",
+            "description": "No se pudo cargar el estado guardado del editor para {id}."
+        }
+    }
+}

@@ -1,0 +1,43 @@
+
+{
+  "globalError": {
+    "title": "¡Ups! Algo salió mal",
+    "description": "Lo sentimos, encontramos un error inesperado. Nuestro equipo ha sido notificado.",
+    "recoverySuggestion": "Puedes intentar recargar la página o volver a la acción anterior.",
+    "devDetailsTitle": "Detalles del Error (Solo Desarrollo):",
+    "retryButton": "Intentar de Nuevo",
+    "homeButton": "Ir a la Página Principal"
+  },
+  "errorDisplay": {
+    "title": "Error Detectado",
+    "copyButton": "Copiar Error",
+    "autofixButton": "Auto-Fix con IA",
+    "autofixingButton": "Analizando...",
+    "toast": {
+      "copied": {
+        "title": "Error Copiado",
+        "description": "El mensaje de error ha sido copiado al portapapeles."
+      },
+      "autofixAttempt": {
+        "title": "Intentando Auto-Corrección",
+        "description": "Consultando al 'EquipoDesarrolloSoftware' para una posible solución..."
+      },
+      "autofixSuggestionReceived": {
+        "title": "Sugerencia de Auto-Corrección Recibida",
+        "description": "'EquipoDesarrolloSoftware' ha proporcionado una sugerencia."
+      },
+      "autofixError": {
+        "title": "Error en Auto-Corrección",
+        "description": "No se pudo obtener una sugerencia de auto-corrección."
+      }
+    },
+    "autofixModal": {
+      "title": "Sugerencia de Auto-Corrección del Equipo de Software",
+      "description": "El grupo 'EquipoDesarrolloSoftware' ha analizado el error y propone lo siguiente:",
+      "originalErrorLabel": "Mensaje de Error Original:",
+      "diagnosisLabel": "Diagnóstico del Grupo:",
+      "solutionLabel": "Solución Sugerida:",
+      "invocationLogLabel": "Log de Invocación del Grupo (para depuración)"
+    }
+  }
+}

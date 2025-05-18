@@ -1,0 +1,77 @@
+
+{
+  "welcome": "Welcome to CodeAlchemist",
+  "description": "Your AI-assisted development platform, designed to optimize and streamline the software development lifecycle through code generation, analysis, refactoring, and version management.",
+  "features": {
+    "title": "Main Features",
+    "generateCode": {
+      "title": "Generate Code",
+      "description": "Create code snippets from natural language descriptions."
+    },
+    "generateProject": {
+      "title": "Generate Project",
+      "description": "Initiate complete project structures from specifications."
+    },
+    "refactorProject": {
+      "title": "Refactor Project",
+      "description": "Analyze and refactor existing projects with AI suggestions."
+    },
+    "analyzeCode": {
+      "title": "Analyze Code",
+      "description": "Get detailed analysis and suggestions for code snippets or files."
+    },
+    "analyzeProject": {
+      "title": "Analyze Full Project",
+      "description": "Perform a complete analysis of a project from a file or Git."
+    },
+    "autoupdate": {
+      "title": "AutoUpdate",
+      "description": "Allow CodeAlchemist to analyze and improve its own source code."
+    },
+    "snapshots": {
+      "title": "Saved Versions",
+      "description": "Manage generated code snapshots or application state."
+    },
+    "chat": {
+      "title": "AI Chat",
+      "description": "Interact with an AI assistant for queries, ideas, and more."
+    },
+    "agents": {
+      "title": "AI Agents",
+      "description": "Create, configure, and manage individual AI agents."
+    },
+    "groups": {
+      "title": "AI Workgroups",
+      "description": "Define and execute collaborative AI agent teams."
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Adjust LLM providers, Git, and other application options."
+    }
+  },
+  "quickstart": {
+    "title": "Quick Start Guide",
+    "description": "Follow these steps to start using CodeAlchemist effectively:",
+    "step1": {
+      "link": "Configure your LLM provider settings",
+      "text": " in the 'Settings' section."
+    },
+    "step2": {
+      "link": "Explore code generation",
+      "text": " with a simple prompt in 'Generate Code'."
+    },
+    "step3": {
+      "link": "Try analyzing a code snippet",
+      "text": " in 'Analyze Code'."
+    },
+    "step4": {
+      "link": "Interact with the AI Chat",
+      "text": " for quick queries."
+    },
+    "step5": {
+      "link": "Experiment with AutoUpdate",
+      "text": " to see CodeAlchemist analyze itself."
+    },
+    "ctaButton": "Go to Settings"
+  }
+}

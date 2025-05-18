@@ -1,0 +1,6 @@
+
+{
+  "common": {
+    "aiError": "Error en el flujo de IA: {flowName}"
+  }
+}

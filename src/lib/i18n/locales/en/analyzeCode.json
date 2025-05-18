@@ -1,0 +1,61 @@
+
+{
+  "title": "Analyze Code",
+  "description": "Get detailed analysis and improvement suggestions for code snippets or files.",
+  "codeSourceLabel": "Code Source:",
+  "uploadFileLabel": "Upload a code file (optional)",
+  "gitFileUrlLabel": "Git File URL (optional, raw content)",
+  "gitFileUrlPlaceholder": "E.g.: https://raw.githubusercontent.com/...",
+  "fetchUrlButton": "Get",
+  "pasteCodeInstruction": "Or paste code below",
+  "pasteCodePlaceholder": "Paste your code here to analyze it...",
+  "additionalInstructionsLabel": "Additional Instructions for Analysis (optional)",
+  "additionalInstructionsPlaceholder": "E.g.: Focus on security, or suggest more performant alternatives.",
+  "analyzeButton": "Analyze Code",
+  "results": {
+    "explanationLabel": "Explanation:",
+    "originalCodeLabel": "Original Code:",
+    "suggestedCodeLabel": "Suggested Code:",
+    "saveOriginalButton": "Save Original",
+    "saveSuggestedButton": "Save Suggested",
+    "snapshotName": "Code Snapshot ({type}) - {time}"
+  },
+  "toast": {
+    "invalidFile": {
+      "title": "Invalid File",
+      "description": "Upload a text file under 5MB."
+    },
+    "emptyUrl": {
+      "title": "Empty URL",
+      "description": "Enter a Git file URL."
+    },
+    "fetchError": {
+      "title": "Fetch Error",
+      "description": "Could not fetch content from URL."
+    },
+    "codeFetched": {
+      "title": "Code Fetched",
+      "description": "URL content loaded."
+    },
+    "emptyCode": {
+      "title": "Empty Code",
+      "description": "Enter or upload code to analyze."
+    },
+    "analysisComplete": {
+      "title": "Analysis Complete",
+      "description": "The code has been analyzed."
+    },
+    "analysisError": {
+      "title": "Analysis Error",
+      "description": "An error occurred during code analysis."
+    },
+    "snapshotError": {
+      "title": "Snapshot Save Error",
+      "description": "No {type} code to save."
+    },
+    "autofixSimulated": {
+      "title": "Auto-Fix (Simulated)",
+      "description": "AI is analyzing the error to propose a solution."
+    }
+  }
+}

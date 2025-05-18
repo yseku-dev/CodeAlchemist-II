@@ -1,8 +1,47 @@
 
 // src/lib/i18n/translations.ts
 
-import esTranslations from './locales/es.json';
-import enTranslations from './locales/en.json';
+// Importaciones de Español
+import esCommon from './locales/es/common.json';
+import esDashboard from './locales/es/dashboard.json';
+import esSettings from './locales/es/settings.json';
+import esGenerateCode from './locales/es/generateCode.json';
+import esGenerateProject from './locales/es/generateProject.json';
+import esAnalyzeCode from './locales/es/analyzeCode.json';
+import esAnalyzeProject from './locales/es/analyzeProject.json';
+import esRefactorProject from './locales/es/refactorProject.json';
+import esAutoupdate from './locales/es/autoupdate.json';
+import esVersions from './locales/es/versions.json';
+import esChat from './locales/es/chat.json';
+import esAgents from './locales/es/agents.json';
+import esGroups from './locales/es/groups.json';
+import esLayout from './locales/es/layout.json';
+import esError from './locales/es/error.json';
+import esFlows from './locales/es/flows.json';
+import esFileTree from './locales/es/fileTree.json';
+import esCodeEditor from './locales/es/codeEditor.json';
+
+
+// Importaciones de Inglés
+import enCommon from './locales/en/common.json';
+import enDashboard from './locales/en/dashboard.json';
+import enSettings from './locales/en/settings.json';
+import enGenerateCode from './locales/en/generateCode.json';
+import enGenerateProject from './locales/en/generateProject.json';
+import enAnalyzeCode from './locales/en/analyzeCode.json';
+import enAnalyzeProject from './locales/en/analyzeProject.json';
+import enRefactorProject from './locales/en/refactorProject.json';
+import enAutoupdate from './locales/en/autoupdate.json';
+import enVersions from './locales/en/versions.json';
+import enChat from './locales/en/chat.json';
+import enAgents from './locales/en/agents.json';
+import enGroups from './locales/en/groups.json';
+import enLayout from './locales/en/layout.json';
+import enError from './locales/en/error.json';
+import enFlows from './locales/en/flows.json';
+import enFileTree from './locales/en/fileTree.json';
+import enCodeEditor from './locales/en/codeEditor.json';
+
 import type { LanguageCode } from '@/types';
 
 /**
@@ -25,7 +64,27 @@ export type TranslationSet = {
  * to their respective `TranslationSet`.
  */
 export type AllTranslations = {
-  [lang in LanguageCode]: TranslationSet;
+  [lang in LanguageCode]: {
+    common: TranslationSet;
+    dashboard: TranslationSet;
+    settings: TranslationSet;
+    generateCode: TranslationSet;
+    generateProject: TranslationSet;
+    analyzeCode: TranslationSet;
+    analyzeProject: TranslationSet;
+    refactorProject: TranslationSet;
+    autoupdate: TranslationSet;
+    versions: TranslationSet;
+    chat: TranslationSet;
+    agents: TranslationSet;
+    groups: TranslationSet;
+    layout: TranslationSet;
+    error: TranslationSet;
+    flows: TranslationSet;
+    fileTree: TranslationSet;
+    codeEditor: TranslationSet;
+    // Add new top-level keys here as you add more JSON files
+  };
 };
 
 /**
@@ -37,10 +96,49 @@ export type TranslationKey = string;
 
 /**
  * The primary export containing all translations for the application.
+ * Each language object now contains top-level keys corresponding to the imported JSON files.
  */
-export const translations: AllTranslations = {
-  es: esTranslations as TranslationSet,
-  en: enTranslations as TranslationSet,
+export const translationsData: AllTranslations = {
+  es: {
+    common: esCommon as TranslationSet,
+    dashboard: esDashboard as TranslationSet,
+    settings: esSettings as TranslationSet,
+    generateCode: esGenerateCode as TranslationSet,
+    generateProject: esGenerateProject as TranslationSet,
+    analyzeCode: esAnalyzeCode as TranslationSet,
+    analyzeProject: esAnalyzeProject as TranslationSet,
+    refactorProject: esRefactorProject as TranslationSet,
+    autoupdate: esAutoupdate as TranslationSet,
+    versions: esVersions as TranslationSet,
+    chat: esChat as TranslationSet,
+    agents: esAgents as TranslationSet,
+    groups: esGroups as TranslationSet,
+    layout: esLayout as TranslationSet,
+    error: esError as TranslationSet,
+    flows: esFlows as TranslationSet,
+    fileTree: esFileTree as TranslationSet,
+    codeEditor: esCodeEditor as TranslationSet,
+  },
+  en: {
+    common: enCommon as TranslationSet,
+    dashboard: enDashboard as TranslationSet,
+    settings: enSettings as TranslationSet,
+    generateCode: enGenerateCode as TranslationSet,
+    generateProject: enGenerateProject as TranslationSet,
+    analyzeCode: enAnalyzeCode as TranslationSet,
+    analyzeProject: enAnalyzeProject as TranslationSet,
+    refactorProject: enRefactorProject as TranslationSet,
+    autoupdate: enAutoupdate as TranslationSet,
+    versions: enVersions as TranslationSet,
+    chat: enChat as TranslationSet,
+    agents: enAgents as TranslationSet,
+    groups: enGroups as TranslationSet,
+    layout: enLayout as TranslationSet,
+    error: enError as TranslationSet,
+    flows: enFlows as TranslationSet,
+    fileTree: enFileTree as TranslationSet,
+    codeEditor: enCodeEditor as TranslationSet,
+  },
 };
 
 // Type guard to check if a value is a TranslationSet (for nested structures)

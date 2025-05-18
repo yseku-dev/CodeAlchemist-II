@@ -1,0 +1,77 @@
+
+{
+  "welcome": "Bienvenido a CodeAlchemist",
+  "description": "Tu plataforma de desarrollo asistido por IA, diseñada para optimizar y agilizar el ciclo de vida del desarrollo de software mediante la generación, análisis, refactorización y gestión de versiones de código.",
+  "features": {
+    "title": "Características Principales",
+    "generateCode": {
+      "title": "Generar Código",
+      "description": "Crea fragmentos de código desde descripciones en lenguaje natural."
+    },
+    "generateProject": {
+      "title": "Generar Proyecto",
+      "description": "Inicia estructuras de proyecto completas a partir de especificaciones."
+    },
+    "refactorProject": {
+      "title": "Refactorizar Proyecto",
+      "description": "Analiza y refactoriza proyectos existentes con sugerencias de IA."
+    },
+    "analyzeCode": {
+      "title": "Analizar Código",
+      "description": "Obtén análisis detallados y sugerencias para fragmentos o archivos."
+    },
+    "analyzeProject": {
+      "title": "Analizar Proyecto Completo",
+      "description": "Realiza un análisis completo de un proyecto desde un archivo o Git."
+    },
+    "autoupdate": {
+      "title": "AutoUpdate",
+      "description": "Permite que CodeAlchemist analice y mejore su propio código fuente."
+    },
+    "snapshots": {
+      "title": "Versiones Guardadas",
+      "description": "Gestiona instantáneas de código generadas o del estado de la aplicación."
+    },
+    "chat": {
+      "title": "Chat con IA",
+      "description": "Interactúa con un asistente IA para consultas, ideas y más."
+    },
+    "agents": {
+      "title": "Agentes IA",
+      "description": "Crea, configura y gestiona agentes IA individuales."
+    },
+    "groups": {
+      "title": "Grupos de Trabajo IA",
+      "description": "Define y ejecuta equipos de agentes IA colaborativos."
+    },
+    "settings": {
+      "title": "Configuración",
+      "description": "Ajusta proveedores LLM, Git y otras opciones de la aplicación."
+    }
+  },
+  "quickstart": {
+    "title": "Guía Rápida de Inicio",
+    "description": "Sigue estos pasos para comenzar a utilizar CodeAlchemist de manera efectiva:",
+    "step1": {
+      "link": "Configura tus ajustes del proveedor LLM",
+      "text": " en la sección 'Configuración'."
+    },
+    "step2": {
+      "link": "Explora la generación de código",
+      "text": " con un prompt sencillo en 'Generar Código'."
+    },
+    "step3": {
+      "link": "Prueba el análisis de un fragmento de código",
+      "text": " en 'Analizar Código'."
+    },
+    "step4": {
+      "link": "Interactúa con el Chat con IA",
+      "text": " para consultas rápidas."
+    },
+    "step5": {
+      "link": "Experimenta con AutoUpdate",
+      "text": " para ver cómo CodeAlchemist se analiza a sí mismo."
+    },
+    "ctaButton": "Ir a Configuración"
+  }
+}

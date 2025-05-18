@@ -1,0 +1,86 @@
+
+{
+  "title": "Versiones Guardadas (Snapshots)",
+  "description": "Gestiona instantáneas de código generadas o del estado de la aplicación.",
+  "saveAppStateButton": "Guardar Estado de App (JSON)",
+  "saveAppStateDescription": "Guarda la configuración actual, agentes y grupos como un snapshot JSON.",
+  "saveAndDownloadStateButton": "Guardar Estado y Descargar como ZIP",
+  "saveAndDownloadStateDescription": "Guarda el estado actual de la aplicación y lo descarga como un archivo .zip (conteniendo el JSON del estado).",
+  "compareButton": "Comparar A y B",
+  "compareButtonDisabledTooltip": "Selecciona dos versiones (A y B) para comparar.",
+  "deleteAllButton": "Eliminar Todas",
+  "table": {
+    "colA": "A",
+    "colB": "B",
+    "colName": "Nombre",
+    "colCreatedAt": "Fecha de Creación",
+    "colSource": "Origen",
+    "colActions": "Acciones",
+    "noVersions": "No hay versiones guardadas."
+  },
+  "action": {
+    "view": "Ver",
+    "downloadOriginal": "Descargar como {format}",
+    "downloadZip": "Descargar como ZIP",
+    "delete": "Eliminar",
+    "selectA": "Seleccionar para A",
+    "selectB": "Seleccionar para B"
+  },
+  "source": {
+    "original": "Original (Análisis)",
+    "suggested": "Sugerido (Análisis)",
+    "codealchemist-app-state": "Estado App",
+    "codealchemist-current": "Código Actual (AutoUpdate)",
+    "unknown": "Desconocido"
+  },
+  "viewModal": {
+    "title": "Viendo Snapshot: {name}",
+    "noCode": "Error: Sin código para mostrar."
+  },
+  "compareModal": {
+    "title": "Comparar Versiones (A vs B)",
+    "versionA": "Versión A: {name}",
+    "versionB": "Versión B: {name}",
+    "noDiffLib": "La comparación visual detallada (diff) no está implementada. Se muestran los contenidos lado a lado."
+  },
+  "deleteAllModal": {
+    "title": "Confirmar Eliminación Total",
+    "description": "¿Estás seguro de que quieres eliminar TODOS los snapshots guardados? Esta acción no se puede deshacer.",
+    "confirm": "Sí, Eliminar Todos"
+  },
+  "deleteSingleModal": {
+    "title": "Confirmar Eliminación: {name}",
+    "description": "¿Estás seguro de que quieres eliminar este snapshot? Esta acción no se puede deshacer.",
+    "confirm": "Sí, Eliminar"
+  },
+  "toast": {
+    "appStateSaved": {
+      "title": "Estado de Aplicación Guardado",
+      "description": "El estado actual de la aplicación \"{name}\" ha sido guardado."
+    },
+    "appStateSavedAndDownloaded": {
+      "title": "Estado de Aplicación Guardado y Descargado",
+      "description": "El estado actual \"{name}\" ha sido guardado y descargado como {filename}."
+    },
+    "snapshotSaved": {
+      "title": "Snapshot Guardado",
+      "description": "Snapshot \"{name}\" creado."
+    },
+    "snapshotDownloaded": {
+      "title": "Snapshot Descargado",
+      "description": "Snapshot \"{name}\" descargado como {filename}."
+    },
+    "snapshotDeleted": {
+      "title": "Snapshot Eliminado",
+      "description": "Snapshot \"{name}\" eliminado."
+    },
+    "compareError": {
+      "notFound": "No se encontraron los snapshots seleccionados.",
+      "selectionIncomplete": "Selecciona dos versiones (A y B) para comparar."
+    },
+    "allSnapshotsDeleted": {
+      "title": "Todos los Snapshots Eliminados",
+      "description": "Todas las versiones guardadas han sido eliminadas."
+    }
+  }
+}

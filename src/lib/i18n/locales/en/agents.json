@@ -1,0 +1,161 @@
+
+{
+  "title": "AI Agent Management",
+  "description": "Create, configure, test, and manage individual AI agents.",
+  "createWithAIButton": "Create with AI",
+  "importButton": "Import",
+  "exportAllButton": "Export All",
+  "createAgentButton": "Create Agent",
+  "noAgentsMessage": "No agents created. Create one to get started!",
+  "defaultAgentBadge": "(Default)",
+  "llmLabel": "LLM:",
+  "llmGlobalFormat": "Global ({provider})",
+  "llmCustomFormat": "Custom ({provider})",
+  "llmNotApplicable": "N/A",
+  "capabilitiesLabel": "Capabilities:",
+  "noCapabilities": "None",
+  "action": {
+    "test": "Test Agent",
+    "export": "Export Agent",
+    "edit": "Edit Agent",
+    "delete": "Delete Agent"
+  },
+  "toast": {
+    "form": {
+      "nameUneditableError": {
+        "title": "Error",
+        "description": "Agent name \"{name}\" cannot be edited."
+      },
+      "deleteError": {
+        "title": "Error",
+        "description": "Agent \"{name}\" cannot be deleted."
+      }
+    },
+    "import": {
+      "success": {
+        "title": "Agents Imported",
+        "description": "{count} agents imported and/or updated."
+      },
+      "invalidFormat": "Invalid JSON format for agents.",
+      "error": {
+        "title": "Import Error",
+        "description": "Error importing agents: {error}"
+      }
+    },
+    "exportAll": {
+      "success": {
+        "title": "Agents Exported",
+        "description": "All agents have been exported."
+      }
+    },
+    "exportSingle": {
+      "success": {
+        "title": "Agent Exported",
+        "description": "Agent \"{name}\" exported."
+      }
+    },
+    "suggestion": {
+      "roleRequired": {
+        "title": "Description Required",
+        "description": "Please describe the agent's role."
+      },
+      "received": {
+        "title": "Suggestion Received",
+        "description": "AI has suggested a definition for agent {name}."
+      },
+      "error": {
+        "title": "Suggestion Error",
+        "description": "Could not get suggestion."
+      }
+    },
+    "created": {
+      "title": "Agent Created",
+      "description": "Agent \"{name}\" added."
+    },
+    "updated": {
+      "title": "Agent Updated",
+      "description": "Agent \"{name}\" saved."
+    },
+    "deleted": {
+      "title": "Agent Deleted",
+      "description": "Agent \"{name}\" deleted."
+    }
+  },
+  "form": {
+    "title": {
+      "edit": "Edit Agent",
+      "create": "Create New Agent",
+      "reviewSuggestion": "Review Agent Suggestion"
+    },
+    "descriptionModal": {
+      "edit": "Modify details for agent \"{name}\".",
+      "create": "Define a new specialized agent for your AI tasks."
+    },
+    "label": {
+      "name": "Name",
+      "description": "Description",
+      "systemPrompt": "System Message (Prompt)",
+      "capabilities": "Agent Capabilities",
+      "llmConfig": "Agent LLM Configuration"
+    },
+    "placeholder": {
+      "systemPrompt": "Define the agent's role, behavior, and guidelines..."
+    },
+    "capability": {
+      "accessOwnCode": "Access Own Code",
+      "execution": "Execution Capability",
+      "virtualEnv": "Virtual Environment Capability",
+      "readWrite": "Read/Write Capability",
+      "dangerousTooltip": "(Dangerous)"
+    },
+    "llm": {
+      "useGlobal": "Use Global Configuration",
+      "custom": {
+        "providerLabel": "LLM Provider",
+        "modelLabel": "Model",
+        "modelPlaceholder": {
+          "geminiLlm": "E.g.: gemini-1.5-pro-latest ({provider})",
+          "selectProvider": "Select provider",
+          "default": "Select model"
+        },
+        "geminiModelDescription": "Common models listed. You can type another if needed.",
+        "apiUrlLabel": "API URL (Optional)",
+        "apiUrlPlaceholder": "Auto-fills on provider change",
+        "apiUrlDescription": "Modify if using a proxy or non-standard endpoint.",
+        "apiKeyLabel": "API Key (Optional)",
+        "apiKeyPlaceholder": "Use global if empty"
+      }
+    },
+    "button": {
+      "saveChanges": "Save Changes",
+      "createAgent": "Create Agent",
+      "createAgentWithSuggestion": "Create Agent with Suggestion"
+    },
+    "toast": {
+      "nameRequired": {
+        "title": "Name Required",
+        "description": "The agent must have a name."
+      }
+    }
+  },
+  "deleteSingleModal": {
+    "title": "Confirm Deletion: {name}",
+    "description": "Are you sure you want to delete this agent? This action cannot be undone."
+  },
+  "suggestionDialog": {
+    "title": "Suggest Agent Definition with AI",
+    "description": "Describe the role or main task of the agent you need, and AI will suggest a definition.",
+    "textareaLabel": "Agent Role Description",
+    "textareaPlaceholder": "E.g.: An agent that summarizes long texts into key points.",
+    "submitButton": "Get Suggestion"
+  },
+  "testChatDialog": {
+    "title": "Testing Agent: {name}",
+    "description": "Interact directly with the agent. Its system prompt is shown below.",
+    "systemMessage": "You are testing agent: {name}.\n--- Start of Agent System Prompt ---\n{systemPrompt}\n--- End of Agent System Prompt ---",
+    "inputPlaceholder": "Type your message to the agent...",
+    "sendButton": "Send",
+    "thinking": "Agent is thinking...",
+    "errorPrefix": "Error: "
+  }
+}

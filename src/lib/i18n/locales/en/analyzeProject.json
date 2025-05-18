@@ -1,0 +1,62 @@
+
+{
+  "title": "Analyze Full Project",
+  "description": "Perform a holistic analysis of an entire project, uploaded or from Git.",
+  "llmSourceLabel": "Use LLM Configuration From:",
+  "projectSourceLabel": "Project Source",
+  "sourceUpload": "Upload File (ZIP/JSON)",
+  "sourceGit": "Git URL",
+  "uploadLabel": "Upload File (.zip, .json)",
+  "gitUrlLabel": "Git URL",
+  "gitUrlPlaceholder": "https://github.com/user/repo.git",
+  "paramsLabel": "Analysis Parameters",
+  "depthLabel": "Search Depth (optional)",
+  "depthPlaceholder": "E.g.: 3 (levels)",
+  "focusLabel": "Analysis Focus Area (optional)",
+  "focusPlaceholder": "E.g.: Performance, API Security",
+  "analyzeButton": "Analyze Project",
+  "results": {
+    "analyzing": "Analyzing project...",
+    "noResults": "No results yet. Perform an analysis to start.",
+    "overallAssessmentLabel": "Overall Assessment:",
+    "improvementIdeasLabel": "General Improvement Ideas:",
+    "identifiedAreasLabel": "Identified Areas:",
+    "specificSuggestionsLabel": "Specific Suggestions:",
+    "suggestionPriorityLabel": "Priority:",
+    "suggestedPromptLabel": "Suggested Prompt:",
+    "groupLogTitle": "Detailed Analysis Log",
+    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
+  },
+  "toast": {
+    "invalidFile": {
+      "title": "Invalid File",
+      "description": "Upload a .zip or .json file under 25MB."
+    },
+    "readError": {
+      "title": "Read Error",
+      "description": "Could not read the file."
+    },
+    "unsupportedFileType": {
+      "title": "Unsupported File Type",
+      "description": "Analysis for this file type is not fully implemented."
+    },
+    "sourceRequired": {
+      "title": "Project Source Required",
+      "description": "Upload a file or provide a Git URL."
+    },
+    "analysisComplete": {
+      "title": "Analysis Complete",
+      "description": "The project has been analyzed."
+    },
+    "analysisError": {
+      "title": "Analysis Error",
+      "description": "An error occurred during project analysis."
+    },
+    "processingFile": "Processing file...",
+    "fetchingGit": "Fetching Git repository content...",
+    "gitFetchError": {
+        "title": "Error Fetching from Git",
+        "unknown": "Unknown error fetching repository."
+    }
+  }
+}

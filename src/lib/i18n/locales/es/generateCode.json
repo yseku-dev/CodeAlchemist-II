@@ -1,0 +1,39 @@
+
+{
+  "title": "Generar Código",
+  "description": "Crea fragmentos de código a partir de descripciones en lenguaje natural.",
+  "describeNeedLabel": "Describe tu necesidad",
+  "describeNeedPlaceholder": "Ej: Una función en Python que sume dos números y maneje errores de tipo.",
+  "generateButton": "Generar Código",
+  "results": {
+    "explanationLabel": "Explicación:",
+    "codeSnippetLabel": "Fragmento de Código:",
+    "groupLogTitle": "Log Detallado del Grupo"
+  },
+  "logs": {
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
+  },
+  "confirmDialog": {
+    "title": "Confirmar Generación de Código",
+    "llmSourceLabel": "Fuente LLM:",
+    "promptLabel": "Prompt:"
+  },
+  "toast": {
+    "descriptionEmpty": {
+      "title": "Descripción Vacía",
+      "description": "Por favor, describe tu necesidad."
+    },
+    "codeGenerated": {
+      "title": "Código Generado",
+      "description": "El fragmento de código ha sido generado exitosamente."
+    },
+    "generationError": {
+      "title": "Error de Generación",
+      "description": "Ocurrió un error al generar el código."
+    },
+    "autofixSimulated": {
+      "title": "Auto-Fix (Simulado)",
+      "description": "La IA está analizando el error para proponer una solución."
+    }
+  }
+}

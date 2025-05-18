@@ -1,0 +1,109 @@
+
+{
+  "title": "Refactorizar Proyecto",
+  "description": "Analiza un proyecto para obtener sugerencias de refactorización y aplícalas.",
+  "llmSourceLabel": "Usar Configuración LLM De:",
+  "projectSourceLabel": "Fuente del Proyecto",
+  "sourceUpload": "Subir Archivo",
+  "sourceGit": "URL de Git",
+  "uploadLabel": "Subir Archivo (.zip, .json, .py, .js, etc.)",
+  "gitUrlLabel": "URL de Git",
+  "gitUrlPlaceholder": "https://github.com/usuario/repo.git",
+  "paramsLabel": "Parámetros de Refactorización",
+  "goalsLabel": "Metas (opcional)",
+  "goalsPlaceholder": "Ej: Mejorar rendimiento UI, simplificar lógica X...",
+  "priorityLabel": "Prioridad General (opcional)",
+  "priorityPlaceholder": "Seleccionar prioridad...",
+  "priorityNone": "Ninguna",
+  "priorities": {
+    "PriorizarSeguridad": "Priorizar Seguridad",
+    "PriorizarLegibilidad": "Priorizar Legibilidad",
+    "PriorizarRendimiento": "Priorizar Rendimiento",
+    "EstandarizarCódigo": "Estandarizar Código",
+    "ReducirComplejidad": "Reducir Complejidad"
+  },
+  "depthLabel": "Profundidad de Búsqueda (opcional)",
+  "depthPlaceholder": "Ej: 3 (niveles)",
+  "focusLabel": "Campo de Enfoque del Análisis (opcional)",
+  "focusPlaceholder": "Ej: Seguridad, UI, Módulo de pagos",
+  "analyzeButton": "Analizar para Refactorizar",
+  "results": {
+    "title": "Resultados y Sugerencias",
+    "applyAllButton": "Marcar Todas como Aplicadas",
+    "noSuggestions": "Aún no hay sugerencias. Realiza un análisis para comenzar.",
+    "projectSummaryCard": {
+      "title": "Resumen del Proyecto",
+      "noSummary": "No se proporcionó un resumen del proyecto."
+    },
+    "suggestionsTitle": "Sugerencias de Refactorización:",
+    "noSpecificSuggestions": "No se generaron sugerencias específicas de refactorización."
+  },
+  "suggestion": {
+    "priorityLabel": "Prioridad:",
+    "snippetLabel": "Snippet Sugerido:",
+    "snippetOriginal": "Original:",
+    "snippetModified": "Modificado:",
+    "viewDiffButton": "Ver Diff",
+    "discardButton": "Descartar",
+    "applyButton": "Marcar como Aplicada",
+    "revertStateButton": "Revertir Estado"
+  },
+  "diffModal": {
+    "title": "Comparación de Código (Diff)",
+    "originalLabel": "Original:",
+    "suggestedLabel": "Sugerido:",
+    "noContent": "N/A"
+  },
+  "logs": {
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "groupLogTitle": "Log de Ejecución del Grupo"
+  },
+  "toast": {
+    "invalidFile": {
+      "title": "Archivo Inválido",
+      "description": "Tipo de archivo no admitido o tamaño excede 10MB."
+    },
+    "sourceRequired": {
+      "title": "Fuente del Proyecto Requerida",
+      "description": "Sube un archivo o proporciona una URL de Git."
+    },
+    "processingFile": "Procesando archivo...",
+    "fetchingGit": "Obteniendo contenido del repositorio Git...",
+    "analyzingWithAI": "Analizando con IA...",
+    "fileReadError": {
+      "title": "Error de Lectura",
+      "description": "No se pudo leer el archivo: {error}"
+    },
+    "gitFetchError": {
+      "title": "Error al Obtener de Git",
+      "unknown": "Error desconocido al obtener el repositorio."
+    },
+    "noContentToAnalyze": {
+      "title": "Sin Contenido",
+      "description": "No se encontró contenido para analizar en la fuente proporcionada."
+    },
+    "analysisComplete": {
+      "title": "Análisis Completado",
+      "description": "Sugerencias de refactorización generadas."
+    },
+    "analysisError": {
+      "title": "Error de Análisis",
+      "description": "Ocurrió un error durante el análisis de refactorización."
+    },
+    "suggestionApplied": {
+      "title": "Sugerencia Marcada como Aplicada",
+      "description": "La sugerencia para \"{area}\" ha sido marcada. Recuerda aplicar los cambios manualmente en tu código si es necesario."
+    },
+    "noDiff": {
+      "title": "Sin Diff Disponible",
+      "description": "Esta sugerencia no tiene un snippet de código para comparar."
+    },
+    "suggestionDiscarded": {
+      "title": "Sugerencia Descartada"
+    },
+    "allApplied": {
+      "title": "Todas Marcadas como Aplicadas",
+      "description": "Todas las sugerencias pendientes han sido marcadas. Aplica los cambios manualmente."
+    }
+  }
+}

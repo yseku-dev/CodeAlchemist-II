@@ -1,0 +1,225 @@
+
+{
+  "title": "AutoUpdate (Análisis del Propio Código)",
+  "description": "Permite que CodeAlchemist analice su propio código fuente.",
+  "config": {
+    "title": "Configuración de AutoUpdate",
+    "description": "Configura los parámetros para el auto-análisis de CodeAlchemist.",
+    "llmSourceLabel": "Usar Configuración LLM De:",
+    "codeSourceLabel": "Fuente del Código para Auto-Análisis",
+    "sourceLocal": "Local (código actual de la app)",
+    "sourceGit": "URL del Repositorio Git",
+    "gitUrlLabel": "URL del Repositorio Git",
+    "gitUrlPlaceholder": "URL HTTPS del repo CodeAlchemist",
+    "analysisParamsLabel": "Parámetros de Auto-Análisis",
+    "analysisPrefsLabel": "Preferencias de Análisis / Campo de Enfoque (opcional)",
+    "analysisPrefsPlaceholder": "Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano.",
+    "searchDepthLabel": "Profundidad de Búsqueda (opcional)",
+    "searchDepthPlaceholder": "Ej: 3 (niveles)",
+    "startButton": "Iniciar Auto-Análisis",
+    "startButtonLoading": "Analizando..."
+  },
+  "results": {
+    "title": "Resultados del Auto-Análisis",
+    "downloadSuggestionsJson": "Descargar Sugerencias (JSON)",
+    "downloadProjectZip": "Descargar Proyecto con Sugerencias Aplicadas (ZIP)",
+    "downloadCurrentCodeZip": "Descargar Código Actual (ZIP)",
+    "uploadToGit": "Subir a Git",
+    "noResults": "Inicia un análisis para ver los resultados.",
+    "analysisTitleLabel": "Título del Análisis:",
+    "generalAssessmentLabel": "Evaluación General:",
+    "overallImprovementIdeasLabel": "Ideas Generales de Mejora Sugeridas por IA:",
+    "detailedSuggestionsLabel": "Sugerencias Detalladas:",
+    "noDetailedSuggestions": "No hay sugerencias detalladas.",
+    "unifiedPromptLabel": "Prompt Unificado para Implementar Todas las Sugerencias:"
+  },
+  "suggestionCard": {
+    "priorityLabel": "Prioridad:",
+    "promptLabel": "Prompt:",
+    "testInVenvButton": "Testear en Ent. Virtual",
+    "saveEditButton": "Guardar Edición",
+    "statusApplied": "Sugerencia Aplicada (marcada)",
+    "statusDiscarded": "Sugerencia Descartada",
+    "editContentLabel": "Editar Contenido Sugerido:"
+  },
+  "logs": {
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "analysisStarting": "Iniciando Auto-Análisis...",
+    "analysisProcessingComplete": "Procesamiento del análisis de AutoUpdate completado.",
+    "localCodeObtained": "Código local obtenido del servidor.",
+    "analysisSuccessNonGroup": "Análisis de AutoUpdate (no-grupo) exitoso.",
+    "analysisSuccessGroup": "Análisis de AutoUpdate (grupo) exitoso.",
+    "suggestionMarkedApplied": "Sugerencia marcada como aplicada para {area}. (Modificación directa de archivo no es factible desde el navegador).",
+    "downloadRequested": "Descarga solicitada: {format}",
+    "suggestionsDownloadedJson": "Sugerencias de AutoUpdate descargadas como JSON.",
+    "applyingSuggestionToZip": "Aplicando contenido de sugerencia a {fileName} para ZIP.",
+    "projectZipDownloaded": "Sugerencias Descargadas (Formato ZIP Conteniendo JSON). Se ha descargado un archivo .zip. Importante: Este archivo ZIP contiene un único archivo JSON con las sugerencias de código. No es un ZIP del proyecto completo con estructura de carpetas. Para obtener el proyecto completo, necesitarías clonarlo desde su repositorio Git y aplicar manualmente las sugerencias descargadas.",
+    "zipGenerationFailed": "Generación de ZIP fallida: {error}",
+    "gitUploadFailedConfig": "Subida a Git fallida: Configuración incompleta.",
+    "commitMessageMissing": "Subida a Git fallida: Mensaje de commit requerido.",
+    "initiatingGitUpload": "Iniciando subida a Git...",
+    "gitUploadInProgress": "Subiendo a Git con mensaje: \"{message}\"",
+    "gitUploadSuccess": "Subida a Git exitosa.",
+    "gitUploadError": "Error en subida a Git: {error}",
+    "gitUploadException": "Excepción durante subida a Git: {error}",
+    "attemptingAutofix": "Intentando Auto-Fix para error: {error}",
+    "venvSim": "Prueba simulada en entorno virtual para {area}.",
+    "detailedExecutionLogsTitle": "Logs de Ejecución Detallados (AutoUpdate)",
+    "analyzingWithGroup": "Analizando con grupo...",
+    "waitingForGroup": "Esperando resultados del grupo...",
+    "notAvailable": "N/A"
+  },
+  "analysis": {
+    "fileMarker": "Archivo",
+    "general": "Análisis general"
+  },
+  "prompts": {
+    "unifiedHeader": "// --- INICIO: Prompt para mejorar el archivo: {area} ---",
+    "unifiedFooter": "// --- FIN: Prompt para mejorar el archivo: {area} ---"
+  },
+  "toast": {
+    "gettingLocalCode": {
+      "title": "Obteniendo Código Local...",
+      "description": "Contactando al servidor para el código fuente."
+    },
+    "analysisComplete": {
+      "title": "Auto-Análisis Completado",
+      "description": "Se han generado sugerencias para el código."
+    },
+    "analyzingWithAI": {
+      "title": "Analizando con IA..."
+    },
+    "analysisError": {
+      "title": "Error de Auto-Análisis",
+      "description": "Ocurrió un error durante el auto-análisis."
+    },
+    "noContentToApply": {
+      "title": "Sin Contenido",
+      "description": "Esta sugerencia no tiene contenido de archivo para aplicar."
+    },
+    "suggestionApplied": {
+      "title": "Sugerencia Marcada como Aplicada",
+      "description": "Cambios para {area} marcados. La modificación real de archivos no es posible desde el navegador."
+    },
+    "noSuggestionsToDownload": {
+      "title": "Sin Sugerencias",
+      "description": "No hay sugerencias para descargar."
+    },
+    "noContentToDownload": {
+      "title": "Sin Contenido",
+      "description": "Ninguna de las sugerencias tiene contenido de archivo para descargar."
+    },
+    "downloadComplete": {
+      "title": "Descarga Completada",
+      "suggestionsJsonDescription": "Sugerencias descargadas como {filename}.",
+      "projectZipDescription": "Este archivo ZIP ({filename}) contiene un JSON con los cambios sugeridos por la IA. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (de Git) y aplicar manualmente los cambios del JSON."
+    },
+    "preparingProjectZip": {
+      "title": "Preparando Descarga del Proyecto (ZIP)...",
+      "description": "Obteniendo código del servidor..."
+    },
+    "projectZipDownloadInitiated": {
+      "title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
+      "description": "Este archivo ZIP contiene un único archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. No es un ZIP del proyecto ejecutable completo. Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
+    },
+    "zipError": {
+      "title": "Error al Generar ZIP",
+      "description": "No se pudo generar el archivo ZIP."
+    },
+    "gitConfigIncomplete": {
+      "title": "Configuración Git Incompleta",
+      "description": "Completa la configuración en Ajustes antes de subir a Git."
+    },
+    "commitMessageRequired": {
+      "title": "Mensaje de Commit Requerido",
+      "description": "Por favor, introduce un mensaje de commit."
+    },
+    "uploadingToGit": {
+      "title": "Subiendo a Git...",
+      "description": "Intentando subir a {repo}"
+    },
+    "gitUploadSuccess": {
+      "title": "Subida a Git Exitosa",
+      "description": "Los cambios han sido subidos al repositorio Git."
+    },
+    "gitUploadError": {
+      "title": "Error en Subida a Git",
+      "description": "Ocurrió un error durante la subida a Git."
+    },
+    "autofixSuggestion": {
+      "title": "Sugerencia de Auto-Fix",
+      "description": "La IA ha proporcionado una sugerencia para el error."
+    },
+    "autofixError": {
+      "title": "Error en Auto-Fix",
+      "description": "No se pudo obtener una sugerencia de auto-corrección."
+    },
+    "editSaved": {
+      "title": "Edición Guardada",
+      "description": "El contenido sugerido ha sido actualizado localmente."
+    },
+    "venvSim": {
+      "title": "Simulación: Prueba en Entorno Virtual",
+      "description": "Se simula el inicio de pruebas para {area}."
+    },
+    "downloadProjectZipToast": {
+        "title": "Descarga de Código Actual con Sugerencias (ZIP)",
+        "description": "Descarga de un ZIP conteniendo el código fuente actual del proyecto (del servidor), con sugerencias 'aplicadas' conceptualmente, ha iniciado. Este archivo ({filename}) contiene un archivo JSON detallando los cambios sugeridos. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (Git) y aplicar manualmente los cambios del JSON a tu copia local."
+    },
+    "downloadCurrentCodeZipToast": {
+        "title": "Descarga de Código Actual (ZIP)",
+        "description": "Descarga de un ZIP que contiene el código fuente actual del proyecto, obtenido del servidor, ha iniciado. Este proceso puede tardar unos momentos. ({filename})"
+    }
+  },
+  "downloads": {
+    "suggestionsJsonFilename": "autoupdate_sugerencias.json",
+    "projectZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip",
+    "currentCodeZipFilename": "CodeAlchemist_CodigoActual.zip"
+  },
+  "errors": {
+    "getLocalSourceFailed": "No se pudo obtener el código fuente local para análisis.",
+    "getLocalSourceBundleFailed": "Fallo al obtener el paquete de código fuente local",
+    "analysisFailedUI": "Análisis de AutoUpdate fallido en la UI",
+    "unknownAnalysisError": "Ocurrió un error desconocido durante el auto-análisis.",
+    "getServerSourceFailedZip": "No se pudo obtener el código fuente del servidor para el ZIP.",
+    "unknownZipError": "Error desconocido al generar ZIP.",
+    "unknownGitUploadError": "Error desconocido durante la subida a Git.",
+    "autofixHelperFailed": "No se pudo obtener ayuda de la IA para este error.",
+    "unknownSourceError": "Error de origen desconocido."
+  },
+  "dialogs": {
+    "applySuggestion": {
+      "title": "Aplicar Sugerencia a {area}",
+      "confirmText": "Sí, Marcar como Aplicada",
+      "description": {
+        "p1": "Se marcará como aplicada la sugerencia para {area}.",
+        "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:"
+      }
+    },
+    "noContentToShow": "Error: No hay contenido para mostrar.",
+    "testSuggestion": {
+      "title": "Testear Sugerencia: {area}",
+      "description": "Revisa el código sugerido o editado. La prueba real debe realizarse en tu entorno de desarrollo."
+    },
+    "noContentToTest": "No hay contenido para testear.",
+    "testInVenv": {
+      "title": "Testear Sugerencia en Entorno Virtual: {area}",
+      "description": "Esta funcionalidad simularía la ejecución del código sugerido en un entorno virtual aislado (ej. Python venv, Node.js NVM). La ejecución real requiere una infraestructura local o backend.",
+      "actionNote": "Acción: Se intentaría crear un entorno virtual, instalar dependencias (si se pudieran inferir) y ejecutar el código/pruebas.",
+      "simulateButton": "Simular Inicio de Prueba"
+    },
+    "commitToGit": {
+      "title": "Subir Cambios a Git",
+      "confirmText": "Commit y Push",
+      "placeholder": "Ej: Aplicadas sugerencias de AutoUpdate",
+      "description": "Esta acción intentará realizar un commit y push al repositorio configurado. Asegúrate de que las credenciales en 'Configuración' son correctas."
+    }
+  },
+  "autofix": {
+    "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate de CodeAlchemist.",
+    "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
+  },
+  "config": {
+      "gitUrlRequired": "Se requiere la URL del repositorio Git."
+  }
+}

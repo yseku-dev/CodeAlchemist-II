@@ -1,0 +1,6 @@
+
+{
+  "common": {
+    "aiError": "Error in AI flow: {flowName}"
+  }
+}

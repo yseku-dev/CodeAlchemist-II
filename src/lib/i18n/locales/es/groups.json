@@ -1,0 +1,133 @@
+
+{
+  "title": "Gestión de Grupos de Trabajo IA",
+  "description": "Define y ejecuta equipos de agentes IA colaborativos.",
+  "createWithAIButton": "Crear con IA",
+  "createGroupButton": "Crear Grupo",
+  "noGroupsMessage": "No hay grupos de trabajo creados.",
+  "defaultGroupBadge": "(Por Defecto)",
+  "agentsLabel": "Agentes:",
+  "agentsCountFormat": "{count} (+ Orquestador)",
+  "taskLabel": "Tarea:",
+  "action": {
+    "execute": "Ejecutar Grupo",
+    "edit": "Editar Grupo",
+    "delete": "Eliminar Grupo"
+  },
+  "form": {
+    "title": {
+      "edit": "Editar Grupo de Trabajo",
+      "create": "Crear Nuevo Grupo de Trabajo",
+      "reviewSuggestion": "Revisar Sugerencia de Grupo"
+    },
+    "descriptionModal": {
+      "edit": "Modifica los detalles del grupo de trabajo \"{name}\".",
+      "create": "Define un nuevo equipo de agentes para tareas colaborativas."
+    },
+    "label": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "mainTask": "Tarea Principal del Grupo",
+      "selectAgents": "Seleccionar Agentes Participantes"
+    },
+    "placeholder": {
+      "mainTask": "Describe el objetivo general que el grupo debe alcanzar..."
+    },
+    "orchestratorImplicitNote": "OrquestadorFlujoAgentes se añade implícitamente.",
+    "noAgentsToSelectError": "No hay otros agentes disponibles para seleccionar. Crea agentes primero.",
+    "button": {
+      "saveChanges": "Guardar Cambios",
+      "createGroupWithSuggestion": "Crear Grupo con Sugerencia",
+      "createGroup": "Crear Grupo"
+    },
+    "toast": {
+      "fieldsRequired": {
+        "title": "Campos Requeridos",
+        "description": "El nombre y la tarea principal son obligatorios."
+      },
+      "agentsRequired": {
+        "title": "Agentes Requeridos",
+        "description": "Selecciona al menos un agente participante (además del Orquestador)."
+      }
+    }
+  },
+  "toast": {
+    "created": {
+      "title": "Grupo Creado",
+      "description": "Grupo \"{name}\" añadido."
+    },
+    "updated": {
+      "title": "Grupo Actualizado",
+      "description": "Grupo \"{name}\" guardado."
+    },
+    "deleted": {
+      "title": "Grupo Eliminado",
+      "description": "Grupo \"{name}\" eliminado."
+    },
+    "suggestion": {
+      "taskRequired": {
+        "title": "Descripción Requerida",
+        "description": "Por favor, describe la tarea del grupo."
+      },
+      "received": {
+        "title": "Sugerencia Recibida",
+        "description": "La IA ha sugerido una definición para el grupo {name}."
+      },
+      "error": {
+        "title": "Error de Sugerencia",
+        "description": "No se pudo obtener la sugerencia."
+      }
+    },
+    "execution": {
+      "orchestratorNotFound": "Agente Orquestador no encontrado.",
+      "orchestratorError": "Error de Orquestador",
+      "groupError": "Error de Grupo",
+      "generalError": "Error de Ejecución",
+      "maxTurnsReached": "Se alcanzó el límite de turnos ({maxTurns}). Ejecución detenida.",
+      "stoppedOrFinished": "Ejecución del grupo finalizada o detenida."
+    }
+  },
+  "suggestionDialog": {
+    "title": "Sugerir Definición de Grupo con IA",
+    "description": "Describe la tarea o el objetivo principal del grupo, y la IA sugerirá una definición y agentes relevantes.",
+    "textareaLabel": "Descripción de la Tarea del Grupo",
+    "textareaPlaceholder": "Ej: Desarrollar un nuevo módulo de e-commerce para la aplicación.",
+    "submitButton": "Obtener Sugerencia",
+    "submitButtonDisabled": "Crea Agentes Primero",
+    "noAgentsWarning": "Crea agentes primero para poder obtener sugerencias de grupos."
+  },
+  "executionModal": {
+    "title": "Ejecución del Grupo: {name}",
+    "mainTaskLabel": "Tarea Principal:",
+    "logTitle": "Log de Ejecución Detallado",
+    "stopButton": "Detener Ejecución"
+  },
+  "execution": {
+    "starting": "Iniciando ejecución del grupo: {name}...\nTarea Principal: {mainTask}",
+    "taskPrefix": "Tarea Principal: ",
+    "criticalError": {
+      "orchestratorNotFound": "Agente Orquestador ('orquestador-flujo-agentes') no encontrado. No se puede ejecutar el grupo.",
+      "orchestratorParse": "Error al parsear la respuesta JSON del Orquestrador.",
+      "orchestratorIncomplete": "Respuesta del Orquestrador incompleta (faltan next_agent_id o instruction_for_next_agent).",
+      "agentNotFound": "Agente con ID \"{id}\" no encontrado."
+    },
+    "log": {
+      "turnPrefix": "--- Turno {turn} ---",
+      "orchestratorReceiving": "Orquestrador recibiendo: \"{input}...\"",
+      "orchestratorRawResponse": "Orquestrador (raw JSON): {response}",
+      "orchestratorDecision": "Decisión del Orquestrador: Siguiente Agente: {nextAgentId}. Instrucción: \"{instruction}...\". Razón: \"{reasoning}\"",
+      "taskCompleted": "--- Tarea Completada --- \nResultado Final del Grupo: {result}",
+      "callingAgent": "Llamando a Agente: {name}...",
+      "agentResponse": "Respuesta de {name}: \"{response}...\"",
+      "errorInTurn": "Error en Turno {turn}: {errorMessage}",
+      "maxTurnsReached": "\nSe alcanzó el número máximo de turnos ({maxTurns}). Ejecución detenida.",
+      "executionStoppedOrFinished": "\nEjecución del grupo finalizada o detenida.",
+      "userStopped": "Turno {turn}: Ejecución cancelada por el usuario.",
+      "criticalErrorHeader": "Error Crítico en Ejecución de Grupo: "
+    }
+  },
+  "deleteSingleModal": {
+    "title": "Confirmar Eliminación: {name}",
+    "description": "¿Estás seguro de que quieres eliminar este grupo de trabajo? Esta acción no se puede deshacer."
+  }
+}

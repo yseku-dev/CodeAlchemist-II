@@ -1,0 +1,86 @@
+
+{
+  "title": "Saved Versions (Snapshots)",
+  "description": "Manage generated code snapshots or application state.",
+  "saveAppStateButton": "Save App State (JSON)",
+  "saveAppStateDescription": "Saves current settings, agents, and groups as a JSON snapshot.",
+  "saveAndDownloadStateButton": "Save State & Download as ZIP",
+  "saveAndDownloadStateDescription": "Saves the current application state and downloads it as a .zip file (containing the state JSON).",
+  "compareButton": "Compare A & B",
+  "compareButtonDisabledTooltip": "Select two versions (A and B) to compare.",
+  "deleteAllButton": "Delete All",
+  "table": {
+    "colA": "A",
+    "colB": "B",
+    "colName": "Name",
+    "colCreatedAt": "Creation Date",
+    "colSource": "Source",
+    "colActions": "Actions",
+    "noVersions": "No saved versions."
+  },
+  "action": {
+    "view": "View",
+    "downloadOriginal": "Download as {format}",
+    "downloadZip": "Download as ZIP",
+    "delete": "Delete",
+    "selectA": "Select for A",
+    "selectB": "Select for B"
+  },
+  "source": {
+    "original": "Original (Analysis)",
+    "suggested": "Suggested (Analysis)",
+    "codealchemist-app-state": "App State",
+    "codealchemist-current": "Current Code (AutoUpdate)",
+    "unknown": "Unknown"
+  },
+  "viewModal": {
+    "title": "Viewing Snapshot: {name}",
+    "noCode": "Error: No code to display."
+  },
+  "compareModal": {
+    "title": "Compare Versions (A vs B)",
+    "versionA": "Version A: {name}",
+    "versionB": "Version B: {name}",
+    "noDiffLib": "Detailed visual comparison (diff) is not implemented. Contents are shown side-by-side."
+  },
+  "deleteAllModal": {
+    "title": "Confirm Total Deletion",
+    "description": "Are you sure you want to delete ALL saved snapshots? This action cannot be undone.",
+    "confirm": "Yes, Delete All"
+  },
+  "deleteSingleModal": {
+    "title": "Confirm Deletion: {name}",
+    "description": "Are you sure you want to delete this snapshot? This action cannot be undone.",
+    "confirm": "Yes, Delete"
+  },
+  "toast": {
+    "appStateSaved": {
+      "title": "Application State Saved",
+      "description": "Current application state \"{name}\" has been saved."
+    },
+    "appStateSavedAndDownloaded": {
+      "title": "Application State Saved & Downloaded",
+      "description": "Current state \"{name}\" has been saved and downloaded as {filename}."
+    },
+    "snapshotSaved": {
+      "title": "Snapshot Saved",
+      "description": "Snapshot \"{name}\" created."
+    },
+    "snapshotDownloaded": {
+      "title": "Snapshot Downloaded",
+      "description": "Snapshot \"{name}\" downloaded as {filename}."
+    },
+    "snapshotDeleted": {
+      "title": "Snapshot Deleted",
+      "description": "Snapshot \"{name}\" deleted."
+    },
+    "compareError": {
+      "notFound": "Could not find the selected snapshots.",
+      "selectionIncomplete": "Select two versions (A and B) to compare."
+    },
+    "allSnapshotsDeleted": {
+      "title": "All Snapshots Deleted",
+      "description": "All saved versions have been deleted."
+    }
+  }
+}

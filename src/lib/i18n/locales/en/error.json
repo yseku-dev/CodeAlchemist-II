@@ -1,0 +1,43 @@
+
+{
+  "globalError": {
+    "title": "Oops! Something went wrong",
+    "description": "Sorry, we encountered an unexpected error. Our team has been notified.",
+    "recoverySuggestion": "You can try reloading the page or going back to the previous action.",
+    "devDetailsTitle": "Error Details (Development Only):",
+    "retryButton": "Try Again",
+    "homeButton": "Go to Homepage"
+  },
+  "errorDisplay": {
+    "title": "Error Detected",
+    "copyButton": "Copy Error",
+    "autofixButton": "Auto-Fix with AI",
+    "autofixingButton": "Analyzing...",
+    "toast": {
+      "copied": {
+        "title": "Error Copied",
+        "description": "The error message has been copied to the clipboard."
+      },
+      "autofixAttempt": {
+        "title": "Attempting Auto-Fix",
+        "description": "Consulting 'SoftwareDevelopmentTeam' for a possible solution..."
+      },
+      "autofixSuggestionReceived": {
+        "title": "Auto-Fix Suggestion Received",
+        "description": "'SoftwareDevelopmentTeam' has provided a suggestion."
+      },
+      "autofixError": {
+        "title": "Auto-Fix Error",
+        "description": "Could not get auto-fix suggestion."
+      }
+    },
+    "autofixModal": {
+      "title": "Software Team's Auto-Correction Suggestion",
+      "description": "The 'SoftwareDevelopmentTeam' group has analyzed the error and proposes the following:",
+      "originalErrorLabel": "Original Error Message:",
+      "diagnosisLabel": "Group's Diagnosis:",
+      "solutionLabel": "Suggested Solution:",
+      "invocationLogLabel": "Group Invocation Log (for debugging)"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+
+{
+  "title": "AI Chat",
+  "description": "Interact with an AI assistant for queries, ideas, and more.",
+  "inputPlaceholder": "Type your message here...",
+  "sendButton": "Send",
+  "clearButton": "Clear Chat",
+  "thinking": "Thinking...",
+  "systemMessage": {
+    "errorPrefix": "Error: ",
+    "autofixErrorPrefix": "Error during Auto-Fix: "
+  },
+  "agent": {
+    "assistant": "AI Assistant",
+    "user": "User",
+    "system": "System"
+  },
+  "toast": {
+    "chatCleared": {
+      "title": "Chat Cleared",
+      "description": "The conversation history has been cleared."
+    },
+    "chatError": {
+      "title": "Chat Error",
+      "description": "An error occurred in the conversation."
+    },
+    "autofixError": {
+      "title": "Auto-Fix Error",
+      "description": "Could not get auto-fix suggestion."
+    }
+  },
+  "autofix": {
+    "userRequest": "Please analyze this error and suggest a solution: {errorMsg}"
+  }
+}
