@@ -3,20 +3,22 @@
 "use client";
 
 import React, { createContext, useContext, useCallback, ReactNode, useEffect } from 'react';
-import { useAppState } from './AppStateContext'; // To get the current language
-import { translations, type TranslationKey, type LanguageCode } from '@/lib/i18n/translations';
+import { useAppState } from './AppStateContext';
+import { translations, type TranslationKey, type TranslationSet, isTranslationSet } from '@/lib/i18n/translations';
 import { DEFAULT_LANGUAGE_CODE, SUPPORTED_LANGUAGES } from '@/lib/i18n/constants';
+import type { LanguageCode } from '@/types';
 
 /**
  * @fileOverview Provides internationalization (i18n) context and utilities.
  * Manages the current language and provides a translation function `t`.
+ * This context relies on `AppStateContext` for language persistence and updates.
  */
 
 /**
  * Defines the shape of the i18n context.
  */
 interface I18nContextType {
-  /** The currently active language code (e.g., 'es', 'en'), derived directly from AppState. */
+  /** The currently active language code (e.g., 'es', 'en'). */
   language: LanguageCode;
   /**
    * Function to change the current language. This updates the language in AppState.
@@ -25,12 +27,12 @@ interface I18nContextType {
   setLanguage: (lang: LanguageCode) => void;
   /**
    * The translation function.
-   * @param {TranslationKey} key - The key of the string to translate.
-   * @param {Record<string, string | number>} [params] - Optional parameters for interpolation.
+   * @param {TranslationKey} key - The key of the string to translate (e.g., "dashboard.welcome" or "settings.title").
+   * @param {Record<string, string | number>} [params] - Optional parameters for interpolation (e.g., { name: "Usuario" }).
    * @returns {string} The translated string, or the key itself if not found.
    */
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
-  /** Array of supported language objects. */
+  /** Array of supported language objects, each with a code and native name. */
   supportedLanguages: typeof SUPPORTED_LANGUAGES;
 }
 
@@ -38,29 +40,50 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 /**
  * Helper function to recursively get a nested translation string.
- * It first checks if the key exists directly, then attempts to resolve a dot-separated path.
- * @param {string} key - The key (e.g., "app.title" or "settings.title").
- * @param {any} translationsObject - The translation object for the current language.
+ * It first checks if the key exists directly on the object (e.g., for keys containing dots like "app.title").
+ * If not found, it attempts to resolve a dot-separated path (e.g., "settings.llm.title").
+ *
+ * @param {string} key - The translation key.
+ * @param {TranslationSet | undefined} translationsObject - The translation object for the current language.
  * @returns {string | undefined} The translated string or undefined if not found.
  */
-const getNestedTranslation = (key: string, translationsObject: any): string | undefined => {
-  if (!translationsObject || typeof translationsObject !== 'object') {
+const getNestedTranslation = (key: string, translationsObject?: TranslationSet): string | undefined => {
+  if (!isTranslationSet(translationsObject)) {
     return undefined;
   }
-  // Check for direct key first (handles keys like "app.title")
+
+  // 1. Check for direct key match first (handles keys like "app.title")
   if (Object.prototype.hasOwnProperty.call(translationsObject, key)) {
     const directValue = translationsObject[key];
     if (typeof directValue === 'string') {
       return directValue;
     }
+    // If it's an object, it means the key was like "settings" but we expected a string.
+    // The dot-separated logic below will handle nested access like "settings.title".
+    // So, if directValue is an object, we let the nested logic proceed or fail.
   }
-  // If not found directly, try to resolve as a nested path
-  return key.split('.').reduce((obj, k) => (obj && obj[k] !== undefined ? obj[k] : undefined), translationsObject);
+
+  // 2. Try to resolve as a dot-separated nested path
+  const keys = key.split('.');
+  let result: string | TranslationSet | undefined = translationsObject;
+
+  for (const k of keys) {
+    if (isTranslationSet(result) && Object.prototype.hasOwnProperty.call(result, k)) {
+      result = result[k];
+    } else {
+      return undefined; // Key path not found
+    }
+  }
+
+  return typeof result === 'string' ? result : undefined; // Ensure final result is a string
 };
 
 
 /**
  * Provider component for the I18nContext.
+ * It determines the active language based on `AppStateContext` and provides
+ * the translation function `t` and language management utilities to its children.
+ *
  * @param {object} props - The component's props.
  * @param {ReactNode} props.children - The child components to be wrapped by the provider.
  * @returns {JSX.Element} The I18nProvider component.
@@ -79,12 +102,12 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
    */
   const setLanguage = useCallback((langCode: LanguageCode) => {
     if (SUPPORTED_LANGUAGES.some(l => l.code === langCode)) {
-      updateAppLanguage(langCode);
+      updateAppLanguage(langCode); // This updates AppStateContext
       if (typeof window !== 'undefined') {
         document.documentElement.lang = langCode;
       }
     } else {
-      console.warn(`[I18nProvider] Attempted to set unsupported language: ${langCode}`);
+      console.warn(`[I18nContext] Attempted to set unsupported language: ${langCode}`);
     }
   }, [updateAppLanguage]);
 
@@ -103,7 +126,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
 
     // Fallback to default language if not found in active language
     if (translatedString === undefined && activeLanguage !== DEFAULT_LANGUAGE_CODE) {
-      console.warn(`[I18nContext] Translation not found for key: "${key}" in language: "${activeLanguage}". Falling back to default "${DEFAULT_LANGUAGE_CODE}".`);
+      // console.warn(`[I18nContext] Translation not found for key: "${key}" in language: "${activeLanguage}". Falling back to default "${DEFAULT_LANGUAGE_CODE}".`);
       languageTranslations = translations[DEFAULT_LANGUAGE_CODE];
       translatedString = getNestedTranslation(key, languageTranslations);
     }
@@ -119,7 +142,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
       }, translatedString);
     }
     return typeof translatedString === 'string' ? translatedString : key;
-  }, [activeLanguage]);
+  }, [activeLanguage]); // Dependency on activeLanguage ensures 't' is updated when language changes
 
   // Effect to set the HTML lang attribute when the active language changes
   useEffect(() => {
@@ -129,7 +152,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }): JSX.Element
   }, [activeLanguage]);
 
 
-  const providerValue = {
+  const providerValue: I18nContextType = {
     language: activeLanguage,
     setLanguage,
     t,
@@ -157,3 +180,4 @@ export const useI18n = (): I18nContextType => {
   return context;
 };
 
+    
