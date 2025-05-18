@@ -17,10 +17,11 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import CodeBlock from '@/components/code-block';
 import { AppError } from '@/utils/AppError';
 import { useRouter } from 'next/navigation';
-import { getApplicationSourceBundle, handleUploadToGit } from './actions';
+import { getApplicationSourceBundle, handleUploadToGit, fetchRemoteGitRepository } from './actions';
 import JSZip from 'jszip';
 import LogsDisplay from '@/components/logs-display';
 import { useI18n } from '@/context/I18nContext';
+import type { TranslationKey } from '@/lib/i18n/translations';
 
 /**
  * @fileOverview Page component for the "AutoUpdate" feature.
@@ -62,8 +63,9 @@ export default function AutoUpdatePage() {
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
   const [gitRepoUrl, setGitRepoUrl] = useState('');
   const [analysisPreferences, setAnalysisPreferences] = useState('');
-  
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalyzeCodeOutput | null>(null);
@@ -72,7 +74,7 @@ export default function AutoUpdatePage() {
 
   const [showConfirmApplyDialog, setShowConfirmApplyDialog] = useState(false);
   const [suggestionToApply, setSuggestionToApply] = useState<AutoUpdateSuggestion | null>(null);
-  
+
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [suggestionToTest, setSuggestionToTest] = useState<AutoUpdateSuggestion | null>(null);
 
@@ -88,17 +90,17 @@ export default function AutoUpdatePage() {
   const _processAiAnalysisOutput = useCallback((
     aiResult: AnalyzeCodeOutput,
     currentLlmConfigSource: LLMConfigSourceOption | undefined,
-    currentProjectFiles?: AppSourceFile[]
+    currentProjectFiles?: AppSourceFile[] // Files used for original analysis (local or git)
   ): { analysisOutput: AnalyzeCodeOutput; mappedSuggestions: AutoUpdateSuggestion[]; generatedUnifiedPrompt: string | null } => {
-    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisProcessingComplete'), data: { outputTitle: aiResult.analysisTitle, numSuggestions: aiResult.detailedSuggestions.length }});
-    
+    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisProcessingComplete' as TranslationKey), data: { outputTitle: aiResult.analysisTitle, numSuggestions: aiResult.detailedSuggestions.length }});
+
     const mappedSuggestions: AutoUpdateSuggestion[] = aiResult.detailedSuggestions.map((s, index) => {
-      const normalizePath = (p: string) => p.replace(new RegExp("^\\.\\/"), '').replace(new RegExp("^src\\/"), '');
+      const normalizePath = (p: string) => p.replace(/^\.\//, '').replace(/^src\//, '');
       const relatedFile = currentProjectFiles?.find(f => {
         if (!s.area) return false;
         const areaLower = normalizePath(s.area.toLowerCase());
         const fileNameLower = normalizePath(f.fileName.toLowerCase());
-        const baseAreaLower = areaLower.split(' (parte ')[0]; 
+        const baseAreaLower = areaLower.split(' (parte ')[0];
         return fileNameLower === baseAreaLower;
       });
       return {
@@ -119,12 +121,12 @@ export default function AutoUpdatePage() {
     if (currentLlmConfigSource?.type === 'Grupo' && currentLlmConfigSource.name && currentLlmConfigSource.id) {
         const group = getGroupById(currentLlmConfigSource.id);
         const orchestratorAgent = getAgentById('orquestador-flujo-agentes');
-        finalResultOutput.groupLog = t('autoupdate.logs.groupContextLog', {
+        finalResultOutput.groupLog = t('autoupdate.logs.groupContextLog' as TranslationKey, {
             groupName: currentLlmConfigSource.name,
             groupTask: (group?.mainTask || 'N/A').substring(0,150),
-            userInput: (analysisPreferences || t('autoupdate.analysis.general')),
-            orchestratorContext: (orchestratorAgent?.systemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
-            flowName: 'analyzeSelfCode'
+            userInput: (analysisPreferences || t('autoupdate.analysis.general' as TranslationKey)),
+            orchestratorContext: (orchestratorAgent?.systemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
+            flowName: 'analyzeSelfCode (AutoUpdate)'
         });
     }
 
@@ -132,64 +134,93 @@ export default function AutoUpdatePage() {
     if (mappedSuggestions.length > 0) {
       const allPrompts = mappedSuggestions
         .filter(s => s.suggestedPromptForImplementation && s.suggestedPromptForImplementation.trim() !== '')
-        .map(s => t('autoupdate.prompts.unifiedHeader', { area: s.area }) + `\n${s.suggestedPromptForImplementation}\n` + t('autoupdate.prompts.unifiedFooter', { area: s.area }))
+        .map(s => t('autoupdate.prompts.unifiedHeader' as TranslationKey, { area: s.area }) + `\n${s.suggestedPromptForImplementation}\n` + t('autoupdate.prompts.unifiedFooter' as TranslationKey, { area: s.area }))
         .join('\n\n');
       if (allPrompts.trim() !== '') {
         generatedUnifiedPromptText = allPrompts;
       }
     }
-    
+
     return { analysisOutput: finalResultOutput, mappedSuggestions, generatedUnifiedPrompt: generatedUnifiedPromptText };
-  }, [getAgentById, getGroupById, addDebugLog, t, analysisPreferences]);
-  
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getAgentById, getGroupById, addDebugLog, t, analysisPreferences]); // Removed 'projectFiles' as it's passed as argument
+
   const handleStartAnalysis = useCallback(async () => {
     setIsAnalyzing(true);
+    setLoadingMessage(t('autoupdate.toast.gettingLocalCode.title' as TranslationKey));
     setAnalysisError(null);
     setAnalysisResult(null);
     setSuggestions([]);
     setUnifiedPrompt(null);
     setProgress(0);
-    setDetailedLogs([]); 
+    setDetailedLogs([]);
     const flowName = 'callAnalyzeSelfCode (AutoUpdate)';
-    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisStarting'), data: { sourceType, config: JSON.stringify(llmConfigSource) }, flowName});
+    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisStarting' as TranslationKey), data: { sourceType, config: JSON.stringify(llmConfigSource) }, flowName});
 
     let projectFilesForAnalysis: AppSourceFile[] | undefined;
     let projectContentStringForAnalysis: string | undefined;
+    let sourceLocationForAI: AnalyzeCodeInput['sourceCodeLocation'] = sourceType;
 
     if (sourceType === 'Local') {
-      try {
-        toast({ title: t('autoupdate.toast.gettingLocalCode.title'), description: t('autoupdate.toast.gettingLocalCode.description')});
-        const bundleResult = await getApplicationSourceBundle(false); 
-        if(bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
-        
-        if (!bundleResult.success || !bundleResult.files) {
-          throw new Error(bundleResult.error || t('autoupdate.errors.getLocalSourceFailed'));
-        }
-        projectFilesForAnalysis = bundleResult.files;
-        projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.localCodeObtained'), data: { numFiles: projectFilesForAnalysis.length }});
-      } catch (e) {
-        const err = e as Error;
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.errors.getLocalSourceBundleFailed'), data: { error: err.message }, flowName});
-        setAnalysisError(err.message);
-        toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title'), description: err.message });
+      toast({ title: t('autoupdate.toast.gettingLocalCode.title' as TranslationKey), description: t('autoupdate.toast.gettingLocalCode.description' as TranslationKey)});
+      const bundleResult = await getApplicationSourceBundle(false);
+      if(bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
+
+      if (!bundleResult.success || !bundleResult.files) {
+        const errorMsg = bundleResult.error || t('autoupdate.errors.getLocalSourceFailed' as TranslationKey);
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.errors.getLocalSourceBundleFailed' as TranslationKey), data: { error: errorMsg }, flowName});
+        setAnalysisError(errorMsg);
+        toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title' as TranslationKey), description: errorMsg });
         setIsAnalyzing(false);
+        setLoadingMessage(null);
         return;
       }
+      projectFilesForAnalysis = bundleResult.files;
+      projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.localCodeObtained' as TranslationKey), data: { numFiles: projectFilesForAnalysis.length }});
+      sourceLocationForAI = "Local";
+    } else if (sourceType === 'Git' && gitRepoUrl) {
+        setLoadingMessage(t('refactorProject.toast.fetchingGit' as TranslationKey));
+        toast({ title: t('refactorProject.toast.fetchingGit' as TranslationKey), description: gitRepoUrl });
+        const gitResult = await fetchRemoteGitRepository(gitRepoUrl);
+        if(gitResult.logsBuilt) setDetailedLogs(prev => [...prev, ...gitResult.logsBuilt!]);
+
+        if (!gitResult.success || !gitResult.files) {
+            const errorMsg = gitResult.error || t('refactorProject.toast.gitFetchError.unknown' as TranslationKey);
+            addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `Error fetching Git repo for AutoUpdate: ${errorMsg}`, data: { gitRepoUrl }, flowName});
+            setAnalysisError(errorMsg);
+            toast({ variant: "destructive", title: t('refactorProject.toast.gitFetchError.title' as TranslationKey), description: errorMsg });
+            setIsAnalyzing(false);
+            setLoadingMessage(null);
+            return;
+        }
+        projectFilesForAnalysis = gitResult.files;
+        projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Git repo content obtained for AutoUpdate: ${gitRepoUrl}`, data: { numFiles: projectFilesForAnalysis.length }});
+        sourceLocationForAI = "Git";
+    } else {
+        const errorMsg = sourceType === 'Git' && !gitRepoUrl ? t('autoupdate.config.gitUrlRequired' as TranslationKey) : t('autoupdate.errors.unknownSourceError' as TranslationKey);
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `Invalid source for AutoUpdate: ${errorMsg}`, data: { sourceType, gitRepoUrl }, flowName});
+        setAnalysisError(errorMsg);
+        toast({ variant: "destructive", title: t('autoupdate.toast.sourceError.title' as TranslationKey), description: errorMsg });
+        setIsAnalyzing(false);
+        setLoadingMessage(null);
+        return;
     }
-    
+    setLoadingMessage(t('autoupdate.toast.analyzingWithAI.title' as TranslationKey));
+
     const currentAgent = llmConfigSource?.type === 'Agente' ? getAgentById(llmConfigSource.id || '') : undefined;
     const currentGroup = llmConfigSource?.type === 'Grupo' ? getGroupById(llmConfigSource.id || '') : undefined;
 
     const input: AnalyzeCodeInput = {
-      sourceCodeLocation: sourceType,
+      sourceCodeLocation: sourceLocationForAI,
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
-      projectContent: projectContentStringForAnalysis, 
-      focusArea: analysisPreferences || undefined, 
-      agentSystemPrompt: currentAgent 
-        ? currentAgent.systemPrompt 
-        : currentGroup 
-        ? currentGroup.mainTask 
+      projectContent: projectContentStringForAnalysis,
+      focusArea: analysisPreferences || undefined,
+      agentSystemPrompt: currentAgent
+        ? currentAgent.systemPrompt
+        : currentGroup
+        ? currentGroup.mainTask
         : undefined,
     };
 
@@ -203,8 +234,8 @@ export default function AutoUpdatePage() {
           } else {
             clearInterval(intervalId);
           }
-        }, 300); 
-        
+        }, 300);
+
         await callAnalyzeSelfCode(input)
           .then((aiResult) => {
             clearInterval(intervalId);
@@ -213,46 +244,47 @@ export default function AutoUpdatePage() {
             setSuggestions(mappedSuggestions);
             setUnifiedPrompt(generatedUnifiedPrompt);
             setProgress(100);
-            toast({ title: t('autoupdate.toast.analysisComplete.title'), description: t('autoupdate.toast.analysisComplete.description') });
+            toast({ title: t('autoupdate.toast.analysisComplete.title' as TranslationKey), description: t('autoupdate.toast.analysisComplete.description' as TranslationKey) });
             if (analysisOutput.groupLog) setDetailedLogs(prev => [...prev, analysisOutput.groupLog!]);
-            addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.analysisSuccessNonGroup'), flowName});
+            addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.analysisSuccessNonGroup' as TranslationKey), flowName});
           })
-          .catch(err => { 
+          .catch(err => {
             clearInterval(intervalId);
-            throw err; 
+            throw err;
           });
-      } else { 
-        setProgress(50); 
+      } else {
+        setProgress(50);
         const aiResult = await callAnalyzeSelfCode(input);
         const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = _processAiAnalysisOutput(aiResult, llmConfigSource, projectFilesForAnalysis);
         setAnalysisResult(analysisOutput);
         setSuggestions(mappedSuggestions);
         setUnifiedPrompt(generatedUnifiedPrompt);
-        setProgress(100); 
-        toast({ title: t('autoupdate.toast.analysisComplete.title'), description: t('autoupdate.toast.analysisComplete.description') });
+        setProgress(100);
+        toast({ title: t('autoupdate.toast.analysisComplete.title' as TranslationKey), description: t('autoupdate.toast.analysisComplete.description' as TranslationKey) });
         if (analysisOutput.groupLog) setDetailedLogs(prev => [...prev, analysisOutput.groupLog!]);
-        addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.analysisSuccessGroup'), flowName});
+        addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.analysisSuccessGroup' as TranslationKey), flowName});
       }
     } catch (e: any) {
-      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.errors.analysisFailedUI'), data: { errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage }, flowName});
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.errors.analysisFailedUI' as TranslationKey), data: { errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage }, flowName});
       if (e instanceof AppError) {
         setAnalysisError(e.friendlyMessage);
-        toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title'), description: e.friendlyMessage });
+        toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title' as TranslationKey), description: e.friendlyMessage });
         if (e.redirectTo) router.push(e.redirectTo);
       } else {
-        const errorMsg = e.message || t('autoupdate.errors.unknownAnalysisError');
+        const errorMsg = e.message || t('autoupdate.errors.unknownAnalysisError' as TranslationKey);
         setAnalysisError(errorMsg);
-        toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title'), description: errorMsg });
+        toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title' as TranslationKey), description: errorMsg });
       }
-      setProgress(0); 
+      setProgress(0);
     } finally {
       setIsAnalyzing(false);
+      setLoadingMessage(null);
     }
-  }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, getAgentById, getGroupById, _processAiAnalysisOutput, toast, addDebugLog, router, t]); 
+  }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, getAgentById, getGroupById, _processAiAnalysisOutput, toast, addDebugLog, router, t]);
 
   const handleApplySuggestionClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     if (!(suggestion.userEditedContent !== undefined || suggestion.fullFileContentSuggested !== undefined)) {
-        toast({variant: "destructive", title: t('autoupdate.toast.noContentToApply.title'), description: t('autoupdate.toast.noContentToApply.description')});
+        toast({variant: "destructive", title: t('autoupdate.toast.noContentToApply.title' as TranslationKey), description: t('autoupdate.toast.noContentToApply.description' as TranslationKey)});
         return;
     }
     setSuggestionToApply(suggestion);
@@ -261,19 +293,19 @@ export default function AutoUpdatePage() {
 
   const confirmApplySuggestion = useCallback(() => {
     if (!suggestionToApply) return;
-    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionMarkedApplied', { area: suggestionToApply.area })});
+    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionMarkedApplied' as TranslationKey, { area: suggestionToApply.area })});
     setSuggestions(prev => prev.map(s => s.id === suggestionToApply.id ? { ...s, status: 'applied', isEditing: false } : s));
-    toast({ title: t('autoupdate.toast.suggestionApplied.title'), description: t('autoupdate.toast.suggestionApplied.description', { area: suggestionToApply.area }) });
+    toast({ title: t('autoupdate.toast.suggestionApplied.title' as TranslationKey), description: t('autoupdate.toast.suggestionApplied.description' as TranslationKey, { area: suggestionToApply.area }) });
     setShowConfirmApplyDialog(false);
     setSuggestionToApply(null);
   }, [suggestionToApply, toast, addDebugLog, t]);
 
   const handleDownload = useCallback(async (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => {
-    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.downloadRequested', { format: format })});
+    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.downloadRequested' as TranslationKey, { format: format })});
 
     if (format === 'JSON_SUGGESTIONS') {
       if (!suggestions || suggestions.length === 0) {
-        toast({ title: t('autoupdate.toast.noSuggestionsToDownload.title'), description: t('autoupdate.toast.noSuggestionsToDownload.description') });
+        toast({ title: t('autoupdate.toast.noSuggestionsToDownload.title' as TranslationKey), description: t('autoupdate.toast.noSuggestionsToDownload.description' as TranslationKey) });
         return;
       }
       const filesToDownload: Record<string, string | undefined> = {};
@@ -287,7 +319,7 @@ export default function AutoUpdatePage() {
       });
 
       if (!hasContent) {
-        toast({ title: t('autoupdate.toast.noContentToDownload.title'), description: t('autoupdate.toast.noContentToDownload.description') });
+        toast({ title: t('autoupdate.toast.noContentToDownload.title' as TranslationKey), description: t('autoupdate.toast.noContentToDownload.description' as TranslationKey) });
         return;
       }
       const jsonString = JSON.stringify(filesToDownload, null, 2);
@@ -295,22 +327,23 @@ export default function AutoUpdatePage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = t('autoupdate.downloads.suggestionsJsonFilename');
+      link.download = t('autoupdate.downloads.suggestionsJsonFilename' as TranslationKey);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast({ title: t('autoupdate.toast.downloadComplete.title'), description: t('autoupdate.toast.downloadComplete.suggestionsJsonDescription', { filename: t('autoupdate.downloads.suggestionsJsonFilename') }) });
-      addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionsDownloadedJson')});
+      toast({ title: t('autoupdate.toast.downloadComplete.title' as TranslationKey), description: t('autoupdate.toast.downloadComplete.suggestionsJsonDescription' as TranslationKey, { filename: t('autoupdate.downloads.suggestionsJsonFilename' as TranslationKey) }) });
+      addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionsDownloadedJson' as TranslationKey)});
     } else if (format === 'ZIP_PROJECT') {
-        setIsAnalyzing(true); 
-        toast({ title: t('autoupdate.toast.preparingProjectZip.title'), description: t('autoupdate.toast.preparingProjectZip.description')});
+        setIsAnalyzing(true);
+        setLoadingMessage(t('autoupdate.toast.preparingProjectZip.title' as TranslationKey));
+        toast({ title: t('autoupdate.toast.preparingProjectZip.title' as TranslationKey), description: t('autoupdate.toast.preparingProjectZip.description' as TranslationKey)});
         try {
-            const bundleResult = await getApplicationSourceBundle(false); 
+            const bundleResult = await getApplicationSourceBundle(false);
             if(bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
 
             if (!bundleResult.success || !bundleResult.files) {
-                throw new Error(bundleResult.error || t('autoupdate.errors.getServerSourceFailedZip'));
+                throw new Error(bundleResult.error || t('autoupdate.errors.getServerSourceFailedZip' as TranslationKey));
             }
 
             let filesToPackage: AppSourceFile[] = bundleResult.files;
@@ -324,7 +357,7 @@ export default function AutoUpdatePage() {
                         appliedSuggestionsMap.set(s.area, content);
                     }
                 });
-                
+
                 if (appliedSuggestionsMap.size > 0) {
                    addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Aplicando ${appliedSuggestionsMap.size} sugerencias marcadas al bundle del servidor para ZIP.`});
                 }
@@ -334,7 +367,7 @@ export default function AutoUpdatePage() {
                   const normalizedFileName = normalizePath(file.fileName);
                   for (const [area, content] of appliedSuggestionsMap.entries()) {
                       if (normalizePath(area) === normalizedFileName) {
-                          addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'DEBUG', message: t('autoupdate.logs.applyingSuggestionToZip', { fileName: file.fileName })});
+                          addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'DEBUG', message: t('autoupdate.logs.applyingSuggestionToZip' as TranslationKey, { fileName: file.fileName })});
                           return { ...file, content: content };
                       }
                   }
@@ -347,7 +380,7 @@ export default function AutoUpdatePage() {
                 zip.file(file.fileName, file.content);
             });
 
-            const zipFileName = t('autoupdate.downloads.projectZipFilename');
+            const zipFileName = t('autoupdate.downloads.currentCodeZipFilename' as TranslationKey); // Changed from projectZipFilename
 
             const zipBlob = await zip.generateAsync({ type: "blob" });
             const url = URL.createObjectURL(zipBlob);
@@ -358,26 +391,27 @@ export default function AutoUpdatePage() {
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            toast({ 
-                title: t('autoupdate.toast.projectZipDownloadInitiated.title'), 
-                description: t('autoupdate.toast.projectZipDownloadInitiated.description', {filename: zipFileName}),
-                duration: 12000, 
+            toast({
+                title: t('autoupdate.toast.downloadCurrentCodeZipToast.title' as TranslationKey),
+                description: t('autoupdate.toast.downloadCurrentCodeZipToast.description' as TranslationKey, {filename: zipFileName}),
+                duration: 12000,
             });
-            addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.projectZipDownloaded', { numFiles: filesToPackage.length })});
+            addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.projectZipDownloaded' as TranslationKey, { numFiles: filesToPackage.length, filename: zipFileName })});
         } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : t('autoupdate.errors.unknownZipError');
-            toast({ variant: "destructive", title: t('autoupdate.toast.zipError.title'), description: errorMsg });
-            addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.zipGenerationFailed', { error: errorMsg })});
+            const errorMsg = e instanceof Error ? e.message : t('autoupdate.errors.unknownZipError' as TranslationKey);
+            toast({ variant: "destructive", title: t('autoupdate.toast.zipError.title' as TranslationKey), description: errorMsg });
+            addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.zipGenerationFailed' as TranslationKey, { error: errorMsg })});
         } finally {
             setIsAnalyzing(false);
+            setLoadingMessage(null);
         }
     }
-  }, [suggestions, toast, addDebugLog, t, analysisResult, setIsAnalyzing]);
+  }, [suggestions, toast, addDebugLog, t, analysisResult, setIsAnalyzing, setLoadingMessage]);
 
   const handleOpenCommitDialog = () => {
     if (!globalSettings.gitConfig.repoUrl || !globalSettings.gitConfig.username || !globalSettings.gitConfig.email || !globalSettings.gitConfig.pat) {
-      toast({ variant: "destructive", title: t('autoupdate.toast.gitConfigIncomplete.title'), description: t('autoupdate.toast.gitConfigIncomplete.description') });
-      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.gitUploadFailedConfig')});
+      toast({ variant: "destructive", title: t('autoupdate.toast.gitConfigIncomplete.title' as TranslationKey), description: t('autoupdate.toast.gitConfigIncomplete.description' as TranslationKey) });
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.gitUploadFailedConfig' as TranslationKey)});
       return;
     }
     setShowCommitDialog(true);
@@ -385,32 +419,34 @@ export default function AutoUpdatePage() {
 
   const performGitUpload = useCallback(async () => {
     if (!commitMessage.trim()) {
-      toast({ variant: "destructive", title: t('autoupdate.toast.commitMessageRequired.title') });
-      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.commitMessageMissing')});
+      toast({ variant: "destructive", title: t('autoupdate.toast.commitMessageRequired.title' as TranslationKey) });
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.commitMessageMissing' as TranslationKey)});
       return;
     }
-    
+
     setIsUploadingGit(true);
-    setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] [INFO] ${t('autoupdate.logs.initiatingGitUpload')}`]);
-    toast({ title: t('autoupdate.toast.uploadingToGit.title'), description: t('autoupdate.toast.uploadingToGit.description', { repo: globalSettings.gitConfig.repoUrl.split('/').pop()?.replace('.git','') || 'repositorio' }) });
-    addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.gitUploadInProgress', { message: commitMessage }), data: { repoUrl: globalSettings.gitConfig.repoUrl }});
+    setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] [INFO] ${t('autoupdate.logs.initiatingGitUpload' as TranslationKey)}`]);
+    toast({ title: t('autoupdate.toast.uploadingToGit.title' as TranslationKey), description: t('autoupdate.toast.uploadingToGit.description' as TranslationKey, { repo: globalSettings.gitConfig.repoUrl.split('/').pop()?.replace('.git','') || 'repositorio' }) });
+    addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.gitUploadInProgress' as TranslationKey, { message: commitMessage }), data: { repoUrl: globalSettings.gitConfig.repoUrl }});
 
     try {
-      const result = await handleUploadToGit(globalSettings.gitConfig, commitMessage, detailedLogs); 
-      
+      const result = await handleUploadToGit(globalSettings.gitConfig, commitMessage, detailedLogs);
+
       if (result.success) {
-        toast({ title: t('autoupdate.toast.gitUploadSuccess.title'), description: result.message, duration: 7000 });
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.gitUploadSuccess'), data: result });
+        toast({ title: t('autoupdate.toast.gitUploadSuccess.title' as TranslationKey), description: result.message, duration: 7000 });
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.gitUploadSuccess' as TranslationKey), data: result });
         setShowCommitDialog(false);
         setCommitMessage('');
       } else {
-        toast({ title: t('autoupdate.toast.gitUploadError.title'), description: result.message, variant: "destructive", duration: 10000 });
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.gitUploadError', { error: result.message }), data: result });
+        setAnalysisError(result.message); // Store Git error to potentially be fixed
+        toast({ title: t('autoupdate.toast.gitUploadError.title' as TranslationKey), description: result.message, variant: "destructive", duration: 10000 });
+        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.gitUploadError' as TranslationKey, { error: result.message }), data: result });
       }
     } catch (error: any) {
-      const errorMsg = error.message || t('autoupdate.errors.unknownGitUploadError');
-      toast({ title: t('autoupdate.toast.gitUploadError.title'), description: errorMsg, variant: "destructive", duration: 10000 });
-      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.gitUploadException', { error: errorMsg }), data: error });
+      const errorMsg = error.message || t('autoupdate.errors.unknownGitUploadError' as TranslationKey);
+      setAnalysisError(errorMsg);
+      toast({ title: t('autoupdate.toast.gitUploadError.title' as TranslationKey), description: errorMsg, variant: "destructive", duration: 10000 });
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.gitUploadException' as TranslationKey, { error: errorMsg }), data: error });
       setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] [FATAL_CLIENT] Error en llamada a handleUploadToGit: ${errorMsg}`]);
     } finally {
       setIsUploadingGit(false);
@@ -419,54 +455,59 @@ export default function AutoUpdatePage() {
 
 
   const handleAutoFixError = useCallback(async (errorMsg: string) => {
-    const autoFixFlowName = 'callAnalyzeSelfCode (AutoFix Error)'; 
-    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.attemptingAutofix', { error: errorMsg }), flowName: autoFixFlowName});
-    setIsAnalyzing(true); 
-    setAnalysisError(null);
+    const autoFixFlowName = 'callAnalyzeSelfCode (AutoFix Error)';
+    addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.attemptingAutofix' as TranslationKey, { error: errorMsg }), flowName: autoFixFlowName});
+    setIsAnalyzing(true);
+    setAnalysisError(null); // Clear previous analysis error if fixing a new one
+    setLoadingMessage(t('autoupdate.toast.autofixAttempt.description' as TranslationKey));
     try {
       const agentForFix = getAgentById('refactorizador-codigo-experto') || (agents.length > 0 ? getAgentById(agents[0].id) : undefined);
-      const result = await callAnalyzeSelfCode({ 
-        sourceCodeLocation: 'Local', 
-        projectContent: t('autoupdate.autofix.errorContext', { error: errorMsg }),
-        focusArea: t('autoupdate.autofix.focusArea', { error: errorMsg }),
-        agentSystemPrompt: agentForFix?.systemPrompt, 
+      const result = await callAnalyzeSelfCode({
+        sourceCodeLocation: 'Local', // Context for Auto-Fix is "local" error
+        projectContent: t('autoupdate.autofix.errorContext' as TranslationKey, { error: errorMsg }),
+        focusArea: t('autoupdate.autofix.focusArea' as TranslationKey, { error: errorMsg }),
+        agentSystemPrompt: agentForFix?.systemPrompt,
       });
-      toast({ title: t('autoupdate.toast.autofixSuggestion.title'), description: result.generalAssessment, duration: 10000 });
+      toast({ title: t('autoupdate.toast.autofixSuggestion.title' as TranslationKey), description: result.generalAssessment, duration: 10000 });
+      // Potentially show `result` in a modal or append to logs
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Sugerencia de Auto-Fix recibida: ${result.analysisTitle}`, data: result, flowName: autoFixFlowName});
+
     } catch (e: any) {
-      const appErr = e instanceof AppError ? e : new AppError(t('autoupdate.errors.autofixHelperFailed'), e, 'ai');
-      toast({ variant: "destructive", title: t('autoupdate.toast.autofixError.title'), description: appErr.friendlyMessage });
+      const appErr = e instanceof AppError ? e : new AppError(t('autoupdate.errors.autofixHelperFailed' as TranslationKey), e, 'ai');
+      toast({ variant: "destructive", title: t('autoupdate.toast.autofixError.title' as TranslationKey), description: appErr.friendlyMessage });
       if (appErr.redirectTo) router.push(appErr.redirectTo);
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `Fallo Auto-Fix: ${appErr.friendlyMessage}`, errorDetails: appErr.originalError, flowName: autoFixFlowName});
     } finally {
       setIsAnalyzing(false);
+      setLoadingMessage(null);
     }
-  }, [addDebugLog, toast, router, getAgentById, agents, t]);
+  }, [addDebugLog, toast, router, getAgentById, agents, t, setIsAnalyzing, setAnalysisError, setLoadingMessage]);
 
   const handleToggleEdit = useCallback((suggestionId: string) => {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
         const newIsEditing = !s.isEditing;
-        const newUserEditedContent = newIsEditing && s.userEditedContent === undefined 
-                                     ? (s.fullFileContentSuggested ?? '') 
+        const newUserEditedContent = newIsEditing && s.userEditedContent === undefined
+                                     ? (s.fullFileContentSuggested ?? '')
                                      : s.userEditedContent;
         return { ...s, isEditing: newIsEditing, userEditedContent: newUserEditedContent };
       }
       return s;
     }));
   }, []);
-  
+
   const handleSuggestionContentChange = useCallback((suggestionId: string, newContent: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, userEditedContent: newContent } : s));
   }, []);
 
   const handleSaveEdit = useCallback((suggestionId: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, isEditing: false } : s));
-    toast({title: t('autoupdate.toast.editSaved.title'), description: t('autoupdate.toast.editSaved.description')})
+    toast({title: t('autoupdate.toast.editSaved.title' as TranslationKey), description: t('autoupdate.toast.editSaved.description' as TranslationKey)})
   }, [toast, t]);
 
   const handleCancelEdit = useCallback((suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
-        // Revert to original AI suggestion or empty if no original AI suggestion
         return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested ?? undefined };
       }
       return s;
@@ -496,15 +537,15 @@ export default function AutoUpdatePage() {
           analysisPreferences={analysisPreferences}
           onAnalysisPreferencesChange={setAnalysisPreferences}
           onStartAnalysis={handleStartAnalysis}
-          isLoading={isAnalyzing || isUploadingGit} 
+          isLoading={isAnalyzing || isUploadingGit}
           progress={progress}
-          isAnalysisInProgress={isAnalyzing && !analysisResult && progress < 100 && llmConfigSource?.type !== 'Grupo'} 
+          isAnalysisInProgress={isAnalyzing && !analysisResult && progress < 100 && llmConfigSource?.type !== 'Grupo'}
         />
 
         <AutoUpdateResultsDisplay
           analysisResult={analysisResult}
           suggestions={suggestions}
-          isLoading={isAnalyzing && !analysisResult} 
+          isLoading={isAnalyzing && !analysisResult}
           error={analysisError}
           onAutoFixError={handleAutoFixError}
           onApplySuggestion={handleApplySuggestionClick}
@@ -523,26 +564,26 @@ export default function AutoUpdatePage() {
           isOpen={showConfirmApplyDialog && !!suggestionToApply}
           onClose={() => { setSuggestionToApply(null); setShowConfirmApplyDialog(false); }}
           onConfirm={confirmApplySuggestion}
-          title={t('autoupdate.dialogs.applySuggestion.title', { area: suggestionToApply?.area || 'N/A' })}
-          confirmText={t('autoupdate.dialogs.applySuggestion.confirmText')}
+          title={t('autoupdate.dialogs.applySuggestion.title' as TranslationKey, { area: suggestionToApply?.area || 'N/A' })}
+          confirmText={t('autoupdate.dialogs.applySuggestion.confirmText' as TranslationKey)}
         >
-          <p className="text-sm mb-2 text-muted-foreground">{t('autoupdate.dialogs.applySuggestion.description.p1', { area: suggestionToApply?.area || 'N/A' })}</p>
-          <p className="text-sm mb-2 text-muted-foreground">{t('autoupdate.dialogs.applySuggestion.description.p2')}</p>
+          <p className="text-sm mb-2 text-muted-foreground">{t('autoupdate.dialogs.applySuggestion.description.p1' as TranslationKey, { area: suggestionToApply?.area || 'N/A' })}</p>
+          <p className="text-sm mb-2 text-muted-foreground">{t('autoupdate.dialogs.applySuggestion.description.p2' as TranslationKey)}</p>
           <ScrollArea className="h-64 border rounded-md">
-            <CodeBlock code={suggestionToApply?.userEditedContent ?? suggestionToApply?.fullFileContentSuggested ?? t('autoupdate.dialogs.noContentToShow')} language="typescript" maxHeight="100%" />
+            <CodeBlock code={suggestionToApply?.userEditedContent ?? suggestionToApply?.fullFileContentSuggested ?? t('autoupdate.dialogs.noContentToShow' as TranslationKey)} language="typescript" maxHeight="100%" />
           </ScrollArea>
         </ConfirmDialog>
 
         <Dialog open={showTestDialog && !!suggestionToTest} onOpenChange={(open) => { if(!open) setSuggestionToTest(null); setShowTestDialog(open);}}>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{t('autoupdate.dialogs.testSuggestion.title', { area: suggestionToTest?.area || 'N/A' })}</DialogTitle>
+              <DialogTitle>{t('autoupdate.dialogs.testSuggestion.title' as TranslationKey, { area: suggestionToTest?.area || 'N/A' })}</DialogTitle>
               <DialogDescription>
-                {t('autoupdate.dialogs.testSuggestion.description')}
+                {t('autoupdate.dialogs.testSuggestion.description' as TranslationKey)}
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[60vh] mt-4 border rounded-md">
-              <CodeBlock code={suggestionToTest?.userEditedContent ?? suggestionToTest?.fullFileContentSuggested ?? t('autoupdate.dialogs.noContentToTest')} language="typescript" maxHeight="100%" />
+              <CodeBlock code={suggestionToTest?.userEditedContent ?? suggestionToTest?.fullFileContentSuggested ?? t('autoupdate.dialogs.noContentToTest' as TranslationKey)} language="typescript" maxHeight="100%" />
             </ScrollArea>
             <DialogFooter className="mt-4">
               <DialogClose asChild>
@@ -555,23 +596,23 @@ export default function AutoUpdatePage() {
         <Dialog open={showTestInVenvDialog && !!suggestionToTestInVenv} onOpenChange={(open) => { if(!open) setSuggestionToTestInVenv(null); setShowTestInVenvDialog(open);}}>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{t('autoupdate.dialogs.testInVenv.title', { area: suggestionToTestInVenv?.area || 'N/A' })}</DialogTitle>
+              <DialogTitle>{t('autoupdate.dialogs.testInVenv.title' as TranslationKey, { area: suggestionToTestInVenv?.area || 'N/A' })}</DialogTitle>
               <DialogDescription>
-                {t('autoupdate.dialogs.testInVenv.description')}
+                {t('autoupdate.dialogs.testInVenv.description' as TranslationKey)}
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[50vh] mt-4 border rounded-md">
-              <CodeBlock code={suggestionToTestInVenv?.userEditedContent ?? suggestionToTestInVenv?.fullFileContentSuggested ?? t('autoupdate.dialogs.noContentToTest')} language="typescript" maxHeight="100%" />
+              <CodeBlock code={suggestionToTestInVenv?.userEditedContent ?? suggestionToTestInVenv?.fullFileContentSuggested ?? t('autoupdate.dialogs.noContentToTest' as TranslationKey)} language="typescript" maxHeight="100%" />
             </ScrollArea>
-            <p className="text-xs text-muted-foreground mt-2">{t('autoupdate.dialogs.testInVenv.actionNote')}</p>
+            <p className="text-xs text-muted-foreground mt-2">{t('autoupdate.dialogs.testInVenv.actionNote' as TranslationKey)}</p>
             <DialogFooter className="mt-4">
               <Button variant="outline" onClick={() => {
-                toast({ title: t('autoupdate.toast.venvSim.title'), description: t('autoupdate.toast.venvSim.description', { area: suggestionToTestInVenv?.area || 'N/A' })});
-                addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.venvSim', { area: suggestionToTestInVenv?.area || 'N/A' })});
+                toast({ title: t('autoupdate.toast.venvSim.title' as TranslationKey), description: t('autoupdate.toast.venvSim.description' as TranslationKey, { area: suggestionToTestInVenv?.area || 'N/A' })});
+                addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.venvSim' as TranslationKey, { area: suggestionToTestInVenv?.area || 'N/A' })});
                 setShowTestInVenvDialog(false);
                 setSuggestionToTestInVenv(null);
               }}>
-                {t('autoupdate.dialogs.testInVenv.simulateButton')}
+                {t('autoupdate.dialogs.testInVenv.simulateButton' as TranslationKey)}
               </Button>
               <DialogClose asChild>
                 <Button variant="outline">{t('common.close')}</Button>
@@ -584,19 +625,19 @@ export default function AutoUpdatePage() {
           isOpen={showCommitDialog}
           onClose={() => setShowCommitDialog(false)}
           onConfirm={performGitUpload}
-          title={t('autoupdate.dialogs.commitToGit.title')}
-          confirmText={isUploadingGit ? t('common.uploading') : t('autoupdate.dialogs.commitToGit.confirmText')}
+          title={t('autoupdate.dialogs.commitToGit.title' as TranslationKey)}
+          confirmText={isUploadingGit ? t('common.uploading') : t('autoupdate.dialogs.commitToGit.confirmText' as TranslationKey)}
           confirmDisabled={isUploadingGit}
         >
-          <Input id="commit-message" value={commitMessage} onChange={(e) => setCommitMessage(e.target.value)} placeholder={t('autoupdate.dialogs.commitToGit.placeholder')} className="mt-1" />
-          <p className="text-xs text-muted-foreground mt-2">{t('autoupdate.dialogs.commitToGit.description')}</p>
+          <Input id="commit-message" value={commitMessage} onChange={(e) => setCommitMessage(e.target.value)} placeholder={t('autoupdate.dialogs.commitToGit.placeholder' as TranslationKey)} className="mt-1" />
+          <p className="text-xs text-muted-foreground mt-2">{t('autoupdate.dialogs.commitToGit.description' as TranslationKey)}</p>
         </ConfirmDialog>
 
         {(analysisResult?.groupLog || detailedLogs.length > 0 || (isAnalyzing && !analysisResult && llmConfigSource?.type === 'Grupo')) && (
             <div className="lg:col-span-3 mt-4">
-            <LogsDisplay 
-              title={t('autoupdate.logs.detailedExecutionLogsTitle')} 
-              logs={detailedLogs.length > 0 ? detailedLogs : (analysisResult?.groupLog || (isAnalyzing ? [t('autoupdate.logs.analyzingWithGroup')] : [t('autoupdate.logs.waitingForGroup')]))} 
+            <LogsDisplay
+              title={t('autoupdate.logs.detailedExecutionLogsTitle' as TranslationKey)}
+              logs={detailedLogs.length > 0 ? detailedLogs : (analysisResult?.groupLog || (isAnalyzing ? [t('autoupdate.logs.analyzingWithGroup' as TranslationKey)] : [t('autoupdate.logs.waitingForGroup' as TranslationKey)]))}
               defaultExpanded={!!analysisResult?.groupLog || detailedLogs.length > 0}
             />
             </div>
@@ -605,4 +646,3 @@ export default function AutoUpdatePage() {
     </React.Fragment>
   );
 }
-    

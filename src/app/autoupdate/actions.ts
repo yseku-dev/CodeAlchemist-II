@@ -1,10 +1,9 @@
-
 'use server';
 
 /**
- * @fileOverview Server Actions for the AutoUpdate feature.
+ * @fileOverview Server Actions for the AutoUpdate feature and Git interactions.
  * This module contains functions that run on the server-side to access
- * the application's source code, and to interact with Git.
+ * the application's source code, interact with Git, and fetch remote repositories.
  */
 
 import fs from 'fs/promises';
@@ -15,8 +14,7 @@ import simpleGit, { type SimpleGitOptions, type SimpleGit } from 'simple-git';
 import os from 'os';
 
 /**
- * Patterns for files and directories to ignore when bundling the application source.
- * This helps in excluding unnecessary files like `node_modules`, build artifacts, etc.
+ * Patterns for files and directories to ignore when bundling application source or cloning repos.
  */
 const ignorePatterns = [
   'node_modules/**',
@@ -31,20 +29,18 @@ const ignorePatterns = [
   '.env.development',
   '.env.production',
   '.env.test',
-  '.git/**',
-  'public/generated/**', // Example: if you generate assets into public
-  // '*.lock', // Keep lock files like package-lock.json for reproducibility
+  '.git/**', // Important to exclude .git folder itself
+  'public/generated/**',
   // Binary/image files to exclude from text-based processing
   '*.mp4', '*.mov', '*.webm', '*.webp', '*.png', '*.jpg', '*.jpeg', '*.gif', '*.ico',
   '*.pdf', '*.doc', '*.docx', '*.xls', '*.xlsx', '*.ppt', '*.pptx',
   '*.woff', '*.woff2', '*.ttf', '*.otf', '*.eot',
-  '*.svg', // SVGs can be tricky, sometimes they are code-like, sometimes pure images.
+  '*.svg',
 ];
 
 /**
  * Retrieves the application's source code files from the server's file system.
- * This Server Action reads files based on glob patterns and ignore lists.
- * @param {boolean} [concatenate=false] - If true, concatenates all file contents into a single string (currently not used by primary client).
+ * @param {boolean} [concatenate=false] - If true, concatenates all file contents into a single string.
  * @param {string[]} [parentExecutionLogs] - Optional array to push detailed logs into for parent tracking.
  * @returns {Promise<{
  *   success: boolean;
@@ -52,11 +48,10 @@ const ignorePatterns = [
  *   concatenatedSource?: string;
  *   error?: string;
  *   logsBuilt?: string[];
- * }>} An object indicating success, an array of files with their names and content,
- *      or an error message if the operation failed. Includes built logs.
+ * }>} An object indicating success, an array of files, or an error message.
  */
 export async function getApplicationSourceBundle(
-  concatenate: boolean = false, // Concatenate not primarily used for ZIP, but kept for potential other uses
+  concatenate: boolean = false,
   parentExecutionLogs?: string[]
 ): Promise<{
   success: boolean;
@@ -102,16 +97,13 @@ export async function getApplicationSourceBundle(
     for (const relativeFilePath of allFiles) {
       const fullPath = path.join(projectRoot, relativeFilePath);
       try {
-        log(`Procesando archivo para empaquetar: ${relativeFilePath}`, 'DETAIL');
         const stats = await fs.stat(fullPath);
         if (stats.isDirectory()) {
             log(`Omitiendo directorio (verificado por stat): ${relativeFilePath}`, 'DETAIL');
             continue;
         }
-
         const content = await fs.readFile(fullPath, 'utf-8');
         filesData.push({ fileName: relativeFilePath, content });
-
         if (concatenate) {
           concatenatedOutput += `\n\n// --- Archivo: ${relativeFilePath} ---\n\n${content}`;
         }
@@ -133,6 +125,7 @@ export async function getApplicationSourceBundle(
       logsBuilt: internalLogs
     };
   } catch (error: any) {
+    // ... (error handling as before)
     let errorMessage = "Error desconocido durante la obtención del paquete de código fuente.";
     if (error instanceof Error) errorMessage = error.message;
     else if (typeof error === 'string') errorMessage = error;
@@ -169,8 +162,6 @@ interface GitUploadResult {
 
 /**
  * Handles uploading the current application source bundle to a Git repository.
- * This Server Action clones the repository, copies the current source files,
- * commits, and pushes the changes.
  * @param {GitUploadConfig} gitConfig - Configuration for the Git repository and authentication.
  * @param {string} commitMessage - The message for the Git commit.
  * @param {string[]} [parentExecutionLogs] - Optional array to append logs to.
@@ -184,17 +175,19 @@ export async function handleUploadToGit(
     const internalLogs: string[] = [];
     const log = (message: string, level: 'INFO' | 'DETAIL' | 'WARN' | 'ERROR' = 'INFO') => {
         const timestampedMessage = `[GitUpload ${level} ${new Date().toISOString()}] ${message}`;
-        // Log all levels to console for server-side debugging
         if (level === 'ERROR') console.error(timestampedMessage);
         else if (level === 'WARN') console.warn(timestampedMessage);
         else console.log(timestampedMessage);
-
         internalLogs.push(timestampedMessage);
         if (parentExecutionLogs) parentExecutionLogs.push(timestampedMessage);
     };
 
-    const redactedRepoUrl = gitConfig.repoUrl.replace(/^(https?:\/\/)([^@:]+:[^@]+@)?(.*)$/, '$1$3'); // Basic redaction
-    log(`Iniciando subida a Git para el repositorio: ${redactedRepoUrl}. Commit: "${commitMessage}"`, 'INFO');
+    // Basic redaction of PAT from log if repoUrl contains it (though it shouldn't for display)
+    const redactedRepoUrlForLog = gitConfig.repoUrl.includes(gitConfig.pat)
+      ? gitConfig.repoUrl.replace(gitConfig.pat, '********')
+      : gitConfig.repoUrl;
+    log(`Iniciando subida a Git para el repositorio: ${redactedRepoUrlForLog}. Commit: "${commitMessage}"`, 'INFO');
+
 
     if (!gitConfig.repoUrl || !gitConfig.username || !gitConfig.email || !gitConfig.pat) {
         const errMsg = "Configuración de Git incompleta. Se requieren URL, nombre de usuario, email y PAT.";
@@ -203,11 +196,11 @@ export async function handleUploadToGit(
     }
 
     let tempRepoPath: string | undefined;
-    const defaultBranch = 'main'; // Or detect default branch dynamically if needed
+    const defaultBranch = 'main';
 
     try {
         log("Paso 1: Obteniendo el paquete de código fuente más reciente...", 'INFO');
-        const sourceBundle = await getApplicationSourceBundle(false, internalLogs); // Get individual files
+        const sourceBundle = await getApplicationSourceBundle(false, internalLogs);
         if (!sourceBundle.success || !sourceBundle.files || sourceBundle.files.length === 0) {
             const errorMsg = sourceBundle.error || "No se pudo obtener el código fuente para subir a Git.";
             log(errorMsg, 'ERROR');
@@ -231,8 +224,6 @@ export async function handleUploadToGit(
         log("Repositorio Git inicializado.", 'INFO');
 
         log(`Paso 3.1: Asegurando que la rama local sea '${defaultBranch}'...`, 'INFO');
-        // Attempt to switch to the branch; if it doesn't exist, it will be created on first commit to it.
-        // If the repo is new, `checkoutLocalBranch` might fail.
         try {
             await git.checkoutLocalBranch(defaultBranch);
             log(`Rama local '${defaultBranch}' creada o ya existente y activada.`, 'INFO');
@@ -250,7 +241,6 @@ export async function handleUploadToGit(
                 throw branchError;
             }
         }
-
 
         log("Paso 4: Configurando usuario y email de Git...", 'INFO');
         await git.addConfig('user.name', gitConfig.username, undefined, 'local');
@@ -302,35 +292,28 @@ export async function handleUploadToGit(
             await git.addRemote('origin', authenticatedRepoUrl);
             log(`Remoto 'origin' añadido.`, 'INFO');
         }
-        log(`Repositorio remoto 'origin' configurado para ${redactedRepoUrl}`, 'INFO');
+        log(`Repositorio remoto 'origin' configurado para ${redactedRepoUrlForLog}`, 'INFO');
 
         log(`Paso 9: Realizando push a la rama remota '${defaultBranch}'...`, 'INFO');
-        await git.push(['-u', 'origin', defaultBranch, '--force']); // Use --force cautiously
+        await git.push(['-u', 'origin', defaultBranch, '--force']);
         log(`Push a la rama '${defaultBranch}' completado.`, 'INFO');
 
-        const successMsg = `Subida a Git completada exitosamente al repositorio ${redactedRepoUrl}.`;
+        const successMsg = `Subida a Git completada exitosamente al repositorio ${redactedRepoUrlForLog}.`;
         log(successMsg, 'INFO');
         return { success: true, message: successMsg, logs: internalLogs };
 
     } catch (error: any) {
         let errorMsg = "Error desconocido durante la subida a Git.";
         let errorDetails = error instanceof Error ? error.stack || "" : '';
-
         if (error.message) {
              errorMsg = error.message;
-             if (error.message.includes("Authentication failed")) {
-                 errorMsg = "Falló la autenticación Git. Verifica tu nombre de usuario y PAT.";
-             } else if (error.message.includes("repository not found")) {
-                 errorMsg = "Repositorio Git no encontrado. Verifica la URL.";
-             } else if (error.message.includes("src refspec") && error.message.includes("does not match any")) {
-                 errorMsg = `La rama local '${defaultBranch}' no existe o no coincide con ninguna rama remota. Asegúrate de que la rama '${defaultBranch}' exista en el remoto o que el primer push pueda crearla.`;
-             } else if (error.message.includes("could not read Username")) {
-                  errorMsg = "Falló la autenticación Git (no se pudo leer el nombre de usuario). Verifica tu PAT y permisos.";
-             }
+             if (error.message.includes("Authentication failed")) errorMsg = "Falló la autenticación Git. Verifica tu nombre de usuario y PAT.";
+             else if (error.message.includes("repository not found")) errorMsg = "Repositorio Git no encontrado. Verifica la URL.";
+             else if (error.message.includes("src refspec") && error.message.includes("does not match any")) errorMsg = `La rama local '${defaultBranch}' no existe o no coincide con ninguna rama remota. Asegúrate de que la rama '${defaultBranch}' exista en el remoto o que el primer push pueda crearla.`;
+             else if (error.message.includes("could not read Username")) errorMsg = "Falló la autenticación Git (no se pudo leer el nombre de usuario). Verifica tu PAT y permisos.";
         }
         log(`Error crítico durante la subida a Git: ${errorMsg}`, 'ERROR');
         if (errorDetails) log(`Stack/Detalles del error de Git: ${errorDetails}`, 'ERROR');
-
         return { success: false, message: `Falló la subida a Git: ${errorMsg}`, logs: internalLogs };
     } finally {
         if (tempRepoPath) {
@@ -343,4 +326,102 @@ export async function handleUploadToGit(
             }
         }
     }
+}
+
+/**
+ * Fetches content from a remote Git repository.
+ * @param {string} repoUrl - The URL of the Git repository to clone.
+ * @param {string[]} [parentExecutionLogs] - Optional array to push detailed logs into.
+ * @returns {Promise<{ success: boolean; files?: AppSourceFile[]; error?: string; logsBuilt?: string[]; }>}
+ *          An object indicating success, an array of files from the repo, or an error message.
+ */
+export async function fetchRemoteGitRepository(
+  repoUrl: string,
+  parentExecutionLogs?: string[]
+): Promise<{
+  success: boolean;
+  files?: AppSourceFile[];
+  error?: string;
+  logsBuilt?: string[];
+}> {
+  const internalLogs: string[] = [];
+  const log = (message: string, level: 'INFO' | 'DETAIL' | 'WARN' | 'ERROR' = 'INFO') => {
+    const timestampedMessage = `[FetchGit ${level} ${new Date().toISOString()}] ${message}`;
+    if (level === 'ERROR' || level === 'WARN') console.error(timestampedMessage);
+    else console.log(timestampedMessage);
+    internalLogs.push(timestampedMessage);
+    if (parentExecutionLogs) parentExecutionLogs.push(timestampedMessage);
+  };
+
+  log(`Iniciando obtención de contenido del repositorio Git remoto: ${repoUrl}`, 'INFO');
+
+  if (!repoUrl || !repoUrl.startsWith('https://')) {
+    const errMsg = "URL de repositorio Git inválida o no proporcionada. Debe ser una URL HTTPS.";
+    log(errMsg, 'ERROR');
+    return { success: false, error: errMsg, logsBuilt: internalLogs };
+  }
+
+  let tempClonePath: string | undefined;
+  try {
+    tempClonePath = await fs.mkdtemp(path.join(os.tmpdir(), 'codealchemist-gitclone-'));
+    log(`Directorio temporal para clonación creado: ${tempClonePath}`, 'INFO');
+
+    const git: SimpleGit = simpleGit();
+    log(`Clonando repositorio ${repoUrl} en ${tempClonePath}...`, 'INFO');
+    await git.clone(repoUrl, tempClonePath, ['--depth=1']); // Shallow clone for efficiency
+    log("Repositorio clonado exitosamente.", 'INFO');
+
+    log("Listando archivos del repositorio clonado...", 'DETAIL');
+    const repoFiles = await glob('**/*', {
+      cwd: tempClonePath,
+      nodir: true,
+      dot: true,
+      ignore: ignorePatterns, // Reuse ignore patterns
+      follow: false,
+    });
+    log(`Glob encontró ${repoFiles.length} archivos en el repositorio clonado.`, 'INFO');
+
+    if (repoFiles.length === 0) {
+      log("No se encontraron archivos en el repositorio clonado (después de aplicar ignorados).", 'WARN');
+      // Not necessarily an error, could be an empty repo or only ignored files
+    }
+
+    const filesData: AppSourceFile[] = [];
+    for (const relativeFilePath of repoFiles) {
+      const fullPath = path.join(tempClonePath, relativeFilePath);
+      try {
+        const content = await fs.readFile(fullPath, 'utf-8');
+        filesData.push({ fileName: relativeFilePath, content });
+      } catch (fileError: any) {
+        log(`No se pudo leer el archivo ${relativeFilePath} del clon (podría ser binario): ${fileError.message}. Omitiendo.`, 'WARN');
+      }
+    }
+
+    log(`Contenido de ${filesData.length} archivos leído exitosamente.`, 'INFO');
+    return { success: true, files: filesData, logsBuilt: internalLogs };
+
+  } catch (error: any) {
+    let errorMsg = "Error desconocido durante la obtención del repositorio Git.";
+    if (error.message) {
+        errorMsg = error.message;
+        if (error.message.includes("Authentication failed") || error.message.includes("could not read Username")) {
+            errorMsg = "Falló la autenticación Git. El repositorio podría ser privado o requerir credenciales.";
+        } else if (error.message.includes("repository not found")) {
+            errorMsg = "Repositorio Git no encontrado. Verifica la URL.";
+        }
+    }
+    log(`Error crítico obteniendo el repositorio Git: ${errorMsg}`, 'ERROR');
+    if (error.stack) log(`Stack del error: ${error.stack}`, 'DETAIL');
+    return { success: false, error: `Falló la obtención del repositorio Git: ${errorMsg}`, logsBuilt: internalLogs };
+  } finally {
+    if (tempClonePath) {
+      log(`Limpiando directorio temporal de clonación ${tempClonePath}...`, 'INFO');
+      try {
+        await fs.rm(tempClonePath, { recursive: true, force: true });
+        log("Directorio temporal de clonación eliminado.", 'INFO');
+      } catch (cleanupError: any) {
+        log(`Error al limpiar el directorio temporal de clonación ${tempClonePath}: ${cleanupError.message}`, 'ERROR');
+      }
+    }
+  }
 }

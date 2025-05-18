@@ -1,19 +1,18 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card'; // Removed CardHeader
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, FolderSearch, ListChecks, Info } from 'lucide-react'; 
+import { Loader2, Upload, FolderSearch, ListChecks, Info } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput, Agent } from '@/types'; 
-import { callAnalyzeSelfCode as analyzeProjectFlow } from '@/utils/apiClient'; 
+import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput, AppSourceFile } from '@/types';
+import { callAnalyzeSelfCode as analyzeProjectFlow } from '@/utils/apiClient';
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -23,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import { AppError } from '@/utils/AppError';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
+import { fetchRemoteGitRepository } from '@/app/autoupdate/actions';
 
 
 type ProjectSourceType = "upload" | "git";
@@ -35,7 +35,7 @@ type ProjectSourceType = "upload" | "git";
  * All UI texts are internationalized.
  */
 export default function AnalizarProyectoPage() {
-  const { agents, groups, getAgentById, getGroupById } = useAppState(); 
+  const { agents, groups, getAgentById, getGroupById } = useAppState();
   const router = useRouter();
   const { t } = useI18n();
 
@@ -44,12 +44,13 @@ export default function AnalizarProyectoPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [gitUrl, setGitUrl] = useState('');
   const [searchDepth, setSearchDepth] = useState<string>('');
-  const [focusArea, setFocusArea] = useState<string>(''); 
-  
+  const [focusArea, setFocusArea] = useState<string>('');
+
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<AnalyzeCodeOutput | null>(null); 
-  
+  const [result, setResult] = useState<AnalyzeCodeOutput | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addLog } = useDebug();
   const { toast } = useToast();
@@ -58,9 +59,9 @@ export default function AnalizarProyectoPage() {
     const file = event.target.files?.[0];
     if (file) {
       const allowedTypes = ['application/zip', 'application/json'];
-      if (allowedTypes.includes(file.type) && file.size <= 25 * 1024 * 1024) { 
+      if (allowedTypes.includes(file.type) && file.size <= 25 * 1024 * 1024) {
         setUploadedFile(file);
-        addLog(`Project file selected for analysis: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+        addLog({message: `Project file selected for analysis: ${file.name}, type: ${file.type}, size: ${file.size} bytes`, flowName: 'handleFileChange'});
       } else {
         toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title' as TranslationKey), description: t('analyzeProject.toast.invalidFile.description' as TranslationKey) });
         setUploadedFile(null);
@@ -69,16 +70,16 @@ export default function AnalizarProyectoPage() {
     }
   };
 
-  const executeAnalysis = async (input: AnalyzeCodeInput) => {
-     const flowName = 'analyzeProject (callAnalyzeSelfCode flow)';
-     addLog({message: `Analyzing project with input: ${JSON.stringify(input).substring(0, 200)}... and config: ${JSON.stringify(llmConfigSource)}`, flowName});
-    
+  const executeActualAnalysis = async (input: AnalyzeCodeInput) => {
+     const flowName = 'analyzeProject (analyzeProjectFlow via callAnalyzeSelfCode)';
+     addLog({message: `Analyzing project with input: ${JSON.stringify({...input, projectContent: input.projectContent ? input.projectContent.substring(0,200) + '...' : 'N/A' })} and config: ${JSON.stringify(llmConfigSource)}`, flowName});
+
     try {
-      const aiResult = await analyzeProjectFlow(input); 
+      const aiResult = await analyzeProjectFlow(input);
       let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined, overallImprovementIdeas: aiResult.overallImprovementIdeas || [] };
 
       if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
-         finalResult.groupLog = t('analyzeProject.results.groupContextLog' as TranslationKey, { 
+         finalResult.groupLog = t('analyzeProject.results.groupContextLog' as TranslationKey, {
             groupName: llmConfigSource.name,
             groupTask: (getGroupById(llmConfigSource.id || '')?.mainTask || 'N/A').substring(0,150),
             userInput: (input.focusArea || t('autoupdate.analysis.general' as TranslationKey)),
@@ -105,11 +106,13 @@ export default function AnalizarProyectoPage() {
       }
     } finally {
       setIsLoading(false);
+      setLoadingMessage(null);
     }
   }
 
   const handleAnalyze = async () => {
     setIsLoading(true);
+    setLoadingMessage(t('common.processing'));
     setError(null);
     setResult(null);
 
@@ -119,58 +122,84 @@ export default function AnalizarProyectoPage() {
         agentSystemPrompt = agent?.systemPrompt;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
         const group = getGroupById(llmConfigSource.id || '');
-        agentSystemPrompt = group?.mainTask;
+        agentSystemPrompt = group?.mainTask; // Using group's main task as high-level context for analysis
     }
 
-    let analysisInputBase: Omit<AnalyzeCodeInput, 'sourceCodeLocation' | 'projectContent' | 'gitRepoUrl'> = {
-        analysisPreferences: focusArea || undefined, 
+    let analysisInputBase: AnalyzeCodeInput = {
+        sourceCodeLocation: projectSourceType === 'git' ? 'Git' : 'UploadedString',
+        analysisPreferences: focusArea || undefined,
         searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
         focusArea: focusArea || undefined,
         agentSystemPrompt: agentSystemPrompt
     };
 
     if (projectSourceType === "upload" && uploadedFile) {
+      setLoadingMessage(t('analyzeProject.toast.processingFile'));
       const reader = new FileReader();
       reader.onload = async (e) => {
           const projectContent = e.target?.result as string;
           const analysisInput: AnalyzeCodeInput = {
             ...analysisInputBase,
+            projectContent: projectContent,
             sourceCodeLocation: "UploadedString",
-            projectContent: projectContent, 
           };
-          addLog(`Analyzing uploaded project: ${uploadedFile.name}`);
-          await executeAnalysis(analysisInput);
+          addLog({message: `Analyzing uploaded project: ${uploadedFile.name}`, flowName: 'analyzeProject'});
+          await executeActualAnalysis(analysisInput);
       };
       reader.onerror = () => {
           toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title' as TranslationKey), description: t('analyzeProject.toast.readError.description' as TranslationKey)});
           setIsLoading(false);
+          setLoadingMessage(null);
       }
+      // For ZIPs, a client-side unzip would be needed or more advanced server handling.
+      // For now, if it's ZIP, we'll pass a reference, if JSON, its content.
       if (uploadedFile.type === 'application/json') {
         reader.readAsText(uploadedFile);
       } else if (uploadedFile.type === 'application/zip') {
-        const analysisInput: AnalyzeCodeInput = {
+        const analysisInput: AnalyzeCodeInput = { // Pass reference for ZIP
             ...analysisInputBase,
-            sourceCodeLocation: "UploadedString", 
-            projectContent: `Contenido del archivo ZIP: ${uploadedFile.name}. (El flujo debe poder interpretar esto como una referencia o el contenido real si se envía).`,
-          };
-        addLog(`Analyzing uploaded ZIP project: ${uploadedFile.name} (reference/placeholder content)`);
-        await executeAnalysis(analysisInput);
+            projectContent: `Contenido del archivo ZIP: ${uploadedFile.name}. La IA debe inferir el contenido o la estructura relevante.`,
+            sourceCodeLocation: "UploadedString",
+        };
+        addLog({message: `Analyzing uploaded ZIP project (by reference): ${uploadedFile.name}`, flowName: 'analyzeProject'});
+        await executeActualAnalysis(analysisInput);
       } else {
           toast({ variant: "destructive", title: t('analyzeProject.toast.unsupportedFileType.title' as TranslationKey), description: t('analyzeProject.toast.unsupportedFileType.description' as TranslationKey)});
           setIsLoading(false);
+          setLoadingMessage(null);
       }
-      return; 
+      return;
     } else if (projectSourceType === "git" && gitUrl) {
-      const analysisInput: AnalyzeCodeInput = {
-        ...analysisInputBase,
-        sourceCodeLocation: "Git",
-        gitRepoUrl: gitUrl,
-      };
-      addLog(`Analyzing Git project URL: ${gitUrl}`);
-      await executeAnalysis(analysisInput);
+      setLoadingMessage(t('analyzeProject.toast.fetchingGit'));
+      addLog({message: `Fetching Git project URL for analysis: ${gitUrl}`, flowName: 'analyzeProject'});
+      try {
+        const gitResult = await fetchRemoteGitRepository(gitUrl);
+        if (gitResult.success && gitResult.files) {
+          const projectContentString = gitResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
+          const analysisInput: AnalyzeCodeInput = {
+            ...analysisInputBase,
+            gitRepoUrl: gitUrl,
+            projectContent: projectContentString,
+            sourceCodeLocation: "Git",
+          };
+          if (gitResult.logsBuilt) {
+            gitResult.logsBuilt.forEach(logMsg => addLog({ source: 'FetchRemoteGit(AnalyzeProject)', message: logMsg }));
+          }
+          await executeActualAnalysis(analysisInput);
+        } else {
+          throw new Error(gitResult.error || t('analyzeProject.toast.gitFetchError.unknown'));
+        }
+      } catch (gitError: any) {
+        toast({ variant: "destructive", title: t('analyzeProject.toast.gitFetchError.title'), description: gitError.message });
+        setError(gitError.message);
+        setIsLoading(false);
+        setLoadingMessage(null);
+        return;
+      }
     } else {
       toast({ variant: "destructive", title: t('analyzeProject.toast.sourceRequired.title' as TranslationKey), description: t('analyzeProject.toast.sourceRequired.description' as TranslationKey) });
       setIsLoading(false);
+      setLoadingMessage(null);
       return;
     }
   };
@@ -188,7 +217,7 @@ export default function AnalizarProyectoPage() {
 
         <div className="space-y-2">
           <Label>{t('analyzeProject.projectSourceLabel' as TranslationKey)}</Label>
-          <Select value={projectSourceType} onValueChange={(value) => setProjectSourceType(value as ProjectSourceType)}>
+          <Select value={projectSourceType} onValueChange={(value) => setProjectSourceType(value as ProjectSourceType)} disabled={isLoading}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="upload">{t('analyzeProject.sourceUpload' as TranslationKey)}</SelectItem>
@@ -222,16 +251,16 @@ export default function AnalizarProyectoPage() {
           <Label htmlFor="focus-area-project" className="text-sm font-normal">{t('analyzeProject.focusLabel' as TranslationKey)}</Label>
           <Input id="focus-area-project" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder={t('analyzeProject.focusPlaceholder' as TranslationKey)} disabled={isLoading} />
         </div>
-        
+
         <Button onClick={handleAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {t('analyzeProject.analyzeButton' as TranslationKey)}
+          {isLoading ? loadingMessage : t('analyzeProject.analyzeButton' as TranslationKey)}
         </Button>
 
         {error && <ErrorDisplay error={error} />}
 
-        {isLoading && !result && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{t('analyzeProject.results.analyzing')}</p></div>}
-        
+        {isLoading && !result && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{loadingMessage || t('analyzeProject.results.analyzing')}</p></div>}
+
         {result && (
           <Card className="mt-6 bg-background">
             <PageSectionHeader icon={ListChecks} title={result.analysisTitle} />
@@ -262,7 +291,7 @@ export default function AnalizarProyectoPage() {
                     {result.detailedSuggestions.map((s, index) => (
                       <li key={index} className="p-2 border-b last:border-b-0">
                         <p className="font-medium text-sm">{s.area}</p>
-                        <p className="text-xs text-muted-foreground">{s.suggestion}</p>
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap">{s.suggestion}</p>
                         <p className="text-xs">{t('analyzeProject.results.suggestionPriorityLabel' as TranslationKey)} <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></p>
                         {s.suggestedPromptForImplementation && (
                           <div className="mt-1 pt-1 border-t border-border/50">
