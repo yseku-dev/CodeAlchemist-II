@@ -14,12 +14,14 @@ import { useDebug } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
 import { LLM_PROVIDERS, DEFAULT_LLM_SETTINGS, LLM_PROVIDER_DEFAULT_API_URLS, APP_NAME } from '@/lib/constants';
 import type { LLMSettings, GitSettings, LLMProvider, AppSettings, LanguageCode } from '@/types';
-import { Upload, Download, Save, Settings as SettingsIcon, Loader2 } from 'lucide-react';
+import { Upload, Download, Save, Settings as SettingsIcon, Loader2, Info } from 'lucide-react';
 import { getModelsForProvider } from '@/lib/utils';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
-import { getGroqModels } from './actions'; // Asegúrate que esta ruta es correcta
+import { getGroqModels } from './actions';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 /**
  * @fileOverview Page component for application configuration.
@@ -35,9 +37,7 @@ import { getGroqModels } from './actions'; // Asegúrate que esta ruta es correc
  * @returns {Promise<boolean>} True if connection is successful, false otherwise.
  */
 const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
-  // In a real scenario, this would make an API call or use a Genkit flow.
   console.info("Testing LLM Connection with:", config);
-  // Simulate API call
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
 };
 
@@ -47,9 +47,7 @@ const testLLMConnection = async (config: LLMSettings): Promise<boolean> => {
  * @returns {Promise<boolean>} True if connection is successful, false otherwise.
  */
 const testGitConnection = async (config: GitSettings): Promise<boolean> => {
-  // In a real scenario, this could use a Server Action calling 'simple-git'
   console.info("Testing Git Connection with:", config);
-  // Simulate API call or Git operation
   return new Promise(resolve => setTimeout(() => resolve(Math.random() > 0.3), 1000));
 };
 
@@ -64,7 +62,6 @@ export default function ConfiguracionPage(): JSX.Element {
   const { settings, updateLLMConfig, updateGitConfig, updateSettings, updateLanguage: updateAppLanguage } = useAppState();
   const { t, language: i18nLanguage, setLanguage: setI18nLanguage, supportedLanguages } = useI18n();
 
-  // Local state for form fields, initialized from global settings
   const [currentLLMConfig, setCurrentLLMConfig] = useState<LLMSettings>(settings.llmConfig);
   const [currentGitConfig, setCurrentGitConfig] = useState<GitSettings>(settings.gitConfig);
   const [currentDebugMode, setCurrentDebugMode] = useState<boolean>(settings.debugMode);
@@ -79,7 +76,6 @@ export default function ConfiguracionPage(): JSX.Element {
   
   const importConfigInputRef = useRef<HTMLInputElement>(null);
 
-  // Effect to sync local form state when global settings change (e.g., due to import or context update)
   useEffect(() => {
     setCurrentLLMConfig(settings.llmConfig);
     setCurrentGitConfig(settings.gitConfig);
@@ -98,24 +94,25 @@ export default function ConfiguracionPage(): JSX.Element {
   const fetchAndSetGroqModels = useCallback(async (apiKey: string) => {
     if (!apiKey) {
       setGroqModels([]);
-      setAvailableModels(getModelsForProvider("Groq")); // Fallback to static list
+      setAvailableModels(getModelsForProvider("Groq"));
       previousApiKeyRef.current = null;
       return;
     }
 
     if (apiKey === previousApiKeyRef.current && groqModels.length > 0) {
       addLog({ source: 'ConfiguracionPage', type: 'DEBUG', message: 'Usando modelos Groq cacheados para la API key actual.' });
-      setAvailableModels(groqModels); // Ensure availableModels is updated if it was stale
+      setAvailableModels(groqModels);
       return;
     }
 
     setIsLoadingGroqModels(true);
-    addLog({ source: 'ConfiguracionPage', type: 'INFO', message: `[CLIENT] Obteniendo modelos de Groq para API key: ${apiKey.substring(0, 5)}...` });
+    addLog({ source: 'ConfiguracionPage', type: 'INFO', message: `[CLIENT] Obteniendo modelos de Groq para API key (parcial): ${apiKey.substring(0, 5)}...` });
     toast({ title: t('settings.llm.testingConnectionButton'), description: `${t('settings.llm.providerLabel')}: Groq` });
 
     try {
       const result = await getGroqModels(apiKey);
       addLog({ source: 'ConfiguracionPage', type: 'DEBUG', message: '[CLIENT] Resultado completo de Server Action (getGroqModels):', data: result });
+      console.log('[CLIENT] Resultado de la Server Action (getGroqModels):', result);
 
 
       if (result.success && result.models) {
@@ -132,17 +129,22 @@ export default function ConfiguracionPage(): JSX.Element {
         } else {
           toast({ title: t('settings.toast.groqModelsLoadNoModels.title'), description: result.error || t('settings.toast.groqModelsLoadNoModels.description') });
         }
-         if (result.error && result.models?.length === 0) { // If success is true but there's an error message from fallback
+         if (result.error && result.models?.length === 0) {
             toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: result.error });
         }
 
-      } else { // result.success is false
+      } else {
         setGroqModels([]);
-        setAvailableModels(getModelsForProvider("Groq")); // Fallback to static
+        setAvailableModels(getModelsForProvider("Groq"));
         previousApiKeyRef.current = null; 
-        toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: result.error || t('common.unknownError') });
-        if(result.debug) console.error('[CLIENT] Debug info de Server Action (getGroqModels):', result.debug);
-        addLog({ source: 'ConfiguracionPage', type: 'ERROR', message: `[CLIENT] Fallo Server Action getGroqModels: ${result.error}`, data: result.debug });
+        const errorMsg = result.error || t('common.unknownError');
+        toast({ variant: "destructive", title: t('settings.toast.groqModelsLoadError.title'), description: errorMsg });
+        if(result.debug) {
+          console.error('[CLIENT] Debug info de Server Action (getGroqModels):', result.debug);
+          addLog({ source: 'ConfiguracionPage', type: 'ERROR', message: `[CLIENT] Fallo Server Action getGroqModels: ${errorMsg}`, data: result.debug });
+        } else {
+          addLog({ source: 'ConfiguracionPage', type: 'ERROR', message: `[CLIENT] Fallo Server Action getGroqModels: ${errorMsg}` });
+        }
       }
     } catch (error: any) {
       setGroqModels([]);
@@ -159,7 +161,7 @@ export default function ConfiguracionPage(): JSX.Element {
 
   useEffect(() => {
     if (currentLLMConfig.provider === "Groq" && currentLLMConfig.apiKey) {
-      if (!isLoadingGroqModels) { // Prevent multiple calls if one is in progress
+      if (!isLoadingGroqModels) {
         fetchAndSetGroqModels(currentLLMConfig.apiKey);
       }
     } else if (currentLLMConfig.provider !== "Groq") {
@@ -167,15 +169,9 @@ export default function ConfiguracionPage(): JSX.Element {
       previousApiKeyRef.current = null;
       setAvailableModels(getModelsForProvider(currentLLMConfig.provider || DEFAULT_LLM_SETTINGS.provider));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLLMConfig.provider, currentLLMConfig.apiKey]);
+  }, [currentLLMConfig.provider, currentLLMConfig.apiKey, fetchAndSetGroqModels, isLoadingGroqModels]);
 
-  /**
-   * Handles changes in the LLM configuration form fields.
-   * @param {keyof LLMSettings} field - The LLM setting field being changed.
-   * @param {string | LLMProvider} value - The new value for the field.
-   */
-  const handleLLMConfigChange = (field: keyof LLMSettings, value: string | LLMProvider) => {
+  const handleLLMConfigChange = useCallback((field: keyof LLMSettings, value: string | LLMProvider) => {
     setCurrentLLMConfig(prevConfig => {
       const newConfig = { ...prevConfig, [field]: value };
 
@@ -186,16 +182,14 @@ export default function ConfiguracionPage(): JSX.Element {
         if (newProvider !== "Groq") {
           const modelsForNewProvider = getModelsForProvider(newProvider);
           setAvailableModels(modelsForNewProvider); 
-          setGroqModels([]); // Clear Groq models if switching away from Groq
+          setGroqModels([]);
           previousApiKeyRef.current = null;
-          if (!modelsForNewProvider.includes(newConfig.model) || !newConfig.model) {
+          if (!modelsForNewProvider.includes(newConfig.model || '')) {
             newConfig.model = modelsForNewProvider.length > 0 ? modelsForNewProvider[0] : '';
           }
         } else {
-           // For Groq, models will be fetched by the useEffect or fetchAndSetGroqModels directly
-           // Set availableModels to static list initially or if API key is not present
            if (newConfig.apiKey) {
-             fetchAndSetGroqModels(newConfig.apiKey); // This will set availableModels upon completion
+             // fetchAndSetGroqModels will be called by the useEffect dependent on apiKey and provider
            } else {
              setAvailableModels(getModelsForProvider("Groq"));
              setGroqModels([]);
@@ -204,60 +198,39 @@ export default function ConfiguracionPage(): JSX.Element {
       }
       return newConfig;
     });
-  };
+  }, []);
 
-  /**
-   * Handles changes in the Git configuration form fields.
-   * @param {keyof GitSettings} field - The Git setting field being changed.
-   * @param {string} value - The new value for the field.
-   */
   const handleGitConfigChange = (field: keyof GitSettings, value: string) => {
     setCurrentGitConfig({ ...currentGitConfig, [field]: value });
   };
 
-  /**
-   * Handles changes to the debug mode switch.
-   * @param {boolean} checked - The new state of the debug mode switch.
-   */
   const handleDebugModeChange = (checked: boolean) => {
     setCurrentDebugMode(checked);
   };
 
-  /**
-   * Saves all current form settings to the global application state and localStorage.
-   */
   const handleSaveSettings = () => {
     updateLLMConfig(currentLLMConfig);
     updateGitConfig(currentGitConfig);
-    updateSettings({ debugMode: currentDebugMode }); // Language is updated via I18nContext
+    // Language is updated via I18nContext, but ensure it's part of the main settings save
+    updateSettings({ debugMode: currentDebugMode, language: i18nLanguage }); 
     setContextDebugMode(currentDebugMode); 
 
     toast({ title: t('settings.toast.saved.title'), description: t('settings.toast.saved.description') });
     addLog({source: "ConfiguracionPage", type: "INFO", message:"Configuration saved."});
   };
 
-  /**
-   * Handles changes to the application language selection.
-   * Updates the language in the I18nContext, which in turn updates AppState.
-   * @param {LanguageCode} langCode - The selected language code.
-   */
   const handleLanguageChange = (langCode: LanguageCode) => {
     setI18nLanguage(langCode); 
-    // updateAppLanguage(langCode); // This is now handled by I18nProvider's setLanguage
     const langName = supportedLanguages.find(l => l.code === langCode)?.name || langCode.toUpperCase();
     toast({ title: t('settings.toast.languageChanged.title'), description: t('settings.toast.languageChanged.description', { langName }) });
     addLog({source: "ConfiguracionPage", type: "INFO", message:`Language changed to: ${langCode}`});
   };
 
 
-  /**
-   * Tests the LLM connection with the current LLM configuration.
-   * Displays a toast notification with the result.
-   */
   const handleTestLLM = async () => {
     setIsTestingLLM(true);
     addLog({source: "ConfiguracionPage", type: "INFO", message:`Attempting LLM connection test for provider: ${currentLLMConfig.provider}`});
-    const success = await testLLMConnection(currentLLMConfig); // This is a mock
+    const success = await testLLMConnection(currentLLMConfig);
     if (success) {
       toast({ title: t('settings.toast.llmConnectionSuccess.title'), description: t('settings.toast.llmConnectionSuccess.description') });
       addLog({source: "ConfiguracionPage", type: "SUCCESS", message:"LLM connection test successful."});
@@ -268,14 +241,10 @@ export default function ConfiguracionPage(): JSX.Element {
     setIsTestingLLM(false);
   };
 
-  /**
-   * Tests the Git connection with the current Git configuration.
-   * Displays a toast notification with the result.
-   */
   const handleTestGit = async () => {
     setIsTestingGit(true);
     addLog({source: "ConfiguracionPage", type: "INFO", message:`Attempting Git connection test for repo: ${currentGitConfig.repoUrl}`});
-    const success = await testGitConnection(currentGitConfig); // This is a mock
+    const success = await testGitConnection(currentGitConfig);
     if (success) {
       toast({ title: t('settings.toast.gitConnectionSuccess.title'), description: t('settings.toast.gitConnectionSuccess.description') });
       addLog({source: "ConfiguracionPage", type: "SUCCESS", message:"Git connection test successful."});
@@ -286,21 +255,17 @@ export default function ConfiguracionPage(): JSX.Element {
     setIsTestingGit(false);
   };
 
-  // Effect to ensure debug context is updated if settings.debugMode changes (e.g., from localStorage on load)
   useEffect(() => {
     setContextDebugMode(settings.debugMode);
   }, [settings.debugMode, setContextDebugMode]);
 
-  /**
-   * Exports the current application settings (LLM, Git, Debug Mode, Language) to a JSON file.
-   */
   const handleExportConfig = () => {
     try {
       const configToExport: AppSettings = {
-        llmConfig: currentLLMConfig, // Use current form state for export
+        llmConfig: currentLLMConfig,
         gitConfig: currentGitConfig,
         debugMode: currentDebugMode,
-        language: i18nLanguage, // Use current i18n language for export
+        language: i18nLanguage,
       };
       const jsonString = JSON.stringify(configToExport, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -321,11 +286,6 @@ export default function ConfiguracionPage(): JSX.Element {
     }
   };
 
-  /**
-   * Handles the import of application settings from a JSON file.
-   * Updates the global application state and persists the new settings.
-   * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
-   */
   const handleImportConfig = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -347,15 +307,13 @@ export default function ConfiguracionPage(): JSX.Element {
 
             updateLLMConfig(importedSettings.llmConfig);
             updateGitConfig(importedSettings.gitConfig);
-            setI18nLanguage(importedSettings.language); // This will update AppState via I18nContext
-            updateSettings({ debugMode: importedSettings.debugMode }); // Update other settings
+            setI18nLanguage(importedSettings.language);
+            updateSettings({ debugMode: importedSettings.debugMode, language: importedSettings.language }); 
             
-            // Update local form state to reflect imported settings immediately
             setCurrentLLMConfig(importedSettings.llmConfig);
             setCurrentGitConfig(importedSettings.gitConfig);
             setCurrentDebugMode(importedSettings.debugMode);
-            // The useEffect for currentLLMConfig.provider will handle fetching Groq models if needed
-
+            
             toast({ title: t('settings.toast.configImported.title'), description: t('settings.toast.configImported.description') });
             addLog({source: "ConfiguracionPage", type: "INFO", message:"Configuration imported and applied."});
           } else {
@@ -374,6 +332,32 @@ export default function ConfiguracionPage(): JSX.Element {
       reader.readAsText(file);
     }
   };
+
+  /**
+   * A small helper component to render a Label with an associated Tooltip.
+   * @param {object} props - Component props.
+   * @param {TranslationKey} props.labelKey - The translation key for the label text.
+   * @param {TranslationKey} props.tooltipKey - The translation key for the tooltip content.
+   * @param {string} props.htmlFor - The `htmlFor` attribute for the label.
+   * @returns {JSX.Element} The rendered label and tooltip.
+   */
+  const FieldLabelWithTooltip = ({ labelKey, tooltipKey, htmlFor }: { labelKey: TranslationKey, tooltipKey: TranslationKey, htmlFor: string }) => (
+    <div className="flex items-center gap-2">
+      <Label htmlFor={htmlFor}>{t(labelKey)}</Label>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground">
+              <Info className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p className="max-w-xs">{t(tooltipKey)}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
 
 
   return (
@@ -423,12 +407,12 @@ export default function ConfiguracionPage(): JSX.Element {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="llm-api-url">{t('settings.llm.apiUrlLabel')}</Label>
+              <FieldLabelWithTooltip htmlFor="llm-api-url" labelKey="settings.llm.apiUrlLabel" tooltipKey="settings.llm.apiUrlTooltip" />
               <Input
                 id="llm-api-url"
                 value={currentLLMConfig.apiUrl || ''}
                 onChange={(e) => handleLLMConfigChange('apiUrl', e.target.value)}
-                placeholder={t('settings.llm.apiUrlPlaceholder')}
+                placeholder={LLM_PROVIDER_DEFAULT_API_URLS[currentLLMConfig.provider as LLMProvider] || t('settings.llm.apiUrlPlaceholder')}
               />
               <p className="text-xs text-muted-foreground">
                 {t('settings.llm.apiUrlDescription')}
@@ -436,7 +420,7 @@ export default function ConfiguracionPage(): JSX.Element {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="llm-api-key">{t('settings.llm.apiKeyLabel')}</Label>
+              <FieldLabelWithTooltip htmlFor="llm-api-key" labelKey="settings.llm.apiKeyLabel" tooltipKey="settings.llm.apiKeyTooltip" />
               <Input
                 id="llm-api-key"
                 type="password"
@@ -447,10 +431,10 @@ export default function ConfiguracionPage(): JSX.Element {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="llm-model" className="flex items-center">
-                {t('settings.llm.modelNameLabel')}
-                {currentLLMConfig.provider === "Groq" && isLoadingGroqModels && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
-              </Label>
+              <div className="flex items-center gap-2">
+                 <FieldLabelWithTooltip htmlFor="llm-model" labelKey="settings.llm.modelNameLabel" tooltipKey="settings.llm.modelNameTooltip" />
+                {currentLLMConfig.provider === "Groq" && isLoadingGroqModels && <Loader2 className="h-4 w-4 animate-spin" />}
+              </div>
               <Select
                 value={currentLLMConfig.model || ''}
                 onValueChange={(value) => handleLLMConfigChange('model', value)}
@@ -460,7 +444,7 @@ export default function ConfiguracionPage(): JSX.Element {
                   <SelectValue placeholder={
                     (["Google Gemini", "LM Studio", "Ollama"].includes(currentLLMConfig.provider))
                     ? t('settings.llm.modelNamePlaceholderLocal', {provider: currentLLMConfig.provider})
-                    : availableModels.length === 0
+                    : availableModels.length === 0 && !(currentLLMConfig.provider === "Groq" && isLoadingGroqModels)
                     ? t('settings.llm.modelNamePlaceholderDefault')
                     : t('settings.llm.modelNamePlaceholder')
                   } />
@@ -491,7 +475,6 @@ export default function ConfiguracionPage(): JSX.Element {
 
         <Separator />
 
-        {/* Git Settings Section */}
         <Card>
           <CardHeader>
             <CardTitle>{t('settings.git.title')}</CardTitle>
@@ -499,7 +482,7 @@ export default function ConfiguracionPage(): JSX.Element {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="git-repo-url">{t('settings.git.repoUrlLabel')}</Label>
+              <FieldLabelWithTooltip htmlFor="git-repo-url" labelKey="settings.git.repoUrlLabel" tooltipKey="settings.git.repoUrlTooltip" />
               <Input
                 id="git-repo-url"
                 value={currentGitConfig.repoUrl || ''}
@@ -509,7 +492,7 @@ export default function ConfiguracionPage(): JSX.Element {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="git-username">{t('settings.git.usernameLabel')}</Label>
+                <FieldLabelWithTooltip htmlFor="git-username" labelKey="settings.git.usernameLabel" tooltipKey="settings.git.usernameTooltip" />
                 <Input
                   id="git-username"
                   value={currentGitConfig.username || ''}
@@ -517,7 +500,7 @@ export default function ConfiguracionPage(): JSX.Element {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="git-email">{t('settings.git.emailLabel')}</Label>
+                <FieldLabelWithTooltip htmlFor="git-email" labelKey="settings.git.emailLabel" tooltipKey="settings.git.emailTooltip" />
                 <Input
                   id="git-email"
                   type="email"
@@ -527,7 +510,7 @@ export default function ConfiguracionPage(): JSX.Element {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="git-pat">{t('settings.git.patLabel')}</Label>
+              <FieldLabelWithTooltip htmlFor="git-pat" labelKey="settings.git.patLabel" tooltipKey="settings.git.patTooltip" />
               <Input
                 id="git-pat"
                 type="password"
@@ -547,7 +530,6 @@ export default function ConfiguracionPage(): JSX.Element {
 
         <Separator />
 
-        {/* Language Settings Section */}
         <Card>
           <CardHeader>
             <CardTitle>{t('settings.language.title')}</CardTitle>
@@ -575,7 +557,6 @@ export default function ConfiguracionPage(): JSX.Element {
 
         <Separator />
 
-        {/* Debug Mode Section */}
         <Card>
           <CardHeader>
             <CardTitle>{t('settings.debug.title')}</CardTitle>

@@ -55,9 +55,8 @@ import {
 import {
   generateCodeFromDescription as generateCodeFromDescriptionFlow,
   type GenerateCodeFromDescriptionInput,
-  // type GenerateCodeFromDescriptionOutput is defined in types/index.ts
 } from '@/ai/flows/generate-code-from-description';
-import type { GenerateCodeFromDescriptionOutput } from '@/types'; // Ensure this specific type is imported
+import type { GenerateCodeFromDescriptionOutput } from '@/types';
 import {
   autoFixErrorWithGroup as autoFixErrorWithGroupFlow,
   type AutoFixErrorWithGroupInput,
@@ -65,8 +64,8 @@ import {
 } from '@/ai/flows/auto-fix-error-with-group-flow';
 
 
-const MAX_RETRIES = 2; // 2 retries means 3 total attempts
-const INITIAL_DELAY_MS = 1000; // 1 second
+const MAX_RETRIES = 2;
+const INITIAL_DELAY_MS = 1000;
 
 /**
  * Creates a delay for a specified number of milliseconds.
@@ -78,26 +77,21 @@ async function delay(ms: number): Promise<void> {
 }
 
 /**
- * Parses an error object and attempts to convert it into an `AppError`
- * with a user-friendly message and a specific error type.
+ * Parses an error object and attempts to convert it into an `AppError`.
  * Logs the original error for debugging.
  *
  * @param {any} error - The error object to parse.
  * @param {string} defaultMessage - A default friendly message to use if parsing fails.
- * @param {string} [flowName] - Optional name of the flow where the error originated for context.
+ * @param {string} [flowName] - Optional name of the flow for logging context.
  * @returns {AppError} An instance of `AppError`.
  */
 function parseError(error: any, defaultMessage: string, flowName?: string): AppError {
-  // En un entorno de producción, este error original también debería ser capturado por Sentry, idealmente
-  // en el backend o el flujo Genkit mismo. Si no, se puede capturar aquí antes de lanzar AppError.
-  // Sentry.captureException(error, { tags: { flowName: flowName || 'unknown_flow' } });
-  console.error(`Error Original de API/Flujo${flowName ? ` (${flowName})` : ''} (antes de parsear a AppError):`, error);
+  // TODO: En un entorno de producción, este 'error' original también debería ser capturado por Sentry.
+  // Sentry.captureException(error, { tags: { flowName: flowName || 'unknown_flow', stage: 'apiClient.parseError.input' } });
+  console.error(`[apiClient.parseError Raw - ${flowName || 'Unknown Flow'}] Error Original de API/Flujo:`, error, "Stack si es Error:", error instanceof Error ? error.stack : "N/A");
 
-
-  // If it's already an AppError (e.g., from retry logic), return it directly.
   if (error instanceof AppError) {
-    // Log that we received an AppError, could be from retry logic or deeper down.
-    console.warn(`[apiClient.parseError] AppError recibido, devolviendo directamente para flujo ${flowName}:`, error.message, "Tipo:", error.type, "Original (si estaba envuelto):", error.originalError);
+    console.warn(`[apiClient.parseError - ${flowName || 'Unknown Flow'}] AppError recibido, devolviendo directamente:`, error.message, "Tipo:", error.type, "StatusCode:", error.statusCode, "Original (si estaba envuelto):", error.originalError);
     return error;
   }
 
@@ -106,57 +100,57 @@ function parseError(error: any, defaultMessage: string, flowName?: string): AppE
   let redirectTo: string | undefined = undefined;
   let statusCode: number | undefined = undefined;
 
+  const originalError = error?.originalError || error; // Prefer originalError if AppError was somehow nested without being caught
+  const message = originalError?.message || (typeof error === 'string' ? error : defaultMessage);
+  const lowerErrorMessage = typeof message === 'string' ? message.toLowerCase() : '';
+  
+  const status = originalError?.status || originalError?.response?.status || (originalError?.cause as any)?.status;
+  statusCode = Number.isInteger(status) ? status : undefined;
 
-  if (typeof error === 'string') {
-    friendlyMessage = error; // Simple string error
-  } else if (error && typeof error.message === 'string') {
-    const lowerErrorMessage = error.message.toLowerCase();
-    // Attempt to get status from various possible locations in wrapped errors
-    const status = error.status || error.originalError?.status || (error.originalError?.cause as any)?.status;
-    statusCode = Number.isInteger(status) ? status : undefined;
-
-    if (lowerErrorMessage.includes('api key') ||
-        lowerErrorMessage.includes('permission denied') ||
-        lowerErrorMessage.includes('unauthenticated') ||
-        lowerErrorMessage.includes('invalid_api_key') ||
-        status === 401 || status === 403) {
-        friendlyMessage = "Error de autenticación o permisos con el proveedor IA. Verifica tu configuración y clave API.";
-        errorType = 'validation';
-        redirectTo = '/configuracion';
-        statusCode = statusCode || status === 401 ? 401 : status === 403 ? 403 : undefined;
-    } else if (lowerErrorMessage.includes('model_not_found') || lowerErrorMessage.includes('unknown model') || lowerErrorMessage.includes('model not found')) {
-        friendlyMessage = "El modelo IA seleccionado no está disponible o no es válido. Revisa la configuración.";
-        errorType = 'validation';
-        redirectTo = '/configuracion';
-    } else if (lowerErrorMessage.includes('rate limit') || status === 429 || lowerErrorMessage.includes('resource_exhausted')) {
-        friendlyMessage = "Se ha alcanzado el límite de solicitudes al proveedor IA (Error 429). Inténtalo más tarde.";
-        errorType = 'server';
-        statusCode = 429;
-    } else if (lowerErrorMessage.includes('network error') || lowerErrorMessage.includes('failed to fetch') || lowerErrorMessage.includes('dns_unresolved_hostname') || lowerErrorMessage.includes('econnrefused')) {
-        friendlyMessage = "Error de red. Por favor, comprueba tu conexión e inténtalo de nuevo. Si usas un modelo local (LM Studio, Ollama), asegúrate de que esté en ejecución.";
-        errorType = 'network';
-    } else if (status === 503 || lowerErrorMessage.includes('[503 service unavailable]') || lowerErrorMessage.includes('service_unavailable')) {
-        friendlyMessage = "El servicio de IA no está disponible temporalmente (Error 503). Por favor, inténtalo de nuevo más tarde.";
-        errorType = 'server';
-        statusCode = 503;
-    } else if (status && status >= 500) {
-        friendlyMessage = `Error del servidor del proveedor IA (${status}). Inténtalo de nuevo más tarde.`;
-        errorType = 'server';
-        statusCode = status;
-    } else if (status === 400) {
-        friendlyMessage = `Solicitud inválida al proveedor IA: ${error.message.substring(0,150)}`;
-        errorType = 'validation';
-        statusCode = 400;
-    } else if (lowerErrorMessage.includes('output parsing failed') || lowerErrorMessage.includes('json format') || lowerErrorMessage.includes('failed to parse')) {
-        friendlyMessage = "La IA devolvió una respuesta en un formato inesperado. Inténtalo de nuevo. Si el problema persiste, revisa el prompt o la configuración del modelo.";
-        errorType = 'ai';
-    } else {
-        // Keep it relatively generic for unexpected errors
-        friendlyMessage = `Error procesando la solicitud: ${error.message.substring(0, 200)}${error.message.length > 200 ? '...' : ''}`;
-        if (error.name === 'GenkitError' || lowerErrorMessage.includes('genkit') || error.message.includes('flow execution failed')) errorType = 'ai';
-    }
+  if (lowerErrorMessage.includes('api key') ||
+      lowerErrorMessage.includes('permission denied') ||
+      lowerErrorMessage.includes('unauthenticated') ||
+      lowerErrorMessage.includes('invalid_api_key') ||
+      statusCode === 401 || statusCode === 403) {
+      friendlyMessage = "Error de autenticación o permisos con el proveedor IA. Verifica tu configuración y clave API.";
+      errorType = 'validation';
+      redirectTo = '/configuracion';
+      statusCode = statusCode || (status === 401 ? 401 : (status === 403 ? 403 : undefined));
+  } else if (lowerErrorMessage.includes('model_not_found') || lowerErrorMessage.includes('unknown model') || lowerErrorMessage.includes('model not found')) {
+      friendlyMessage = "El modelo IA seleccionado no está disponible o no es válido. Revisa la configuración.";
+      errorType = 'validation';
+      redirectTo = '/configuracion';
+  } else if (lowerErrorMessage.includes('rate limit') || statusCode === 429 || lowerErrorMessage.includes('resource_exhausted')) {
+      friendlyMessage = "Se ha alcanzado el límite de solicitudes al proveedor IA (Error 429). Inténtalo más tarde.";
+      errorType = 'server';
+      statusCode = 429;
+  } else if (lowerErrorMessage.includes('network error') || lowerErrorMessage.includes('failed to fetch') || lowerErrorMessage.includes('dns_unresolved_hostname') || lowerErrorMessage.includes('econnrefused')) {
+      friendlyMessage = "Error de red. Por favor, comprueba tu conexión e inténtalo de nuevo. Si usas un modelo local (LM Studio, Ollama), asegúrate de que esté en ejecución.";
+      errorType = 'network';
+  } else if (statusCode === 503 || lowerErrorMessage.includes('[503 service unavailable]') || lowerErrorMessage.includes('service_unavailable')) {
+      friendlyMessage = "El servicio de IA no está disponible temporalmente (Error 503). Por favor, inténtalo de nuevo más tarde.";
+      errorType = 'server';
+      statusCode = 503;
+  } else if (statusCode && statusCode >= 500) {
+      friendlyMessage = `Error del servidor del proveedor IA (${statusCode}). Inténtalo de nuevo más tarde.`;
+      errorType = 'server';
+  } else if (statusCode === 400) {
+      friendlyMessage = `Solicitud inválida al proveedor IA: ${message.substring(0,150)}`;
+      errorType = 'validation';
+      statusCode = 400;
+  } else if (lowerErrorMessage.includes('output parsing failed') || lowerErrorMessage.includes('json format') || lowerErrorMessage.includes('failed to parse')) {
+      friendlyMessage = "La IA devolvió una respuesta en un formato inesperado. Inténtalo de nuevo. Si el problema persiste, revisa el prompt o la configuración del modelo.";
+      errorType = 'ai';
+  } else if (message !== defaultMessage) {
+      friendlyMessage = `Error procesando la solicitud: ${message.substring(0, 200)}${message.length > 200 ? '...' : ''}`;
+      if (originalError?.name === 'GenkitError' || lowerErrorMessage.includes('genkit') || message.includes('flow execution failed')) errorType = 'ai';
   }
-  return new AppError(friendlyMessage, error, errorType, redirectTo, statusCode);
+  
+  const appError = new AppError(friendlyMessage, originalError, errorType, redirectTo, statusCode);
+  // TODO: En producción, este 'appError' (que contiene el 'originalError') debería ser capturado por Sentry.
+  // Sentry.captureException(appError, { tags: { flowName: flowName || 'unknown_flow', stage: 'apiClient.parseError.output' } });
+  console.error(`[apiClient.parseError Parsed - ${flowName || 'Unknown Flow'}] AppError Creado:`, appError);
+  return appError;
 }
 
 
@@ -181,59 +175,39 @@ async function retryAsyncFunction<T>(
       return await asyncFn();
     } catch (error) {
       lastCaughtError = error;
-      // Parse error first to get its type and original status for retry decision
       const appErrorForRetryCheck = parseError(error, "Error durante el intento de reintento.", flowNameForLog);
 
-      let isStatusCodeRetryable = appErrorForRetryCheck.statusCode === 503 || appErrorForRetryCheck.statusCode === 429;
-
-      // If statusCode wasn't directly parsed into appErrorForRetryCheck.statusCode,
-      // check if parseError inferred it in the friendlyMessage for server errors
-      // This makes it more robust if the error object structure varies.
-      if (!isStatusCodeRetryable && appErrorForRetryCheck.type === 'server') {
-        const friendlyMsgLower = appErrorForRetryCheck.friendlyMessage.toLowerCase();
-        if (friendlyMsgLower.includes('503') || friendlyMsgLower.includes('service unavailable')) {
-          isStatusCodeRetryable = true;
-        } else if (friendlyMsgLower.includes('429') || friendlyMsgLower.includes('rate limit')) {
-          isStatusCodeRetryable = true;
-        }
-      }
-      
-      const isRetryableErrorType = appErrorForRetryCheck.type === 'network' || isStatusCodeRetryable;
-
+      const isRetryableErrorType = appErrorForRetryCheck.type === 'network' || 
+                                   appErrorForRetryCheck.statusCode === 503 || 
+                                   appErrorForRetryCheck.statusCode === 429;
 
       if (isRetryableErrorType && attempt <= MAX_RETRIES) {
         const delayTime = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
-        console.warn(`[apiClient.retryAsyncFunction] Error reintentable en ${flowNameForLog} (intento ${attempt}/${MAX_RETRIES + 1}). Reintentando en ${delayTime}ms... Mensaje: ${appErrorForRetryCheck.message}`, appErrorForRetryCheck.originalError || "");
+        // TODO: Sentry.captureMessage(`Retrying flow: ${flowNameForLog}, attempt: ${attempt}`, { level: 'warning', extra: { error: appErrorForRetryCheck } });
+        console.warn(`[apiClient.retryAsyncFunction - ${flowNameForLog}] Error reintentable (intento ${attempt}/${MAX_RETRIES + 1}). Reintentando en ${delayTime}ms... Mensaje: ${appErrorForRetryCheck.message}`, appErrorForRetryCheck.originalError || "");
         await delay(delayTime);
       } else if (attempt > MAX_RETRIES && isRetryableErrorType) {
-        // En un entorno de producción, este evento (fallo de todos los reintentos) también es importante para Sentry.
-        // Sentry.captureMessage(`All retries failed for flow: ${flowNameForLog}`, { level: 'error', extra: { lastError: lastCaughtError } });
-        console.error(`[apiClient.retryAsyncFunction] Todos los reintentos (${MAX_RETRIES}) fallaron para ${flowNameForLog}. Último error:`, lastCaughtError);
+        // TODO: Sentry.captureMessage(`All retries failed for flow: ${flowNameForLog}`, { level: 'error', extra: { lastError: appErrorForRetryCheck } });
+        console.error(`[apiClient.retryAsyncFunction - ${flowNameForLog}] Todos los reintentos (${MAX_RETRIES}) fallaron. Último error procesado:`, appErrorForRetryCheck);
         throw new AppError(
           `${defaultFriendlyMessage} El servicio no está respondiendo después de varios intentos.`,
-          lastCaughtError,
-          appErrorForRetryCheck.type, // Preserve the determined type
+          appErrorForRetryCheck.originalError, // Preserve original error from the last attempt's AppError
+          appErrorForRetryCheck.type,
           appErrorForRetryCheck.redirectTo,
           appErrorForRetryCheck.statusCode
         );
       } else {
-        // Not retryable, or it's an AppError from a deeper source we shouldn't retry.
-        // Throw the already parsed AppError.
-        // En producción, este error no reintentable también debería ir a Sentry.
-        // Sentry.captureException(appErrorForRetryCheck);
-        console.error(`[apiClient.retryAsyncFunction] Error no reintentable o reintentos no aplicables para ${flowNameForLog} (intento ${attempt}). Lanzando error procesado. Error:`, appErrorForRetryCheck);
+        // TODO: Sentry.captureException(appErrorForRetryCheck, { tags: { flowName: flowNameForLog, stage: 'apiClient.retry.nonRetryableOrFinal' } });
+        console.error(`[apiClient.retryAsyncFunction - ${flowNameForLog}] Error no reintentable o reintentos no aplicables (intento ${attempt}). Lanzando error procesado:`, appErrorForRetryCheck);
         throw appErrorForRetryCheck;
       }
     }
   }
   // This should be unreachable due to the loop logic.
-  // Added for type safety, though practically the loop will always throw or return.
-  // En producción, esto sería una alerta crítica en Sentry.
-  // Sentry.captureMessage(`Retry logic reached unexpected state for flow: ${flowNameForLog}`, { level: 'fatal', extra: { lastError: lastCaughtError } });
+  // TODO: Sentry.captureMessage(`Retry logic reached unexpected state for flow: ${flowNameForLog}`, { level: 'fatal', extra: { lastError: lastCaughtError } });
   console.error("[apiClient.retryAsyncFunction] Lógica de reintentos alcanzó un estado inesperado para", flowNameForLog);
   throw new AppError("Error inesperado en la lógica de reintentos.", lastCaughtError, 'unknown');
 }
-
 
 // --- Wrapper functions for each flow ---
 
@@ -245,12 +219,12 @@ async function retryAsyncFunction<T>(
  */
 export async function callAnalyzeCodeSnippet(input: AnalyzeCodeSnippetInput): Promise<AnalyzeCodeSnippetOutput> {
   const friendlyErrorMsg = "Ocurrió un error al analizar el fragmento de código.";
-  const flowName = 'analyzeCodeSnippet';
+  const flowName = 'analyzeCodeSnippetFlow';
   try {
     return await retryAsyncFunction(() => analyzeCodeSnippetFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
-    if (error instanceof AppError) throw error; // Already processed by retryAsyncFunction or parseError
-    throw parseError(error, friendlyErrorMsg, flowName); // Catch errors not from retry logic
+    if (error instanceof AppError) throw error;
+    throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
 
@@ -262,7 +236,7 @@ export async function callAnalyzeCodeSnippet(input: AnalyzeCodeSnippetInput): Pr
  */
 export async function callGenerateProjectStructure(input: GenerateProjectInput): Promise<ProjectGenerationResult> {
   const friendlyErrorMsg = "Ocurrió un error al generar la estructura del proyecto.";
-  const flowName = 'generateProjectStructure';
+  const flowName = 'generateProjectStructureFlow';
   try {
     return await retryAsyncFunction(() => generateProjectStructureFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
@@ -279,7 +253,7 @@ export async function callGenerateProjectStructure(input: GenerateProjectInput):
  */
 export async function callRefactorProjectWithAI(input: RefactorProjectWithAIInput): Promise<RefactorProjectWithAIOutput> {
   const friendlyErrorMsg = "Ocurrió un error al refactorizar el proyecto.";
-  const flowName = 'refactorProjectWithAI';
+  const flowName = 'refactorProjectWithAIFlow';
   try {
     return await retryAsyncFunction(() => refactorProjectWithAIFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
@@ -296,7 +270,7 @@ export async function callRefactorProjectWithAI(input: RefactorProjectWithAIInpu
  */
 export async function callAnalyzeSelfCode(input: AnalyzeCodeInput): Promise<AnalyzeCodeOutput> {
   const friendlyErrorMsg = "Ocurrió un error al analizar el código del proyecto.";
-  const flowName = 'analyzeSelfCode';
+  const flowName = 'analyzeSelfCodeFlow';
   try {
     return await retryAsyncFunction(() => analyzeSelfCodeFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
@@ -313,7 +287,7 @@ export async function callAnalyzeSelfCode(input: AnalyzeCodeInput): Promise<Anal
  */
 export async function callChatWithAgentOrGlobal(input: ChatWithAgentOrGlobalInput): Promise<ChatWithAgentOrGlobalOutput> {
   const friendlyErrorMsg = "Ocurrió un error en el chat con la IA.";
-  const flowName = 'chatWithAgentOrGlobal';
+  const flowName = 'chatWithAgentOrGlobalFlow';
   try {
     return await retryAsyncFunction(() => chatWithAgentOrGlobalFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
@@ -330,7 +304,7 @@ export async function callChatWithAgentOrGlobal(input: ChatWithAgentOrGlobalInpu
  */
 export async function callChatWithAIGroup(input: ChatWithAIGroupInput): Promise<ChatWithAIGroupOutput> {
   const friendlyErrorMsg = "Ocurrió un error en el chat con el grupo de IA.";
-  const flowName = 'chatWithAIGroup';
+  const flowName = 'chatWithAIGroupFlow';
   try {
     return await retryAsyncFunction(() => chatWithAIGroupFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
@@ -347,7 +321,7 @@ export async function callChatWithAIGroup(input: ChatWithAIGroupInput): Promise<
  */
 export async function callSuggestAgentDefinition(input: SuggestAgentDefinitionInput): Promise<SuggestAgentDefinitionOutput> {
   const friendlyErrorMsg = "Ocurrió un error al sugerir la definición del agente.";
-  const flowName = 'suggestAgentDefinition';
+  const flowName = 'suggestAgentDefinitionFlow';
   try {
     return await retryAsyncFunction(() => suggestAgentDefinitionFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
@@ -364,7 +338,7 @@ export async function callSuggestAgentDefinition(input: SuggestAgentDefinitionIn
  */
 export async function callSuggestGroupDefinition(input: SuggestGroupDefinitionInput): Promise<SuggestGroupDefinitionOutput> {
   const friendlyErrorMsg = "Ocurrió un error al sugerir la definición del grupo.";
-  const flowName = 'suggestGroupDefinition';
+  const flowName = 'suggestGroupDefinitionFlow';
   try {
     return await retryAsyncFunction(() => suggestGroupDefinitionFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
@@ -381,7 +355,7 @@ export async function callSuggestGroupDefinition(input: SuggestGroupDefinitionIn
  */
 export async function callGenerateCodeFromDescription(input: GenerateCodeFromDescriptionInput): Promise<GenerateCodeFromDescriptionOutput> {
   const friendlyErrorMsg = "Ocurrió un error al generar código desde la descripción.";
-  const flowName = 'generateCodeFromDescription';
+  const flowName = 'generateCodeFromDescriptionFlow';
   try {
     return await retryAsyncFunction(() => generateCodeFromDescriptionFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
@@ -399,7 +373,7 @@ export async function callGenerateCodeFromDescription(input: GenerateCodeFromDes
  */
 export async function callAutoFixErrorWithGroup(input: AutoFixErrorWithGroupInput): Promise<AutoFixErrorWithGroupOutput> {
   const friendlyErrorMsg = "Ocurrió un error al intentar la corrección automática con el grupo de IA.";
-  const flowName = 'autoFixErrorWithGroup';
+  const flowName = 'autoFixErrorWithGroupFlow';
   try {
     return await retryAsyncFunction(() => autoFixErrorWithGroupFlow(input), flowName, friendlyErrorMsg);
   } catch (error) {
@@ -407,5 +381,3 @@ export async function callAutoFixErrorWithGroup(input: AutoFixErrorWithGroupInpu
     throw parseError(error, friendlyErrorMsg, flowName);
   }
 }
-
-    

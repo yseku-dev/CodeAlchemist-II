@@ -13,62 +13,44 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import type { GenerateCodeFromDescriptionInput, GenerateCodeFromDescriptionOutput } from '@/types';
+import { AppError } from '@/utils/AppError'; // Import AppError
 
-/**
- * Zod schema for the input to the `generateCodeFromDescriptionFlow`.
- */
 const GenerateCodeFromDescriptionInputSchema = z.object({
-  /** The natural language description of the code to be generated. */
   description: z.string().describe('The description of the code to generate.'),
+  agentSystemPrompt: z.string().optional().describe('El prompt de sistema de un agente, si la generación es impulsada por un agente o grupo.'),
 });
-/**
- * TypeScript type inferred from the `GenerateCodeFromDescriptionInputSchema`.
- */
-export type GenerateCodeFromDescriptionInput = z.infer<typeof GenerateCodeFromDescriptionInputSchema>;
 
-/**
- * Zod schema for the output of the `generateCodeFromDescriptionFlow`.
- */
 const GenerateCodeFromDescriptionOutputSchema = z.object({
-  /** An explanation of the generated code. */
   explanation: z.string().describe('Explanation of the generated code.'),
-  /** The generated code snippet. */
   code: z.string().describe('The generated code snippet.'),
 });
-/**
- * TypeScript type inferred from the `GenerateCodeFromDescriptionOutputSchema`.
- */
-export type GenerateCodeFromDescriptionOutput = z.infer<typeof GenerateCodeFromDescriptionOutputSchema>;
 
-/**
- * Invokes the code generation Genkit flow.
- *
- * @param {GenerateCodeFromDescriptionInput} input - The input containing the description of the code to generate.
- * @returns {Promise<GenerateCodeFromDescriptionOutput>} A promise that resolves to the generated code and explanation.
- */
+
 export async function generateCodeFromDescription(
   input: GenerateCodeFromDescriptionInput
 ): Promise<GenerateCodeFromDescriptionOutput> {
   return generateCodeFromDescriptionFlow(input);
 }
 
-/**
- * Genkit prompt definition for code generation.
- * It instructs the AI to act as an expert code generator.
- */
 const prompt = ai.definePrompt({
   name: 'generateCodeFromDescriptionPrompt',
   input: {schema: GenerateCodeFromDescriptionInputSchema},
   output: {schema: GenerateCodeFromDescriptionOutputSchema},
-  prompt: `Eres un experto generador de código. Genera código basado en la descripción proporcionada por el usuario. Incluye una breve explicación del código generado.
+  prompt: `{{#if agentSystemPrompt}}
+{{{agentSystemPrompt}}}
 
-Descripción: {{{description}}}`,
+Genera código y una explicación basado en la siguiente descripción del usuario:
+Descripción: {{{description}}}
+{{else}}
+Eres un experto generador de código. Genera código basado en la descripción proporcionada por el usuario. Incluye una breve explicación del código generado.
+Tu respuesta debe estar en castellano.
+
+Descripción: {{{description}}}
+{{/if}}`,
 });
 
-/**
- * Genkit flow definition for generating code from a description.
- * This flow takes a description, passes it to the defined prompt, and returns the AI's output.
- */
+
 const generateCodeFromDescriptionFlow = ai.defineFlow(
   {
     name: 'generateCodeFromDescriptionFlow',
@@ -76,9 +58,30 @@ const generateCodeFromDescriptionFlow = ai.defineFlow(
     outputSchema: GenerateCodeFromDescriptionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    // The '!' asserts that output will not be null. 
-    // Consider adding more robust error handling if output could be null.
-    return output!; 
+    const flowName = 'generateCodeFromDescriptionFlow';
+    try {
+      const llmResponse = await prompt(input);
+      const output = llmResponse.output;
+      
+      if (!output) {
+        console.error(`[Flow: ${flowName}] No output from LLM.`);
+        // In a real Genkit flow, you might throw a more specific error
+        // or return a structured error object if the schema allows.
+        // For now, ensuring it's an AppError for apiClient.
+        throw new AppError("La IA no pudo generar el código.", { originalError: "No output from LLM" }, 'ai');
+      }
+      return output;
+    } catch (error: any) {
+      console.error(`[Flow: ${flowName}] Error executing flow:`, error);
+      if (error instanceof AppError) {
+        throw error; // Re-throw if already an AppError
+      }
+      // Wrap other errors in AppError
+      throw new AppError(
+        "Ocurrió un error en el flujo de generación de código.",
+        error,
+        'ai'
+      );
+    }
   }
 );

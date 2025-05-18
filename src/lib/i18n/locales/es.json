@@ -108,13 +108,16 @@
       "apiUrlLabel": "URL del Endpoint de API",
       "apiUrlPlaceholder": "Ej: https://api.openai.com/v1",
       "apiUrlDescription": "Se auto-rellena al cambiar de proveedor. Modifícala si usas un proxy o un endpoint no estándar.",
+      "apiUrlTooltip": "La URL base para las solicitudes al proveedor LLM. Para modelos locales (LM Studio, Ollama), suele ser una dirección local (ej. http://localhost:1234/v1).",
       "apiKeyLabel": "Clave API",
       "apiKeyPlaceholder": "Introduce tu clave API (si es requerida)",
+      "apiKeyTooltip": "Tu clave API para el proveedor LLM seleccionado. Se almacena de forma segura en tu navegador.",
       "modelNameLabel": "Nombre del Modelo",
       "modelNamePlaceholder": "Selecciona un modelo",
       "modelNamePlaceholderLocal": "Selecciona o escribe un modelo (ej: nombre-modelo-local) ({provider})",
       "modelNamePlaceholderDefault": "Selecciona un proveedor primero",
       "modelNameDescriptionLocal": "Para {provider}, los modelos comunes se listan aquí pero también puedes escribir uno directamente si no aparece.",
+      "modelNameTooltip": "El modelo específico del proveedor LLM a utilizar. Para Groq, se intenta obtener la lista dinámicamente.",
       "testConnectionButton": "Probar Conexión LLM",
       "testingConnectionButton": "Probando..."
     },
@@ -123,10 +126,14 @@
       "description": "Configura los detalles para funcionalidades que interactúan con repositorios Git.",
       "repoUrlLabel": "URL del Repositorio Git",
       "repoUrlPlaceholder": "Ej: https://github.com/usuario/repo.git",
+      "repoUrlTooltip": "La URL HTTPS completa de tu repositorio Git remoto (ej. GitHub, GitLab).",
       "usernameLabel": "Nombre de Usuario Git",
+      "usernameTooltip": "Tu nombre de usuario Git que se usará en los commits.",
       "emailLabel": "Email de Git",
+      "emailTooltip": "Tu dirección de email asociada a tus commits en Git.",
       "patLabel": "Token de Acceso Personal (PAT)",
       "patPlaceholder": "Introduce tu PAT de Git",
+      "patTooltip": "Un Token de Acceso Personal (PAT) de tu proveedor Git (ej. GitHub) con permisos de escritura en el repositorio. Trátalo como una contraseña.",
       "testConnectionButton": "Probar Conexión Git",
       "testingConnectionButton": "Probando..."
     },
@@ -384,7 +391,7 @@
       },
       "downloadCurrentCodeZipToast": {
         "title": "Descarga de Código Actual (ZIP)",
-        "description": "Se ha iniciado la descarga de un ZIP que contiene el código fuente actual del proyecto, obtenido del servidor. Este proceso puede tardar unos momentos."
+        "description": "Descarga de un ZIP que contiene el código fuente actual del proyecto, obtenido del servidor, ha iniciado. Este proceso puede tardar unos momentos. ({filename})"
       }
     },
     "downloads": {
@@ -678,8 +685,8 @@
         "description": "No hay estructura de proyecto para descargar."
       },
       "zipDownloadSuccess": {
-        "title": "Proyecto Descargado (JSON)",
-        "description": "Se ha descargado un archivo JSON ({filename}) con la estructura y contenido del proyecto \"{projectName}\" generado por la IA. Puedes usarlo para crear los archivos manualmente o con un script."
+        "title": "Proyecto Descargado (ZIP)",
+        "description": "Se ha descargado un archivo ZIP ({filename}) con la estructura y contenido del proyecto \"{projectName}\" generado por la IA."
       },
       "zipDownloadError": {
         "title": "Error de Descarga ZIP",
@@ -1223,7 +1230,10 @@
     "devDetailsTitle": "Detalles del Error (Solo Desarrollo):",
     "retryButton": "Intentar de Nuevo",
     "homeButton": "Ir a la Página Principal"
+  },
+  "flows": {
+    "common": {
+      "aiError": "Error en el flujo de IA: {flowName}"
+    }
   }
 }
-
-    

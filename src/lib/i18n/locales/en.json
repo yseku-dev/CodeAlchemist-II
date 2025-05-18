@@ -108,13 +108,16 @@
       "apiUrlLabel": "API Endpoint URL",
       "apiUrlPlaceholder": "E.g.: https://api.openai.com/v1",
       "apiUrlDescription": "Auto-fills when changing provider. Modify if using a proxy or non-standard endpoint.",
+      "apiUrlTooltip": "The base URL for requests to the LLM provider. For local models (LM Studio, Ollama), this is typically a local address (e.g., http://localhost:1234/v1).",
       "apiKeyLabel": "API Key",
       "apiKeyPlaceholder": "Enter your API key (if required)",
+      "apiKeyTooltip": "Your API key for the selected LLM provider. It's stored securely in your browser.",
       "modelNameLabel": "Model Name",
       "modelNamePlaceholder": "Select a model",
       "modelNamePlaceholderLocal": "Select or type a model (e.g: local-model-name) ({provider})",
       "modelNamePlaceholderDefault": "Select a provider first",
       "modelNameDescriptionLocal": "For {provider}, common models are listed, but you can also type one directly if it doesn't appear.",
+      "modelNameTooltip": "The specific model from the LLM provider to use. For Groq, an attempt is made to fetch the list dynamically.",
       "testConnectionButton": "Test LLM Connection",
       "testingConnectionButton": "Testing..."
     },
@@ -123,10 +126,14 @@
       "description": "Configure details for features interacting with Git repositories.",
       "repoUrlLabel": "Git Repository URL",
       "repoUrlPlaceholder": "E.g.: https://github.com/user/repo.git",
+      "repoUrlTooltip": "The full HTTPS URL of your remote Git repository (e.g., GitHub, GitLab).",
       "usernameLabel": "Git Username",
+      "usernameTooltip": "Your Git username that will be used for commits.",
       "emailLabel": "Git Email",
+      "emailTooltip": "Your email address associated with your Git commits.",
       "patLabel": "Personal Access Token (PAT)",
       "patPlaceholder": "Enter your Git PAT",
+      "patTooltip": "A Personal Access Token (PAT) from your Git provider (e.g., GitHub) with repository write permissions. Treat it like a password.",
       "testConnectionButton": "Test Git Connection",
       "testingConnectionButton": "Testing..."
     },
@@ -334,15 +341,15 @@
       "downloadComplete": {
         "title": "Download Complete",
         "suggestionsJsonDescription": "Suggestions downloaded as {filename}.",
-        "projectZipDescription": "This ZIP file ({filename}) contains a JSON file with the AI-suggested changes. To apply these improvements, you'll need the base CodeAlchemist source code (from Git) and manually apply the changes from the JSON."
+        "projectZipDescription": "This ZIP file ({filename}) contains a JSON with the AI-suggested changes. To apply these improvements, you'll need the base CodeAlchemist source code (from Git) and manually apply the changes from the JSON."
       },
       "preparingProjectZip": {
         "title": "Preparing Project Download (ZIP)...",
         "description": "Getting code from server..."
       },
       "projectZipDownloadInitiated": {
-        "title": "Download of Code with Applied Suggestions (ZIP)",
-        "description": "A .zip file is downloading. This archive contains the current project source code (fetched from the server) with any 'applied' suggestions conceptually merged in by the client before zipping. This file ({filename}) contains a unique JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
+        "title": "Download of Project with Suggestions (ZIP containing JSON of changes)",
+        "description": "This ZIP file contains a single JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
       },
       "zipError": {
         "title": "Error Generating ZIP"
@@ -380,11 +387,11 @@
       },
       "downloadProjectZipToast": {
         "title": "Download of Current Code with Suggestions (ZIP)",
-        "description": "Download of a ZIP containing the project's current source code (from server), with 'applied' suggestions conceptually merged, has started. This file ({filename}) contains a unique JSON file detailing files that would be modified by AI suggestions and their new proposed content. It is not a ZIP of the full executable project. To 'run it locally' with these improvements, you would need: 1. The base source code of CodeAlchemist (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
+        "description": "Download of a ZIP containing the project's current source code (from server), with 'applied' suggestions conceptually merged, has started. This file ({filename}) contains a JSON file detailing the suggested changes. To apply these improvements, you'll need the base CodeAlchemist source code (Git) and manually apply the changes from the JSON to your local copy."
       },
       "downloadCurrentCodeZipToast": {
         "title": "Download of Current Code (ZIP)",
-        "description": "Download of a ZIP containing the project's current source code, obtained from the server, has started. This process may take a few moments."
+        "description": "Download of a ZIP containing the project's current source code, obtained from the server, has started. This process may take a few moments. ({filename})"
       }
     },
     "downloads": {
@@ -631,8 +638,7 @@
         "description": "The code snippet has been generated successfully."
       },
       "generationError": {
-        "title": "Generation Error",
-        "description": "An error occurred while generating the code."
+        "title": "Generation Error"
       },
       "autofixSimulated": {
         "title": "Auto-Fix (Simulated)",
@@ -699,7 +705,7 @@
     "uploadFileLabel": "Upload a code file (optional)",
     "gitFileUrlLabel": "Git File URL (optional, raw content)",
     "gitFileUrlPlaceholder": "E.g.: https://raw.githubusercontent.com/...",
-    "fetchUrlButton": "Fetch",
+    "fetchUrlButton": "Get",
     "pasteCodeInstruction": "Or paste code below",
     "pasteCodePlaceholder": "Paste your code here to analyze it...",
     "additionalInstructionsLabel": "Additional Instructions for Analysis (optional)",
@@ -723,8 +729,7 @@
         "description": "Enter a Git file URL."
       },
       "fetchError": {
-        "title": "Fetch Error",
-        "description": "Could not fetch code from URL."
+        "title": "Fetch Error"
       },
       "codeFetched": {
         "title": "Code Fetched",
@@ -739,8 +744,7 @@
         "description": "The code has been analyzed."
       },
       "analysisError": {
-        "title": "Analysis Error",
-        "description": "An error occurred during analysis."
+        "title": "Analysis Error"
       },
       "snapshotError": {
         "title": "Error",
@@ -771,8 +775,7 @@
         "description": "'SoftwareDevelopmentTeam' has provided a suggestion."
       },
       "autofixError": {
-        "title": "Auto-Fix Error",
-        "description": "Could not get an auto-fix suggestion."
+        "title": "Auto-Fix Error"
       }
     },
     "autofixModal": {
@@ -891,12 +894,10 @@
         "description": "The conversation history has been cleared."
       },
       "chatError": {
-        "title": "Chat Error",
-        "description": "An error occurred in the chat."
+        "title": "Chat Error"
       },
       "autofixError": {
-        "title": "Auto-Fix Error",
-        "description": "Auto-fix failed."
+        "title": "Auto-Fix Error"
       }
     },
     "autofix": {
@@ -942,8 +943,7 @@
         },
         "invalidFormat": "Invalid JSON format for agents.",
         "error": {
-          "title": "Import Error",
-          "description": "Failed to import agents."
+          "title": "Import Error"
         }
       },
       "exportAll": {
@@ -1167,27 +1167,27 @@
       "stopButton": "Stop Execution"
     },
     "execution": {
-      "starting": "Starting group execution: {name}...\nMain Task: {mainTask}",
-      "taskPrefix": "Main Task: ",
+      "starting": "Iniciando ejecución del grupo: {name}...\nTarea Principal: {mainTask}",
+      "taskPrefix": "Tarea Principal: ",
       "criticalError": {
-        "orchestratorNotFound": "Orchestrator agent ('OrchestratorFlujoAgentes') not found. Cannot execute group.",
-        "orchestratorParse": "Error parsing Orchestrator's JSON response.",
-        "orchestratorIncomplete": "Orchestrator response incomplete (missing next_agent_id or instruction_for_next_agent).",
-        "agentNotFound": "Agent with ID \"{id}\" not found."
+        "orchestratorNotFound": "Agente Orquestador ('orquestador-flujo-agentes') no encontrado. No se puede ejecutar el grupo.",
+        "orchestratorParse": "Error al parsear la respuesta JSON del Orquestrador.",
+        "orchestratorIncomplete": "Respuesta del Orquestrador incompleta (faltan next_agent_id o instruction_for_next_agent).",
+        "agentNotFound": "Agente con ID \"{id}\" no encontrado."
       },
       "log": {
-        "turnPrefix": "--- Turn {turn} ---",
-        "orchestratorReceiving": "Orchestrator receiving: \"{input}...\"",
-        "orchestratorRawResponse": "Orchestrator (raw JSON): {response}",
-        "orchestratorDecision": "Orchestrator Decision: Next Agent: {nextAgentId}. Instruction: \"{instruction}...\". Reason: \"{reasoning}\"",
-        "taskCompleted": "--- Task Completed ---\nFinal Group Result: {result}",
-        "callingAgent": "Calling Agent: {name}...",
-        "agentResponse": "Response from {name}: \"{response}...\"",
-        "errorInTurn": "Error in Turn {turn}: {errorMessage}",
-        "maxTurnsReached": "\nMaximum number of turns ({maxTurns}) reached. Execution stopped.",
-        "executionStoppedOrFinished": "\nGroup execution finished or stopped.",
-        "userStopped": "Turn {turn}: Execution cancelled by user.",
-        "criticalErrorHeader": "Critical Error in Group Execution: "
+        "turnPrefix": "--- Turno {turn} ---",
+        "orchestratorReceiving": "Orquestrador recibiendo: \"{input}...\"",
+        "orchestratorRawResponse": "Orquestrador (raw JSON): {response}",
+        "orchestratorDecision": "Decisión del Orquestrador: Siguiente Agente: {nextAgentId}. Instrucción: \"{instruction}...\". Razón: \"{reasoning}\"",
+        "taskCompleted": "--- Tarea Completada --- \nResultado Final del Grupo: {result}",
+        "callingAgent": "Llamando a Agente: {name}...",
+        "agentResponse": "Respuesta de {name}: \"{response}...\"",
+        "errorInTurn": "Error en Turno {turn}: {errorMessage}",
+        "maxTurnsReached": "\nSe alcanzó el número máximo de turnos ({maxTurns}). Ejecución detenida.",
+        "executionStoppedOrFinished": "\nEjecución del grupo finalizada o detenida.",
+        "userStopped": "Turno {turn}: Ejecución cancelada por el usuario.",
+        "criticalErrorHeader": "Error Crítico en Ejecución de Grupo: "
       }
     },
     "deleteSingleModal": {
@@ -1230,7 +1230,10 @@
     "devDetailsTitle": "Error Details (Development Only):",
     "retryButton": "Try Again",
     "homeButton": "Go to Homepage"
+  },
+  "flows": {
+    "common": {
+      "aiError": "Error in AI flow: {flowName}"
+    }
   }
 }
-
-    

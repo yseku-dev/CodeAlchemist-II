@@ -11,6 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import type { AnalyzeCodeSnippetInput, AnalyzeCodeSnippetOutput } from '@/types';
+import { AppError } from '@/utils/AppError'; // Import AppError
 
 const AnalyzeCodeSnippetInputSchema = z.object({
   code: z.string().describe('The code snippet to analyze.'),
@@ -72,13 +73,26 @@ const analyzeCodeSnippetFlow = ai.defineFlow(
     outputSchema: AnalyzeCodeSnippetOutputSchema,
   },
   async (input) => {
-    const llmResponse = await prompt(input);
-    const output = llmResponse.output; // Corrected: property access
-    if (!output) {
-      throw new Error("La IA no pudo analizar el fragmento de código.");
+    const flowName = 'analyzeCodeSnippetFlow';
+    try {
+      const llmResponse = await prompt(input);
+      const output = llmResponse.output;
+      if (!output) {
+        console.error(`[Flow: ${flowName}] No output from LLM.`);
+        throw new AppError("La IA no pudo analizar el fragmento de código.", { originalError: "No output from LLM" }, 'ai');
+      }
+      // Ensure originalCode is part of the output, matching the input for clarity
+      return { ...output, originalCode: input.code };
+    } catch (error: any) {
+      console.error(`[Flow: ${flowName}] Error executing flow:`, error);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(
+        "Ocurrió un error en el flujo de análisis de código.",
+        error,
+        'ai'
+      );
     }
-    // Ensure originalCode is part of the output, matching the input for clarity
-    return { ...output, originalCode: input.code };
   }
 );
-
