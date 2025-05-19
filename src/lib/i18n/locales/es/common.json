@@ -26,5 +26,24 @@
   "expand": "Expandir",
   "collapse": "Contraer",
   "unknownError": "Error desconocido",
-  "fileSelected": "Archivo seleccionado: {name}"
+  "fileSelected": "Archivo seleccionado: {name}",
+  "redefineRequestButton": "Redefinir Petición con IA",
+  "toast": {
+    "redefineEmpty": {
+      "title": "Descripción Vacía",
+      "description": "Por favor, escribe algo para redefinir."
+    },
+    "redefining": {
+      "title": "Redefiniendo Petición...",
+      "description": "La IA está trabajando para mejorar tu texto."
+    },
+    "redefinedSuccess": {
+      "title": "Petición Redefinida",
+      "description": "Tu texto ha sido actualizado por la IA."
+    },
+    "redefineError": {
+      "title": "Error al Redefinir",
+      "description": "No se pudo redefinir la petición con la IA."
+    }
+  }
 }

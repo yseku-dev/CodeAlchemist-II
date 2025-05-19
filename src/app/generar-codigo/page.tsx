@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { LLMConfigSourceOption, GenerateCodeFromDescriptionOutput, Agent, AIAgentGroup } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AppError } from '@/utils/AppError';
-import { callGenerateCodeFromDescription } from '@/utils/apiClient';
+import { callGenerateCodeFromDescription, callRedefinePrompt } from '@/utils/apiClient'; // Added callRedefinePrompt
 import { useAppState } from '@/context/AppStateContext';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/context/I18nContext';
@@ -39,6 +39,7 @@ export default function GenerarCodigoPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateCodeFromDescriptionOutput | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isRedefiningDescription, setIsRedefiningDescription] = useState(false);
   
   const { addLog } = useDebug();
   const { toast } = useToast();
@@ -65,12 +66,12 @@ export default function GenerarCodigoPage() {
         addLog({source: 'GenerarCodigoPage', type: 'INFO', message: `Generating code with Agent: ${llmConfigSource.name}. Agent's system prompt (start): ${agentSystemPrompt?.substring(0,100)}...`, flowName});
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id && llmConfigSource.name) {
         const group: AIAgentGroup | undefined = getGroupById(llmConfigSource.id);
-        agentSystemPrompt = orchestratorAgent?.systemPrompt; // Use orchestrator's prompt for group context
+        agentSystemPrompt = orchestratorAgent?.systemPrompt; 
         groupLogForDisplay = t('generateCode.logs.groupContextLog', { 
             groupName: llmConfigSource.name || 'N/A',
             groupTask: (group?.mainTask || 'N/A').substring(0,150),
             userInput: description.substring(0, 100),
-            orchestratorContext: (agentSystemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
+            orchestratorContext: (agentSystemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
             flowName: 'generateCodeFromDescription (Grupo)'
         });
         flowName = `generateCodeFromDescription (Group: ${group?.name || llmConfigSource.id})`;
@@ -123,13 +124,43 @@ export default function GenerarCodigoPage() {
    * @param {string} errorMsg - The error message to analyze.
    */
   const handleAutoFixError = async (errorMsg: string) => {
-    const autoFixFlowName = 'callAutoFixErrorWithGroup (GenerateCode)'; // More specific flow name
+    const autoFixFlowName = 'callAutoFixErrorWithGroup (GenerateCode)';
     addLog({source: 'GenerarCodigoPage', type: 'INFO', message: `Attempting Auto-Fix for error: ${errorMsg}`, flowName: autoFixFlowName});
-    // ErrorDisplay component handles the actual call and modal display
     toast({ 
       title: t('common.processing'), 
       description: t('errorDisplay.toast.autofixAttempt.description')
     });
+  };
+
+  const handleRedefineDescription = async () => {
+    if (!description.trim()) {
+      toast({
+        variant: 'destructive',
+        title: t('common.toast.redefineEmpty.title'),
+        description: t('common.toast.redefineEmpty.description'),
+      });
+      return;
+    }
+    setIsRedefiningDescription(true);
+    addLog({ source: 'GenerarCodigoPage', type: 'INFO', message: `Redefining description. Original: ${description.substring(0, 100)}...` });
+    toast({ title: t('common.toast.redefining.title'), description: t('common.toast.redefining.description') });
+
+    try {
+      const result = await callRedefinePrompt({ originalPrompt: description });
+      setDescription(result.redefinedPrompt);
+      toast({
+        title: t('common.toast.redefinedSuccess.title'),
+        description: t('common.toast.redefinedSuccess.description'),
+      });
+      addLog({ source: 'GenerarCodigoPage', type: 'SUCCESS', message: `'description' redefined. New: ${result.redefinedPrompt.substring(0, 100)}...` });
+    } catch (e: any) {
+      const errorMsg = e instanceof AppError ? e.friendlyMessage : (e.message || t('common.toast.redefineError.description'));
+      toast({ variant: 'destructive', title: t('common.toast.redefineError.title'), description: errorMsg });
+      addLog({ source: 'GenerarCodigoPage', type: 'ERROR', message: `Redefining 'description' failed`, errorDetails: e });
+      if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
+    } finally {
+      setIsRedefiningDescription(false);
+    }
   };
 
   return (
@@ -143,6 +174,8 @@ export default function GenerarCodigoPage() {
           onDescriptionChange={setDescription}
           onGenerateClick={handleGenerateClick}
           isLoading={isLoading}
+          isRedefiningDescription={isRedefiningDescription}
+          onRedefineDescription={handleRedefineDescription}
           t={t}
         />
 

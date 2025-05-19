@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react'; // Added useState and useEffect
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Wand2 } from 'lucide-react'; // Added Wand2
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
 import { Separator } from '@/components/ui/separator';
@@ -30,7 +30,9 @@ interface AutoUpdateConfigFormProps {
   onStartAnalysis: () => void;
   isLoading: boolean;
   progress: number;
-  isAnalysisInProgress: boolean; // To show progress bar even if main isLoading is for results
+  isAnalysisInProgress: boolean;
+  isRedefiningAnalysisPrefs: boolean; // New prop
+  onRedefineAnalysisPrefs: () => Promise<void>; // New prop
 }
 
 /**
@@ -51,6 +53,8 @@ export default function AutoUpdateConfigForm({
   isLoading,
   progress,
   isAnalysisInProgress,
+  isRedefiningAnalysisPrefs, // New prop
+  onRedefineAnalysisPrefs, // New prop
 }: AutoUpdateConfigFormProps) {
   const { t } = useI18n();
   const [isMounted, setIsMounted] = useState(false);
@@ -59,9 +63,7 @@ export default function AutoUpdateConfigForm({
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) {
-    // Render placeholder or skeleton during SSR and initial client render
-    // to match server output.
+  if (!isMounted && typeof window === 'undefined') { // Check for SSR context specifically
     return (
         <Card className="lg:col-span-1">
             <CardHeader>
@@ -72,27 +74,24 @@ export default function AutoUpdateConfigForm({
                 <CardDescription>{t('autoupdate.config.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {/* Placeholder for LLMConfigSelector */}
                 <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
-                {/* Placeholder for SourceType Selector */}
                 <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
-                {/* Placeholder for Analysis Preferences */}
                 <div className="h-20 w-full bg-muted rounded-md animate-pulse"></div>
-                {/* Placeholder for Button */}
                 <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
             </CardContent>
         </Card>
     );
   }
 
+
   return (
     <Card className="lg:col-span-1">
       <CardHeader>
         <CardTitle className="flex items-center gap-3">
           <Sparkles className="h-7 w-7 text-primary" />
-          <span>{t('autoupdate.config.title')}</span>
+          <span>{isMounted ? t('autoupdate.config.title') : 'autoupdate.config.title'}</span>
         </CardTitle>
-        <CardDescription>{t('autoupdate.config.description')}</CardDescription>
+        <CardDescription>{isMounted ? t('autoupdate.config.description') : 'autoupdate.config.description'}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <LLMConfigSelector 
@@ -103,7 +102,7 @@ export default function AutoUpdateConfigForm({
 
         <div className="space-y-2">
           <Label>{t('autoupdate.config.codeSourceLabel')}</Label>
-          <Select value={sourceType} onValueChange={(value) => onSourceTypeChange(value as AutoUpdateSourceType)} disabled={isLoading}>
+          <Select value={sourceType} onValueChange={(value) => onSourceTypeChange(value as AutoUpdateSourceType)} disabled={isLoading || isRedefiningAnalysisPrefs}>
             <SelectTrigger><SelectValue placeholder={t('common.selectPlaceholder')} /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Local">{t('autoupdate.config.sourceLocal')}</SelectItem>
@@ -120,26 +119,37 @@ export default function AutoUpdateConfigForm({
               value={gitRepoUrl} 
               onChange={(e) => onGitRepoUrlChange(e.target.value)} 
               placeholder={t('autoupdate.config.gitUrlPlaceholder')} 
-              disabled={isLoading} 
+              disabled={isLoading || isRedefiningAnalysisPrefs} 
             />
           </div>
         )}
 
         <Separator />
         <Label>{t('autoupdate.config.analysisParamsLabel')}</Label>
-        <div className="space-y-2">
-          <Label htmlFor="analysis-prefs" className="text-sm font-normal">{t('autoupdate.config.analysisPrefsLabel')}</Label>
+        <div className="space-y-1">
+          <div className="flex justify-between items-center mb-1">
+            <Label htmlFor="analysis-prefs" className="text-sm font-normal">{t('autoupdate.config.analysisPrefsLabel')}</Label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRedefineAnalysisPrefs}
+              disabled={!analysisPreferences.trim() || isRedefiningAnalysisPrefs || isLoading}
+            >
+              {isRedefiningAnalysisPrefs ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+              {t('common.redefineRequestButton')}
+            </Button>
+          </div>
           <Textarea 
             id="analysis-prefs" 
             value={analysisPreferences} 
             onChange={(e) => onAnalysisPreferencesChange(e.target.value)} 
             placeholder={t('autoupdate.config.analysisPrefsPlaceholder')} 
             rows={3} 
-            disabled={isLoading} 
+            disabled={isLoading || isRedefiningAnalysisPrefs} 
           />
         </div>
 
-        <Button onClick={onStartAnalysis} disabled={isLoading || !llmConfigSource } className="w-full">
+        <Button onClick={onStartAnalysis} disabled={isLoading || isRedefiningAnalysisPrefs || !llmConfigSource } className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4"/>}
           {isLoading ? t('autoupdate.config.startButtonLoading') : t('autoupdate.config.startButton')}
         </Button>
@@ -150,5 +160,3 @@ export default function AutoUpdateConfigForm({
     </Card>
   );
 }
-
-    

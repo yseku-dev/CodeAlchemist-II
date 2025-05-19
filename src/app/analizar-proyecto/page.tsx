@@ -1,27 +1,24 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, FolderSearch, ListChecks, Info } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput, AppSourceFile } from '@/types';
-import { callAnalyzeSelfCode as analyzeProjectFlow } from '@/utils/apiClient';
-import LogsDisplay from '@/components/logs-display';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput } from '@/types';
+import { callAnalyzeSelfCode as analyzeProjectFlow, callRedefinePrompt } from '@/utils/apiClient'; // Added callRedefinePrompt
 import { useAppState } from '@/context/AppStateContext';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
 import { AppError } from '@/utils/AppError';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
+import AnalyzeProjectHeader from '@/components/features/analizar-proyecto/AnalyzeProjectHeader';
+import AnalyzeProjectForm from '@/components/features/analizar-proyecto/AnalyzeProjectForm';
+import AnalyzeProjectResultsDisplay from '@/components/features/analizar-proyecto/AnalyzeProjectResultsDisplay';
 import { fetchRemoteGitRepository } from '@/app/autoupdate/actions';
 
 
@@ -50,6 +47,8 @@ export default function AnalizarProyectoPage() {
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeCodeOutput | null>(null);
+  const [isRedefiningFocusArea, setIsRedefiningFocusArea] = useState(false);
+
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addLog } = useDebug();
@@ -61,9 +60,9 @@ export default function AnalizarProyectoPage() {
       const allowedTypes = ['application/zip', 'application/json'];
       if (allowedTypes.includes(file.type) && file.size <= 25 * 1024 * 1024) {
         setUploadedFile(file);
-        addLog({message: `Project file selected for analysis: ${file.name}, type: ${file.type}, size: ${file.size} bytes`, flowName: 'handleFileChange'});
+        addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Project file selected for analysis: ${file.name}, type: ${file.type}, size: ${file.size} bytes`, flowName: 'handleFileChange'});
       } else {
-        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title' as TranslationKey), description: t('analyzeProject.toast.invalidFile.description' as TranslationKey) });
+        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title'), description: t('analyzeProject.toast.invalidFile.description') });
         setUploadedFile(null);
         if(fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -72,14 +71,14 @@ export default function AnalizarProyectoPage() {
 
   const executeActualAnalysis = async (input: AnalyzeCodeInput) => {
      const flowName = 'analyzeProject (analyzeProjectFlow via callAnalyzeSelfCode)';
-     addLog({message: `Analyzing project with input: ${JSON.stringify({...input, projectContent: input.projectContent ? input.projectContent.substring(0,200) + '...' : 'N/A' })} and config: ${JSON.stringify(llmConfigSource)}`, flowName});
+     addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Analyzing project with input: ${JSON.stringify({...input, projectContent: input.projectContent ? input.projectContent.substring(0,200) + '...' : 'N/A' })} and config: ${JSON.stringify(llmConfigSource)}`, flowName});
 
     try {
       const aiResult = await analyzeProjectFlow(input);
       let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined, overallImprovementIdeas: aiResult.overallImprovementIdeas || [] };
 
       if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
-         finalResult.groupLog = t('analyzeProject.results.groupContextLog' as TranslationKey, {
+         finalResult.groupLog = t('analyzeProject.results.groupContextLog', {
             groupName: llmConfigSource.name,
             groupTask: (getGroupById(llmConfigSource.id || '')?.mainTask || 'N/A').substring(0,150),
             userInput: (input.focusArea || t('autoupdate.analysis.general' as TranslationKey)),
@@ -89,20 +88,20 @@ export default function AnalizarProyectoPage() {
       }
 
       setResult(finalResult);
-      toast({ title: t('analyzeProject.toast.analysisComplete.title' as TranslationKey), description: t('analyzeProject.toast.analysisComplete.description' as TranslationKey) });
-      addLog({message: "Project analysis successful.", data: finalResult, flowName});
+      toast({ title: t('analyzeProject.toast.analysisComplete.title'), description: t('analyzeProject.toast.analysisComplete.description') });
+      addLog({source: 'AnalizarProyectoPage', type: 'SUCCESS', message: "Project analysis successful.", data: finalResult, flowName});
     } catch (e: any) {
-      addLog({ source:"AnalyzeProjectPage", message: "Project analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      addLog({ source:"AnalizarProyectoPage", type: 'ERROR', message: "Project analysis failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
-        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title' as TranslationKey), description: e.friendlyMessage });
+        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title'), description: e.friendlyMessage });
         if (e.redirectTo) {
           router.push(e.redirectTo);
         }
       } else {
         const errorMsg = e.message || "Ocurrió un error durante el análisis del proyecto.";
         setError(errorMsg);
-        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title' as TranslationKey), description: errorMsg });
+        toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title'), description: errorMsg });
       }
     } finally {
       setIsLoading(false);
@@ -122,7 +121,7 @@ export default function AnalizarProyectoPage() {
         agentSystemPrompt = agent?.systemPrompt;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
         const group = getGroupById(llmConfigSource.id || '');
-        agentSystemPrompt = group?.mainTask; // Using group's main task as high-level context for analysis
+        agentSystemPrompt = group?.mainTask; 
     }
 
     let analysisInputBase: AnalyzeCodeInput = {
@@ -143,39 +142,37 @@ export default function AnalizarProyectoPage() {
             projectContent: projectContent,
             sourceCodeLocation: "UploadedString",
           };
-          addLog({message: `Analyzing uploaded project: ${uploadedFile.name}`, flowName: 'analyzeProject'});
+          addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Analyzing uploaded project: ${uploadedFile.name}`, flowName: 'analyzeProject'});
           await executeActualAnalysis(analysisInput);
       };
       reader.onerror = () => {
-          toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title' as TranslationKey), description: t('analyzeProject.toast.readError.description' as TranslationKey)});
+          toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title'), description: t('analyzeProject.toast.readError.description')});
           setIsLoading(false);
           setLoadingMessage(null);
       }
-      // For ZIPs, a client-side unzip would be needed or more advanced server handling.
-      // For now, if it's ZIP, we'll pass a reference, if JSON, its content.
       if (uploadedFile.type === 'application/json') {
         reader.readAsText(uploadedFile);
       } else if (uploadedFile.type === 'application/zip') {
-        const analysisInput: AnalyzeCodeInput = { // Pass reference for ZIP
+        const analysisInput: AnalyzeCodeInput = { 
             ...analysisInputBase,
             projectContent: `Contenido del archivo ZIP: ${uploadedFile.name}. La IA debe inferir el contenido o la estructura relevante.`,
             sourceCodeLocation: "UploadedString",
         };
-        addLog({message: `Analyzing uploaded ZIP project (by reference): ${uploadedFile.name}`, flowName: 'analyzeProject'});
+        addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Analyzing uploaded ZIP project (by reference): ${uploadedFile.name}`, flowName: 'analyzeProject'});
         await executeActualAnalysis(analysisInput);
       } else {
-          toast({ variant: "destructive", title: t('analyzeProject.toast.unsupportedFileType.title' as TranslationKey), description: t('analyzeProject.toast.unsupportedFileType.description' as TranslationKey)});
+          toast({ variant: "destructive", title: t('analyzeProject.toast.unsupportedFileType.title'), description: t('analyzeProject.toast.unsupportedFileType.description')});
           setIsLoading(false);
           setLoadingMessage(null);
       }
       return;
     } else if (projectSourceType === "git" && gitUrl) {
       setLoadingMessage(t('analyzeProject.toast.fetchingGit'));
-      addLog({message: `Fetching Git project URL for analysis: ${gitUrl}`, flowName: 'analyzeProject'});
+      addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Fetching Git project URL for analysis: ${gitUrl}`, flowName: 'analyzeProject'});
       try {
         const gitResult = await fetchRemoteGitRepository(gitUrl);
         if (gitResult.success && gitResult.files) {
-          const projectContentString = gitResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
+          const projectContentString = gitResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${f.fileName} ---\n${f.content}`).join('\n\n');
           const analysisInput: AnalyzeCodeInput = {
             ...analysisInputBase,
             gitRepoUrl: gitUrl,
@@ -197,118 +194,74 @@ export default function AnalizarProyectoPage() {
         return;
       }
     } else {
-      toast({ variant: "destructive", title: t('analyzeProject.toast.sourceRequired.title' as TranslationKey), description: t('analyzeProject.toast.sourceRequired.description' as TranslationKey) });
+      toast({ variant: "destructive", title: t('analyzeProject.toast.sourceRequired.title'), description: t('analyzeProject.toast.sourceRequired.description') });
       setIsLoading(false);
       setLoadingMessage(null);
       return;
     }
   };
 
+  const handleAutoFixError = async (errorMsg: string) => {
+    toast({
+      title: t('common.processing'),
+      description: t('errorDisplay.toast.autofixAttempt.description')
+    });
+  };
+  
+  const handleRedefineFocusAreaProject = async () => {
+    if (!focusArea.trim()) {
+      toast({ variant: 'destructive', title: t('common.toast.redefineEmpty.title'), description: t('common.toast.redefineEmpty.description') });
+      return;
+    }
+    setIsRedefiningFocusArea(true);
+    addLog({ source: 'AnalizarProyectoPage', type: 'INFO', message: `Redefining focus area. Original: ${focusArea.substring(0, 100)}...` });
+    toast({ title: t('common.toast.redefining.title'), description: t('common.toast.redefining.description') });
+    try {
+      const result = await callRedefinePrompt({ originalPrompt: focusArea });
+      setFocusArea(result.redefinedPrompt);
+      toast({ title: t('common.toast.redefinedSuccess.title'), description: t('common.toast.redefinedSuccess.description') });
+      addLog({ source: 'AnalizarProyectoPage', type: 'SUCCESS', message: `'focusArea' redefined. New: ${result.redefinedPrompt.substring(0, 100)}...` });
+    } catch (e: any) {
+      const errorMsg = e instanceof AppError ? e.friendlyMessage : (e.message || t('common.toast.redefineError.description'));
+      toast({ variant: 'destructive', title: t('common.toast.redefineError.title'), description: errorMsg });
+      addLog({ source: 'AnalizarProyectoPage', type: 'ERROR', message: `Redefining 'focusArea' failed`, errorDetails: e });
+       if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
+    } finally {
+      setIsRedefiningFocusArea(false);
+    }
+  };
 
   return (
     <Card className="max-w-4xl mx-auto">
-      <PageSectionHeader
-        icon={FolderSearch}
-        title={t('analyzeProject.title' as TranslationKey)}
-        description={t('analyzeProject.description' as TranslationKey)}
-      />
+      <AnalyzeProjectHeader t={t} />
       <CardContent className="space-y-6">
-        <LLMConfigSelector value={llmConfigSource} onChange={setLlmConfigSource} label={t('analyzeProject.llmSourceLabel' as TranslationKey)} />
+        <AnalyzeProjectForm
+          llmConfigSource={llmConfigSource}
+          onLlmConfigSourceChange={setLlmConfigSource}
+          projectSourceType={projectSourceType}
+          onProjectSourceTypeChange={setProjectSourceType}
+          uploadedFile={uploadedFile}
+          onFileChange={handleFileChange}
+          fileInputRef={fileInputRef}
+          gitUrl={gitUrl}
+          onGitUrlChange={setGitUrl}
+          searchDepth={searchDepth}
+          onSearchDepthChange={setSearchDepth}
+          focusArea={focusArea}
+          onFocusAreaChange={setFocusArea}
+          onAnalyze={handleAnalyze}
+          isLoading={isLoading || isRedefiningFocusArea}
+          loadingMessage={loadingMessage}
+          t={t}
+          isRedefiningFocusArea={isRedefiningFocusArea}
+          onRedefineFocusArea={handleRedefineFocusAreaProject}
+        />
 
-        <div className="space-y-2">
-          <Label>{t('analyzeProject.projectSourceLabel' as TranslationKey)}</Label>
-          <Select value={projectSourceType} onValueChange={(value) => setProjectSourceType(value as ProjectSourceType)} disabled={isLoading}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="upload">{t('analyzeProject.sourceUpload' as TranslationKey)}</SelectItem>
-              <SelectItem value="git">{t('analyzeProject.sourceGit' as TranslationKey)}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || t('common.unknownError'))} />}
 
-        {projectSourceType === "upload" && (
-          <div className="space-y-2">
-            <Label htmlFor="project-file-upload">{t('analyzeProject.uploadLabel' as TranslationKey)}</Label>
-            <Input id="project-file-upload" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".zip,application/zip,.json,application/json" disabled={isLoading} />
-            {uploadedFile && <p className="text-xs text-muted-foreground">{t('common.fileSelected' as TranslationKey, { name: uploadedFile.name })}</p>}
-          </div>
-        )}
+        {isLoading && !result && !error && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{loadingMessage || t('analyzeProject.results.analyzing')}</p></div>}
 
-        {projectSourceType === "git" && (
-          <div className="space-y-2">
-            <Label htmlFor="project-git-url">{t('analyzeProject.gitUrlLabel' as TranslationKey)}</Label>
-            <Input id="project-git-url" value={gitUrl} onChange={(e) => setGitUrl(e.target.value)} placeholder={t('analyzeProject.gitUrlPlaceholder' as TranslationKey)} disabled={isLoading} />
-          </div>
-        )}
-
-        <Separator />
-        <Label>{t('analyzeProject.paramsLabel' as TranslationKey)}</Label>
-        <div className="space-y-2">
-          <Label htmlFor="search-depth-project" className="text-sm font-normal">{t('analyzeProject.depthLabel' as TranslationKey)}</Label>
-          <Input id="search-depth-project" type="number" value={searchDepth} onChange={(e) => setSearchDepth(e.target.value)} placeholder={t('analyzeProject.depthPlaceholder' as TranslationKey)} disabled={isLoading} min="1" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="focus-area-project" className="text-sm font-normal">{t('analyzeProject.focusLabel' as TranslationKey)}</Label>
-          <Input id="focus-area-project" value={focusArea} onChange={(e) => setFocusArea(e.target.value)} placeholder={t('analyzeProject.focusPlaceholder' as TranslationKey)} disabled={isLoading} />
-        </div>
-
-        <Button onClick={handleAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {isLoading ? loadingMessage : t('analyzeProject.analyzeButton' as TranslationKey)}
-        </Button>
-
-        {error && <ErrorDisplay error={error} />}
-
-        {isLoading && !result && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{loadingMessage || t('analyzeProject.results.analyzing')}</p></div>}
-
-        {result && (
-          <Card className="mt-6 bg-background">
-            <PageSectionHeader icon={ListChecks} title={result.analysisTitle} />
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.overallAssessmentLabel' as TranslationKey)}</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.generalAssessment}</p>
-              </div>
-              {result.overallImprovementIdeas && result.overallImprovementIdeas.length > 0 && (
-                 <div>
-                    <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.improvementIdeasLabel' as TranslationKey)}</h3>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                        {result.overallImprovementIdeas.map((idea, index) => <li key={`idea-${index}`}>{idea}</li>)}
-                    </ul>
-                 </div>
-              )}
-              <div>
-                <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.identifiedAreasLabel' as TranslationKey)}</h3>
-                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                  {result.identifiedAreas.map((area, index) => <li key={index}>{area}</li>)}
-                </ul>
-              </div>
-              {result.detailedSuggestions && result.detailedSuggestions.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">{t('analyzeProject.results.specificSuggestionsLabel' as TranslationKey)}</h3>
-                  <ScrollArea className="h-60 border rounded-md p-2">
-                    <ul className="space-y-3">
-                    {result.detailedSuggestions.map((s, index) => (
-                      <li key={index} className="p-2 border-b last:border-b-0">
-                        <p className="font-medium text-sm">{s.area}</p>
-                        <p className="text-xs text-muted-foreground whitespace-pre-wrap">{s.suggestion}</p>
-                        <p className="text-xs">{t('analyzeProject.results.suggestionPriorityLabel' as TranslationKey)} <span className={`font-semibold ${s.priority === 'Alta' ? 'text-destructive' : s.priority === 'Media' ? 'text-yellow-600' : 'text-green-600'}`}>{s.priority}</span></p>
-                        {s.suggestedPromptForImplementation && (
-                          <div className="mt-1 pt-1 border-t border-border/50">
-                            <p className="text-xs font-semibold text-muted-foreground">{t('analyzeProject.results.suggestedPromptLabel' as TranslationKey)}</p>
-                            <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/50 p-1 rounded-sm">{s.suggestedPromptForImplementation}</pre>
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                    </ul>
-                  </ScrollArea>
-                </div>
-              )}
-              {result.groupLog && <LogsDisplay title={t('analyzeProject.results.groupLogTitle' as TranslationKey)} logs={result.groupLog} />}
-            </CardContent>
-          </Card>
-        )}
+        <AnalyzeProjectResultsDisplay result={result} t={t} />
       </CardContent>
     </Card>
   );

@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDebug, type DebugLogEntry } from '@/context/DebugContext';
 import { useAppState } from '@/context/AppStateContext';
 import type { LLMConfigSourceOption, AutoUpdateSuggestion, AnalyzeCodeInput, AnalyzeCodeOutput, AppSourceFile } from '@/types';
-import { callAnalyzeSelfCode } from '@/utils/apiClient';
+import { callAnalyzeSelfCode, callRedefinePrompt } from '@/utils/apiClient'; // Added callRedefinePrompt
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AutoUpdateConfigForm from '@/components/features/autoupdate/AutoUpdateConfigForm';
 import AutoUpdateResultsDisplay from '@/components/features/autoupdate/AutoUpdateResultsDisplay';
@@ -47,22 +47,19 @@ export default function AutoUpdatePage() {
   const router = useRouter();
   const { t } = useI18n();
 
-  // Initialize llmConfigSource to undefined to ensure server/client match for initial render
-  // It will be updated in useEffect.
   const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(undefined);
 
   useEffect(() => {
-    // This effect runs only on the client, after mount
-    if (agents && agents.length > 0) {
+    if (agents && agents.length > 0 && llmConfigSource === undefined) {
       const defaultAgent = agents.find(a => a.name === "RefactorizadorCodigoExperto");
       setLlmConfigSource(defaultAgent
         ? { type: 'Agente' as const, id: defaultAgent.id, name: defaultAgent.name }
         : { type: 'Ajustes Globales' as const }
       );
-    } else {
+    } else if (llmConfigSource === undefined && agents && agents.length === 0) { // Ensure it defaults if agents are empty
       setLlmConfigSource({ type: 'Ajustes Globales' as const });
     }
-  }, [agents]); // Dependency on agents to re-evaluate when agents list is populated/updated
+  }, [agents, llmConfigSource]);
 
   const [sourceType, setSourceType] = useState<AutoUpdateSourceType>("Local");
   const [gitRepoUrl, setGitRepoUrl] = useState('');
@@ -89,15 +86,9 @@ export default function AutoUpdatePage() {
   const [commitMessage, setCommitMessage] = useState('');
   const [isUploadingGit, setIsUploadingGit] = useState(false);
   const [detailedLogs, setDetailedLogs] = useState<string[]>([]);
+  const [isRedefiningAnalysisPrefs, setIsRedefiningAnalysisPrefs] = useState(false);
 
-  /**
-   * Processes the raw AI analysis output into a format suitable for the page's state.
-   * Maps AI suggestions to `AutoUpdateSuggestion` objects and generates a unified prompt.
-   * @param {AnalyzeCodeOutput} aiResult - The raw output from the AI analysis flow.
-   * @param {LLMConfigSourceOption | undefined} currentLlmConfigSourceUsed - The LLM configuration source used for the analysis.
-   * @param {AppSourceFile[]} [currentProjectFiles] - The project files that were analyzed (local or from Git).
-   * @returns {{ analysisOutput: AnalyzeCodeOutput; mappedSuggestions: AutoUpdateSuggestion[]; generatedUnifiedPrompt: string | null }} Processed analysis data.
-   */
+
   const _processAiAnalysisOutput = useCallback((
     aiResult: AnalyzeCodeOutput,
     currentLlmConfigSourceUsed: LLMConfigSourceOption | undefined,
@@ -135,8 +126,8 @@ export default function AutoUpdatePage() {
         finalResultOutput.groupLog = t('autoupdate.logs.groupContextLog', {
             groupName: currentLlmConfigSourceUsed.name,
             groupTask: (group?.mainTask || 'N/A').substring(0,150),
-            userInput: (analysisPreferences || t('autoupdate.analysis.general')),
-            orchestratorContext: (orchestratorAgent?.systemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
+            userInput: (analysisPreferences || t('autoupdate.analysis.general' as TranslationKey)),
+            orchestratorContext: (orchestratorAgent?.systemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
             flowName: 'analyzeSelfCode (AutoUpdate)'
         });
     }
@@ -156,13 +147,6 @@ export default function AutoUpdatePage() {
   }, [getAgentById, getGroupById, addDebugLog, t, analysisPreferences]);
 
 
-  /**
-   * Handles the core logic of calling the AI analysis flow and processing its results.
-   * @param {AnalyzeCodeInput} analysisInputForFlow - The input for the AI analysis flow.
-   * @param {LLMConfigSourceOption | undefined} currentLlmConfigSourceUsed - The LLM configuration being used.
-   * @param {AppSourceFile[]} [currentProjectFiles] - The project files being analyzed.
-   * @returns {Promise<void>}
-   */
   const _executeAnalysisAndProcessResults = useCallback(async (
     analysisInputForFlow: AnalyzeCodeInput,
     currentLlmConfigSourceUsed: LLMConfigSourceOption | undefined,
@@ -170,7 +154,6 @@ export default function AutoUpdatePage() {
   ) => {
     const flowName = 'callAnalyzeSelfCode (AutoUpdate via _executeAnalysisAndProcessResults)';
     try {
-      // No group progress bar for now, group log is more informative
       if (currentLlmConfigSourceUsed?.type !== 'Grupo') {
         let currentProgressVal = 0;
         const intervalId = setInterval(() => {
@@ -180,12 +163,11 @@ export default function AutoUpdatePage() {
           } else {
             clearInterval(intervalId);
           }
-        }, 300); // Simulate progress
+        }, 300);
 
-        // Ensure callAnalyzeSelfCode is awaited and its result processed
         await callAnalyzeSelfCode(analysisInputForFlow)
           .then((aiResult) => {
-            clearInterval(intervalId); // Stop progress on successful completion
+            clearInterval(intervalId); 
             const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = _processAiAnalysisOutput(aiResult, currentLlmConfigSourceUsed, currentProjectFiles);
             setAnalysisResult(analysisOutput);
             setSuggestions(mappedSuggestions);
@@ -194,12 +176,12 @@ export default function AutoUpdatePage() {
             toast({ title: t('autoupdate.toast.analysisComplete.title'), description: t('autoupdate.toast.analysisComplete.description') });
             addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.analysisSuccessNonGroup'), flowName});
           })
-          .catch(err => { // Catch errors from callAnalyzeSelfCode
-            clearInterval(intervalId); // Stop progress on error
-            throw err; // Re-throw to be caught by the outer catch
+          .catch(err => { 
+            clearInterval(intervalId); 
+            throw err; 
           });
-      } else { // Group-based analysis
-          setProgress(50); // Initial progress for group
+      } else { 
+          setProgress(50); 
           const aiResult = await callAnalyzeSelfCode(analysisInputForFlow);
           const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = _processAiAnalysisOutput(aiResult, currentLlmConfigSourceUsed, currentProjectFiles);
           setAnalysisResult(analysisOutput);
@@ -221,15 +203,10 @@ export default function AutoUpdatePage() {
         setAnalysisError(errorMsg);
         toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title'), description: errorMsg });
       }
-      setProgress(0); // Reset progress on error
+      setProgress(0); 
     }
   }, [_processAiAnalysisOutput, toast, addDebugLog, router, t]);
 
-  /**
-   * Initiates the self-analysis process.
-   * Fetches source code (local via Server Action or from Git),
-   * then calls the AI analysis flow.
-   */
   const handleStartAnalysis = useCallback(async () => {
     setIsAnalyzing(true);
     setLoadingMessage(t('autoupdate.toast.gettingLocalCode.title'));
@@ -238,7 +215,7 @@ export default function AutoUpdatePage() {
     setSuggestions([]);
     setUnifiedPrompt(null);
     setProgress(0);
-    setDetailedLogs([]); // Clear previous logs
+    setDetailedLogs([]); 
     const flowName = 'callAnalyzeSelfCode (AutoUpdate)';
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisStarting'), data: { sourceType, config: JSON.stringify(llmConfigSource) }, flowName});
 
@@ -249,7 +226,7 @@ export default function AutoUpdatePage() {
     if (sourceType === 'Local') {
       toast({ title: t('autoupdate.toast.gettingLocalCode.title'), description: t('autoupdate.toast.gettingLocalCode.description')});
       try {
-        const bundleResult = await getApplicationSourceBundle(false); // Server Action call
+        const bundleResult = await getApplicationSourceBundle(false); 
         if(bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
 
         if (!bundleResult.success || !bundleResult.files) {
@@ -257,7 +234,7 @@ export default function AutoUpdatePage() {
           throw new AppError(errorMsg, bundleResult, 'server');
         }
         projectFilesForAnalysis = bundleResult.files;
-        projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
+        projectContentStringForAnalysis = projectFilesForAnalysis.map(f => `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${f.fileName} ---\n${f.content}`).join('\n\n');
         addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.localCodeObtained'), data: { numFiles: projectFilesForAnalysis.length }});
         sourceLocationForAI = "Local";
       } catch (e: any) {
@@ -269,7 +246,7 @@ export default function AutoUpdatePage() {
         setLoadingMessage(null);
         return;
       }
-    } else { // Assuming Git source if not Local - add more validation if other sources become possible
+    } else { 
         const errorMsg = sourceType === 'Git' && !gitRepoUrl ? t('autoupdate.config.gitUrlRequired') : t('autoupdate.errors.unknownSourceError');
         addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: `Invalid source for AutoUpdate: ${errorMsg}`, data: { sourceType, gitRepoUrl }, flowName});
         setAnalysisError(errorMsg);
@@ -287,11 +264,11 @@ export default function AutoUpdatePage() {
       sourceCodeLocation: sourceLocationForAI,
       gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
       projectContent: projectContentStringForAnalysis,
-      focusArea: analysisPreferences || undefined, // Use analysisPreferences as focusArea
+      focusArea: analysisPreferences || undefined, 
       agentSystemPrompt: currentAgent
         ? currentAgent.systemPrompt
         : currentGroup
-        ? currentGroup.mainTask // For groups, their main task might serve as the high-level prompt context for analysis
+        ? currentGroup.mainTask 
         : undefined,
     };
     await _executeAnalysisAndProcessResults(inputForFlow, llmConfigSource, projectFilesForAnalysis);
@@ -300,10 +277,6 @@ export default function AutoUpdatePage() {
   }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, getAgentById, getGroupById, _executeAnalysisAndProcessResults, toast, addDebugLog, t]);
 
 
-  /**
-   * Opens the confirmation dialog for applying a suggestion.
-   * @param {AutoUpdateSuggestion} suggestion - The suggestion to be applied.
-   */
   const handleApplySuggestionClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     if (!(suggestion.userEditedContent !== undefined || suggestion.fullFileContentSuggested !== undefined)) {
         toast({variant: "destructive", title: t('autoupdate.toast.noContentToApply.title'), description: t('autoupdate.toast.noContentToApply.description')});
@@ -313,10 +286,6 @@ export default function AutoUpdatePage() {
     setShowConfirmApplyDialog(true);
   }, [toast, t]);
 
-  /**
-   * Marks a suggestion as "applied" in the UI.
-   * Actual file modification is not performed due to browser limitations.
-   */
   const confirmApplySuggestion = useCallback(() => {
     if (!suggestionToApply) return;
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionMarkedApplied', { area: suggestionToApply.area })});
@@ -327,10 +296,6 @@ export default function AutoUpdatePage() {
   }, [suggestionToApply, toast, addDebugLog, t]);
 
 
-  /**
-   * Handles the download of suggestions or the conceptual project with applied suggestions.
-   * @param {'JSON_SUGGESTIONS' | 'ZIP_PROJECT'} format - The desired download format.
-   */
   const handleDownload = useCallback(async (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => {
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.downloadRequested', { format: format })});
 
@@ -366,18 +331,18 @@ export default function AutoUpdatePage() {
       toast({ title: t('autoupdate.toast.downloadComplete.title'), description: t('autoupdate.toast.downloadComplete.suggestionsJsonDescription', { filename: t('autoupdate.downloads.suggestionsJsonFilename') }) });
       addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionsDownloadedJson')});
     } else if (format === 'ZIP_PROJECT') {
-        setIsAnalyzing(true); // Re-use isAnalyzing to indicate processing
+        setIsAnalyzing(true); 
         setLoadingMessage(t('autoupdate.toast.preparingProjectZip.title'));
         toast({ title: t('autoupdate.toast.preparingProjectZip.title'), description: t('autoupdate.toast.preparingProjectZip.description')});
         let filesToPackage: AppSourceFile[] = [];
         try {
-            const bundleResult = await getApplicationSourceBundle(false); // Call Server Action
+            const bundleResult = await getApplicationSourceBundle(false); 
             if(bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
 
             if (!bundleResult.success || !bundleResult.files) {
                 throw new Error(bundleResult.error || t('autoupdate.errors.getServerSourceFailedZip'));
             }
-            filesToPackage = bundleResult.files; // Real files from server
+            filesToPackage = bundleResult.files; 
             addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'DEBUG', message: `Archivos base para ZIP (del servidor): ${filesToPackage.length}` });
 
             if (suggestions && suggestions.length > 0) {
@@ -435,11 +400,8 @@ export default function AutoUpdatePage() {
             setLoadingMessage(null);
         }
     }
-  }, [suggestions, toast, addDebugLog, t, analysisResult, setIsAnalyzing, setLoadingMessage]);
+  }, [suggestions, toast, addDebugLog, t, setIsAnalyzing, setLoadingMessage, getApplicationSourceBundle]);
 
-  /**
-   * Opens the dialog for entering a Git commit message.
-   */
   const handleOpenCommitDialog = () => {
     if (!globalSettings.gitConfig.repoUrl || !globalSettings.gitConfig.username || !globalSettings.gitConfig.email || !globalSettings.gitConfig.pat) {
       toast({ variant: "destructive", title: t('autoupdate.toast.gitConfigIncomplete.title'), description: t('autoupdate.toast.gitConfigIncomplete.description') });
@@ -449,9 +411,6 @@ export default function AutoUpdatePage() {
     setShowCommitDialog(true);
   };
 
-  /**
-   * Performs the Git upload operation by calling the Server Action.
-   */
   const performGitUpload = useCallback(async () => {
     if (!commitMessage.trim()) {
       toast({ variant: "destructive", title: t('autoupdate.toast.commitMessageRequired.title') });
@@ -463,11 +422,11 @@ export default function AutoUpdatePage() {
     setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] [INFO] ${t('autoupdate.logs.initiatingGitUpload')}`]);
     toast({ title: t('autoupdate.toast.uploadingToGit.title'), description: t('autoupdate.toast.uploadingToGit.description', { repo: globalSettings.gitConfig.repoUrl.split('/').pop()?.replace('.git','') || 'repositorio' }) });
     addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.gitUploadInProgress', { message: commitMessage }), data: { repoUrl: globalSettings.gitConfig.repoUrl }});
-    const tempLogs: string[] = []; // Create a new array for this specific action's logs
+    const tempLogs: string[] = []; 
 
     try {
-      const result = await handleUploadToGit(globalSettings.gitConfig, commitMessage, tempLogs); // Pass tempLogs
-      setDetailedLogs(prev => [...prev, ...tempLogs]); // Append Server Action logs to page logs
+      const result = await handleUploadToGit(globalSettings.gitConfig, commitMessage, tempLogs); 
+      setDetailedLogs(prev => [...prev, ...tempLogs]); 
 
       if (result.success) {
         toast({ title: t('autoupdate.toast.gitUploadSuccess.title'), description: result.message, duration: 7000 });
@@ -491,29 +450,16 @@ export default function AutoUpdatePage() {
   }, [globalSettings.gitConfig, commitMessage, toast, addDebugLog, t]);
 
 
-  /**
-   * Attempts to get an AI-driven fix for a displayed error.
-   * @param {string} errorMsg - The error message to analyze.
-   */
   const handleAutoFixError = useCallback(async (errorMsg: string) => {
-    const autoFixFlowName = 'callAnalyzeSelfCode (AutoFix Error)'; // Or a more specific flow if created
+    const autoFixFlowName = 'callAutoFixErrorWithGroup (AutoUpdate)'; 
     addDebugLog({source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.attemptingAutofix', { error: errorMsg }), flowName: autoFixFlowName});
-    // This now uses the ErrorDisplay's internal mechanism which calls callAutoFixErrorWithGroup
-    // So, this function in AutoUpdatePage might only need to set some context if necessary,
-    // but the primary call will be from ErrorDisplay.
-    // For now, keep a toast here to indicate the action was triggered from this page.
     toast({ title: t('common.processing'), description: t('errorDisplay.toast.autofixAttempt.description')});
   }, [addDebugLog, t]);
 
-  /**
-   * Toggles the editing mode for a suggestion.
-   * @param {string} suggestionId - The ID of the suggestion.
-   */
   const handleToggleEdit = useCallback((suggestionId: string) => {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
         const newIsEditing = !s.isEditing;
-        // Initialize userEditedContent with fullFileContentSuggested if starting to edit and it's empty
         const newUserEditedContent = newIsEditing && s.userEditedContent === undefined
                                      ? (s.fullFileContentSuggested ?? '')
                                      : s.userEditedContent;
@@ -523,55 +469,57 @@ export default function AutoUpdatePage() {
     }));
   }, []);
 
-  /**
-   * Handles changes to the content of a suggestion being edited.
-   * @param {string} suggestionId - The ID of the suggestion.
-   * @param {string} newContent - The new content.
-   */
   const handleSuggestionContentChange = useCallback((suggestionId: string, newContent: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, userEditedContent: newContent } : s));
   }, []);
 
-  /**
-   * Saves the edited content of a suggestion.
-   * @param {string} suggestionId - The ID of the suggestion.
-   */
   const handleSaveEdit = useCallback((suggestionId: string) => {
     setSuggestions(prev => prev.map(s => s.id === suggestionId ? { ...s, isEditing: false } : s));
     toast({title: t('autoupdate.toast.editSaved.title'), description: t('autoupdate.toast.editSaved.description')})
   }, [toast, t]);
 
-  /**
-   * Cancels editing for a suggestion, reverting any changes.
-   * @param {string} suggestionId - The ID of the suggestion.
-   */
   const handleCancelEdit = useCallback((suggestionId: string) => {
      setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
-        // Revert to original AI suggestion or clear if no original AI suggestion
         return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested ?? undefined };
       }
       return s;
     }));
   }, []);
 
-  /**
-   * Opens the dialog for testing a suggestion.
-   * @param {AutoUpdateSuggestion} suggestion - The suggestion to test.
-   */
   const handleTestSuggestionClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     setSuggestionToTest(suggestion);
     setShowTestDialog(true);
   }, []);
 
-  /**
-   * Opens the dialog for conceptually testing a suggestion in a virtual environment.
-   * @param {AutoUpdateSuggestion} suggestion - The suggestion to test.
-   */
   const handleTestInVenvClick = useCallback((suggestion: AutoUpdateSuggestion) => {
     setSuggestionToTestInVenv(suggestion);
     setShowTestInVenvDialog(true);
   }, []);
+
+  const handleRedefineAnalysisPrefs = async () => {
+    if (!analysisPreferences.trim()) {
+      toast({ variant: 'destructive', title: t('common.toast.redefineEmpty.title'), description: t('common.toast.redefineEmpty.description') });
+      return;
+    }
+    setIsRedefiningAnalysisPrefs(true);
+    addLog({ source: 'AutoUpdatePage', type: 'INFO', message: `Redefining analysis preferences. Original: ${analysisPreferences.substring(0, 100)}...` });
+    toast({ title: t('common.toast.redefining.title'), description: t('common.toast.redefining.description') });
+    try {
+      const result = await callRedefinePrompt({ originalPrompt: analysisPreferences });
+      setAnalysisPreferences(result.redefinedPrompt);
+      toast({ title: t('common.toast.redefinedSuccess.title'), description: t('common.toast.redefinedSuccess.description') });
+      addLog({ source: 'AutoUpdatePage', type: 'SUCCESS', message: `'analysisPreferences' redefined. New: ${result.redefinedPrompt.substring(0, 100)}...` });
+    } catch (e: any) {
+      const errorMsg = e instanceof AppError ? e.friendlyMessage : (e.message || t('common.toast.redefineError.description'));
+      toast({ variant: 'destructive', title: t('common.toast.redefineError.title'), description: errorMsg });
+      addLog({ source: 'AutoUpdatePage', type: 'ERROR', message: `Redefining 'analysisPreferences' failed`, errorDetails: e });
+       if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
+    } finally {
+      setIsRedefiningAnalysisPrefs(false);
+    }
+  };
+
 
   return (
     <React.Fragment>
@@ -586,17 +534,19 @@ export default function AutoUpdatePage() {
           analysisPreferences={analysisPreferences}
           onAnalysisPreferencesChange={setAnalysisPreferences}
           onStartAnalysis={handleStartAnalysis}
-          isLoading={isAnalyzing || isUploadingGit}
+          isLoading={isAnalyzing || isUploadingGit || isRedefiningAnalysisPrefs}
           progress={progress}
           isAnalysisInProgress={isAnalyzing && !analysisResult && progress < 100 && llmConfigSource?.type !== 'Grupo'}
+          isRedefiningAnalysisPrefs={isRedefiningAnalysisPrefs}
+          onRedefineAnalysisPrefs={handleRedefineAnalysisPrefs}
         />
 
         <AutoUpdateResultsDisplay
           analysisResult={analysisResult}
           suggestions={suggestions}
-          isLoading={isAnalyzing && !analysisResult} // Pass isAnalyzing for loading state of results
+          isLoading={isAnalyzing && !analysisResult} 
           error={analysisError}
-          onAutoFixError={handleAutoFixError} // This will trigger ErrorDisplay's internal auto-fix
+          onAutoFixError={handleAutoFixError} 
           onApplySuggestion={handleApplySuggestionClick}
           onToggleEdit={handleToggleEdit}
           onContentChange={handleSuggestionContentChange}
@@ -615,6 +565,7 @@ export default function AutoUpdatePage() {
           onConfirm={confirmApplySuggestion}
           title={t('autoupdate.dialogs.applySuggestion.title', { area: suggestionToApply?.area || 'N/A' })}
           confirmText={t('autoupdate.dialogs.applySuggestion.confirmText')}
+          cancelText={t('common.cancel')}
         >
           <p className="text-sm mb-2 text-muted-foreground">{t('autoupdate.dialogs.applySuggestion.description.p1', { area: suggestionToApply?.area || 'N/A' })}</p>
           <p className="text-sm mb-2 text-muted-foreground">{t('autoupdate.dialogs.applySuggestion.description.p2')}</p>
@@ -677,6 +628,7 @@ export default function AutoUpdatePage() {
           title={t('autoupdate.dialogs.commitToGit.title')}
           confirmText={isUploadingGit ? t('common.uploading') : t('autoupdate.dialogs.commitToGit.confirmText')}
           confirmDisabled={isUploadingGit}
+          cancelText={t('common.cancel')}
         >
           <Input id="commit-message" value={commitMessage} onChange={(e) => setCommitMessage(e.target.value)} placeholder={t('autoupdate.dialogs.commitToGit.placeholder')} className="mt-1" />
           <p className="text-xs text-muted-foreground mt-2">{t('autoupdate.dialogs.commitToGit.description')}</p>
@@ -695,6 +647,3 @@ export default function AutoUpdatePage() {
     </React.Fragment>
   );
 }
-
-
-    

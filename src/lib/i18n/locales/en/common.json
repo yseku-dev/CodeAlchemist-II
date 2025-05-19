@@ -26,5 +26,24 @@
   "expand": "Expand",
   "collapse": "Collapse",
   "unknownError": "Unknown error",
-  "fileSelected": "File selected: {name}"
+  "fileSelected": "File selected: {name}",
+  "redefineRequestButton": "Redefine Request with AI",
+  "toast": {
+    "redefineEmpty": {
+      "title": "Empty Description",
+      "description": "Please write something to redefine."
+    },
+    "redefining": {
+      "title": "Redefining Request...",
+      "description": "AI is working to improve your text."
+    },
+    "redefinedSuccess": {
+      "title": "Request Redefined",
+      "description": "Your text has been updated by the AI."
+    },
+    "redefineError": {
+      "title": "Redefine Error",
+      "description": "Could not redefine the request with AI."
+    }
+  }
 }
