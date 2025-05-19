@@ -12,7 +12,9 @@
     "generatedFilesLabel": "Generated Files:",
     "downloadButton": "Download Project (ZIP)",
     "downloadNote": "Note: The download will be a JSON file with the project structure.",
-    "groupLogTitle": "Detailed Group Log",
+    "groupLogTitle": "Detailed Group Log"
+  },
+  "logs": {
     "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
   },
   "confirmDialog": {

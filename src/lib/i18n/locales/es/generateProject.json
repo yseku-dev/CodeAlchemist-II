@@ -12,7 +12,9 @@
     "generatedFilesLabel": "Archivos Generados:",
     "downloadButton": "Descargar Proyecto (ZIP)",
     "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
-    "groupLogTitle": "Log Detallado del Grupo",
+    "groupLogTitle": "Log Detallado del Grupo"
+  },
+  "logs": {
     "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
   },
   "confirmDialog": {
