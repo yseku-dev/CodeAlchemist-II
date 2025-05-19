@@ -11,10 +11,11 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import type { GenerateProjectInput, ProjectGenerationResult, GeneratedFile } from '@/types';
+import { AppError } from '@/utils/AppError';
 
 const GeneratedFileSchema = z.object({
   path: z.string().describe('Ruta relativa del archivo o carpeta. Las carpetas deben terminar con /'),
-  content: z.string().describe('Contenido del archivo. Vacío para carpetas.'),
+  content: z.string().describe('Contenido COMPLETO y funcional del archivo. Vacío para carpetas.'), // Enfatizar COMPLETO
   isFolder: z.boolean().optional().describe('Indica si es una carpeta.'),
 });
 
@@ -27,7 +28,7 @@ const ProjectGenerationResultSchema = z.object({
   projectName: z.string().describe('Un nombre sugerido para el proyecto (ej. mi-proyecto-genial, ProyectoAsombroso).'),
   aiNotes: z.string().describe('Comentarios o notas de la IA sobre la estructura generada, posibles próximos pasos, o dependencias a instalar.'),
   files: z.array(GeneratedFileSchema).describe('Una lista de archivos y carpetas generados, cada uno con su ruta y contenido.'),
-  groupLog: z.string().optional().describe('Log de ejecución si la generación fue coordinada por un grupo (actualmente no se usa de forma detallada en este flujo).'),
+  groupLog: z.string().optional().describe('Log de ejecución si la generación fue coordinada por un grupo.'),
 });
 
 export async function generateProjectStructure(
@@ -57,16 +58,17 @@ const promptLines = [
   '3.  **files**: Un array de objetos, donde cada objeto representa un archivo o carpeta.',
   '    *   Cada objeto debe tener:',
   '        *   `path`: Una cadena con la ruta relativa del archivo o carpeta (ej. "src/components/Button.tsx", "README.md", "public/"). Las carpetas deben terminar con una barra inclinada (`/`).',
-  '        *   `content`: Una cadena con el contenido del archivo. Para carpetas, el contenido puede ser una cadena vacía o un comentario como "/* Carpeta para... */".',
+  '        *   `content`: Una cadena con el contenido **COMPLETO y funcional** del archivo. Para carpetas, el contenido puede ser una cadena vacía o un comentario como "/* Carpeta para... */". Para archivos de código fuente (ej: .js, .ts, .py, .java, .html, .css), el contenido debe ser lo más completo posible. Si un archivo es extremadamente largo y repetitivo (como un `package-lock.json`), puedes generar una versión mínima o un comentario indicando que el contenido completo iría allí (ej. "// Contenido del package-lock.json aquí"), pero prioriza la completitud de los archivos de código.',
   '        *   `isFolder`: (opcional, booleano) Indica explícitamente si es una carpeta. Si `path` termina en `/`, se asume que es una carpeta.',
-  '    *   Incluye archivos comunes como `README.md`, `.gitignore` (si aplica), un archivo de configuración de empaquetador (ej. `package.json` si es Node.js, `pom.xml` si es Maven, etc.), y algunos archivos de código fuente iniciales basados en la descripción.',
+  '    *   Incluye archivos comunes como `README.md`, `.gitignore` (si aplica), un archivo de configuración de empaquetador (ej. `package.json` si es Node.js, `pom.xml` si es Maven, etc.), y algunos archivos de código fuente iniciales y funcionales basados en la descripción.',
   '    *   Asegúrate de que las rutas de los archivos sean coherentes y representen una estructura de proyecto lógica.',
   '',
   'Toda la salida, incluyendo nombres de archivo, contenido y notas, debe estar en castellano.',
-  'La respuesta DEBE ser un único objeto JSON que se adhiera estrictamente al esquema de salida especificado. No incluyas ningún texto explicativo fuera del objeto JSON.',
-  "Ejemplo de un objeto 'file' para una carpeta: \`{ \"path\": \"src/\", \"content\": \"\", \"isFolder\": true }\`",
-  "Ejemplo de un objeto 'file' para un archivo: \`{ \"path\": \"src/index.js\", \"content\": \"console.log(\\\"Hola Mundo\\\");\" }\`"
+  'La respuesta DEBE ser un único objeto JSON que se adhiera estrictamente al esquema de salida especificado. No incluyas ningún texto explicativo fuera del objeto JSON. Es crucial que el contenido de los archivos sea lo más completo posible.',
+  "Ejemplo de un objeto 'file' para una carpeta: `{ \"path\": \"src/\", \"content\": \"\", \"isFolder\": true }`",
+  "Ejemplo de un objeto 'file' para un archivo: `{ \"path\": \"src/index.js\", \"content\": \"console.log(\\\"Hola Mundo\\\");\" }`"
 ];
+
 
 const prompt = ai.definePrompt({
   name: 'generateProjectStructurePrompt',
@@ -82,20 +84,35 @@ const generateProjectStructureFlow = ai.defineFlow(
     outputSchema: ProjectGenerationResultSchema,
   },
   async (input) => {
-    const llmResponse = await prompt(input);
-    const output = llmResponse.output; 
+    const flowName = 'generateProjectStructureFlow';
+    try {
+      const llmResponse = await prompt(input);
+      const output = llmResponse.output; 
 
-    if (!output) {
-      throw new Error("La IA no pudo generar la estructura del proyecto.");
+      if (!output) {
+        console.error(`[Flow: ${flowName}] No output from LLM.`);
+        throw new AppError("La IA no pudo generar la estructura del proyecto.", { originalError: "No output from LLM" }, 'ai');
+      }
+
+      // Ensure files have isFolder correctly set if path ends with /
+      // and also provide default empty content if content is undefined (though schema expects string)
+      const processedFiles = output.files.map(file => ({
+        ...file,
+        content: file.content ?? "", // Ensure content is always a string
+        isFolder: file.isFolder ?? file.path.endsWith('/'),
+      }));
+
+      return { ...output, files: processedFiles };
+    } catch (error: any) {
+      console.error(`[Flow: ${flowName}] Error executing flow:`, error);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(
+        "Ocurrió un error en el flujo de generación de estructura de proyecto.",
+        error,
+        'ai'
+      );
     }
-
-    // Ensure files have isFolder correctly set if path ends with /
-    const processedFiles = output.files.map(file => ({
-      ...file,
-      isFolder: file.isFolder ?? file.path.endsWith('/'),
-    }));
-
-    return { ...output, files: processedFiles };
   }
 );
-
