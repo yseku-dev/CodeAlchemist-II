@@ -1,11 +1,8 @@
-
+// src/app/versiones-guardadas/page.tsx
 "use client";
 
-import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Eye, Download, Trash2, GitCompareArrows, CheckSquare, Square } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import ConfirmDialog from '@/components/confirm-dialog';
 import CodeBlock from '@/components/code-block';
 import { useAppState } from '@/context/AppStateContext';
@@ -13,14 +10,24 @@ import { useToast } from '@/hooks/use-toast';
 import { useDebug } from '@/context/DebugContext';
 import type { CodeSnapshot } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
-// For diffing, a library like 'diff' or 'diff2html' would be used.
-// For simplicity, we'll show side-by-side.
-// import { DiffChars } from 'diff'; // Example, actual diff library needed
+import { v4 as uuidv4 } from 'uuid';
+import { useI18n } from '@/context/I18nContext';
+import type { TranslationKey } from '@/lib/i18n/translations';
+import SnapshotsHeader from '@/components/features/versiones-guardadas/SnapshotsHeader';
+import SnapshotsActionsBar from '@/components/features/versiones-guardadas/SnapshotsActionsBar';
+import SnapshotsTable from '@/components/features/versiones-guardadas/SnapshotsTable';
 
+/**
+ * @fileOverview Page component for managing saved code snapshots.
+ * Allows users to view, download, compare, and delete snapshots.
+ * Also allows saving the current application state as a snapshot.
+ * All UI texts are internationalized.
+ */
 export default function VersionesGuardadasPage() {
-  const { snapshots, addSnapshot, deleteSnapshot, deleteAllSnapshots } = useAppState();
+  const { settings, agents, groups, snapshots, addSnapshot, deleteSnapshot, deleteAllSnapshots } = useAppState();
   const { toast } = useToast();
   const { addLog } = useDebug();
+  const { t } = useI18n();
 
   const [selectedForCompareA, setSelectedForCompareA] = useState<string | null>(null);
   const [selectedForCompareB, setSelectedForCompareB] = useState<string | null>(null);
@@ -35,21 +42,71 @@ export default function VersionesGuardadasPage() {
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [snapshotToDelete, setSnapshotToDelete] = useState<CodeSnapshot | null>(null);
 
+  const handleSaveCurrentAppState = useCallback((downloadAsZip: boolean) => {
+    const currentAppState = {
+      appName: "CodeAlchemist State",
+      timestamp: new Date().toISOString(),
+      settings,
+      agents,
+      groups
+    };
+    const snapshotName = t('versions.toast.appStateSaved.name', { time: new Date().toLocaleString() });
+    const newSnapshot = addSnapshot({
+      name: snapshotName,
+      code: JSON.stringify(currentAppState, null, 2),
+      source: 'codealchemist-app-state',
+    });
+    
+    if (downloadAsZip) {
+      handleDownloadSnapshot(newSnapshot, 'zip');
+      toast({ 
+        title: t('versions.toast.appStateSavedAndDownloaded.title'), 
+        description: t('versions.toast.appStateSavedAndDownloaded.description', { 
+          name: newSnapshot.name, 
+          filename: `${newSnapshot.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.zip`
+        }) 
+      });
+    } else {
+      toast({ title: t('versions.toast.appStateSaved.title'), description: t('versions.toast.appStateSaved.description', { name: newSnapshot.name }) });
+    }
+    addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Application state saved as snapshot: ${newSnapshot.name}. Downloaded as ZIP: ${downloadAsZip}`});
+  }, [settings, agents, groups, addSnapshot, toast, t, addLog]);
+
+  const handleDownloadSnapshot = useCallback((snapshot: CodeSnapshot, format: 'original' | 'zip') => {
+    const element = document.createElement("a");
+    let fileContent = snapshot.code;
+    let fileName = `${snapshot.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+    let mimeType = 'text/plain;charset=utf-8';
+
+    if (format === 'original') {
+      if (snapshot.source === 'codealchemist-app-state') {
+        fileName += '.json';
+        mimeType = 'application/json;charset=utf-8';
+      } else {
+        fileName += '.txt';
+      }
+    } else { // format === 'zip'
+      fileName += '.zip';
+      mimeType = 'application/zip';
+      // For client-side "zip", we are just changing extension.
+      // True zipping would require JSZip here if snapshot.code wasn't already a single entity.
+      // Since it's single entity, this is fine for user expectation of a .zip extension.
+    }
+    
+    const file = new Blob([fileContent], {type: mimeType});
+    element.href = URL.createObjectURL(file);
+    element.download = fileName;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    URL.revokeObjectURL(element.href);
+    toast({ title: t('versions.toast.snapshotDownloaded.title'), description: t('versions.toast.snapshotDownloaded.description', {name: snapshot.name, filename: fileName})});
+    addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Snapshot "${snapshot.name}" downloaded as ${fileName}.`});
+  }, [toast, t, addLog]);
 
   const handleViewSnapshot = (snapshot: CodeSnapshot) => {
     setSnapshotToView(snapshot);
     setShowViewModal(true);
-  };
-
-  const handleDownloadSnapshot = (snapshot: CodeSnapshot) => {
-    const element = document.createElement("a");
-    const file = new Blob([snapshot.code], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = `${snapshot.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    toast({ title: "Snapshot Descargado", description: `Snapshot "${snapshot.name}" descargado.`});
   };
 
   const handleDeleteSnapshot = (snapshot: CodeSnapshot) => {
@@ -58,10 +115,12 @@ export default function VersionesGuardadasPage() {
   
   const confirmDeleteSnapshot = () => {
     if(snapshotToDelete){
+      const name = snapshotToDelete.name;
       deleteSnapshot(snapshotToDelete.id);
+      toast({ title: t('versions.toast.snapshotDeleted.title'), description: t('versions.toast.snapshotDeleted.description', {name}) });
       setSnapshotToDelete(null);
     }
-  }
+  };
 
   const toggleCompareSelection = (id: string, type: 'A' | 'B') => {
     if (type === 'A') {
@@ -80,172 +139,104 @@ export default function VersionesGuardadasPage() {
         setSnapshotB(snapB);
         setShowCompareModal(true);
       } else {
-        toast({variant: "destructive", title: "Error", description: "No se encontraron los snapshots seleccionados."});
+        toast({variant: "destructive", title: t('versions.toast.compareError.title'), description: t('versions.toast.compareError.notFound')});
       }
     } else {
-      toast({variant: "destructive", title: "Selección Incompleta", description: "Selecciona dos versiones (A y B) para comparar."});
+      toast({variant: "destructive", title: t('versions.toast.compareError.title'), description: t('versions.toast.compareError.selectionIncomplete')});
     }
-  };
-
-  const handleSaveCurrentCodeAlchemist = () => {
-    // This is a placeholder. In a real scenario, you'd need a way to get the current app's source.
-    const mockAppCode = `// Código actual de CodeAlchemist (Simulado) - ${new Date().toISOString()}\nfunction mainApp() { console.log("CodeAlchemist está funcionando!"); }`;
-    addSnapshot({
-      name: `CodeAlchemist Actual - ${new Date().toLocaleDateString()}`,
-      code: mockAppCode,
-      source: 'codealchemist-current',
-    });
-    addLog("Snapshot of current CodeAlchemist code saved (Simulated).");
   };
 
   const confirmDeleteAllSnapshots = () => {
     deleteAllSnapshots();
+    toast({title: t('versions.toast.allSnapshotsDeleted.title')});
     setShowDeleteAllConfirm(false);
   };
 
   return (
     <Card className="max-w-5xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <GitCompareArrows className="h-7 w-7 text-primary" />
-          <span>Versiones Guardadas (Snapshots)</span>
-        </CardTitle>
-        <CardDescription>Gestiona instantáneas de código generadas o del estado de la aplicación.</CardDescription>
-      </CardHeader>
+      <SnapshotsHeader t={t} />
       <CardContent>
-        <div className="flex justify-between items-center mb-4">
-          <Button onClick={handleSaveCurrentCodeAlchemist}>Guardar Código Actual de CodeAlchemist</Button>
-          <div>
-            <Button onClick={handleCompareVersions} disabled={!selectedForCompareA || !selectedForCompareB} variant="outline" className="mr-2">
-              <GitCompareArrows className="mr-2 h-4 w-4"/> Comparar A y B
-            </Button>
-            <Button onClick={() => setShowDeleteAllConfirm(true)} variant="destructive" disabled={snapshots.length === 0}>
-              <Trash2 className="mr-2 h-4 w-4"/> Eliminar Todas
-            </Button>
-          </div>
-        </div>
-
-        <ScrollArea className="h-[calc(100vh-20rem)]"> {/* Adjust height as needed */}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">A</TableHead>
-                <TableHead className="w-10">B</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Fecha de Creación</TableHead>
-                <TableHead>Origen</TableHead>
-                <TableHead className="text-right w-[200px]">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {snapshots.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No hay versiones guardadas.</TableCell></TableRow>
-              )}
-              {snapshots.map((snapshot) => (
-                <TableRow key={snapshot.id}>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => toggleCompareSelection(snapshot.id, 'A')} className={selectedForCompareA === snapshot.id ? 'bg-primary/20' : ''}>
-                      {selectedForCompareA === snapshot.id ? <CheckSquare className="h-4 w-4 text-primary"/> : <Square className="h-4 w-4"/>}
-                    </Button>
-                  </TableCell>
-                  <TableCell>
-                     <Button variant="ghost" size="icon" onClick={() => toggleCompareSelection(snapshot.id, 'B')} className={selectedForCompareB === snapshot.id ? 'bg-primary/20' : ''}>
-                      {selectedForCompareB === snapshot.id ? <CheckSquare className="h-4 w-4 text-primary"/> : <Square className="h-4 w-4"/>}
-                    </Button>
-                  </TableCell>
-                  <TableCell className="font-medium">{snapshot.name}</TableCell>
-                  <TableCell>{new Date(snapshot.createdAt).toLocaleString()}</TableCell>
-                  <TableCell className="capitalize">{snapshot.source || 'N/A'}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleViewSnapshot(snapshot)} title="Ver">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDownloadSnapshot(snapshot)} title="Descargar">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteSnapshot(snapshot)} title="Eliminar">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <SnapshotsActionsBar
+          t={t}
+          onSaveAppState={handleSaveCurrentAppState}
+          onCompareVersions={handleCompareVersions}
+          compareDisabled={!selectedForCompareA || !selectedForCompareB}
+          onDeleteAll={() => setShowDeleteAllConfirm(true)}
+          deleteAllDisabled={snapshots.length === 0}
+        />
+        <ScrollArea className="h-[calc(100vh-24rem)] md:h-[calc(100vh-20rem)]">
+          <SnapshotsTable
+            t={t}
+            snapshots={snapshots}
+            selectedForCompareA={selectedForCompareA}
+            selectedForCompareB={selectedForCompareB}
+            onToggleCompareSelection={toggleCompareSelection}
+            onViewSnapshot={handleViewSnapshot}
+            onDownloadSnapshot={handleDownloadSnapshot}
+            onDeleteSnapshot={handleDeleteSnapshot}
+          />
         </ScrollArea>
       </CardContent>
 
-      {/* View Snapshot Modal */}
       <ConfirmDialog
         isOpen={showViewModal && !!snapshotToView}
         onClose={() => setShowViewModal(false)}
         onConfirm={() => setShowViewModal(false)}
-        title={`Viendo Snapshot: ${snapshotToView?.name}`}
-        confirmText="Cerrar"
+        title={t('versions.viewModal.title', { name: snapshotToView?.name || '' })}
+        confirmText={t('common.close')}
         cancelText=""
       >
         <ScrollArea className="h-96 border rounded-md">
-          <CodeBlock code={snapshotToView?.code || "Error: Sin código para mostrar."} maxHeight="100%" />
+          <CodeBlock 
+            code={snapshotToView?.code || t('versions.viewModal.noCode')} 
+            language={snapshotToView?.source === 'codealchemist-app-state' ? 'json' : 'plaintext'}
+            maxHeight="100%" 
+          />
         </ScrollArea>
       </ConfirmDialog>
 
-      {/* Compare Snapshots Modal */}
        <ConfirmDialog
         isOpen={showCompareModal}
         onClose={() => setShowCompareModal(false)}
         onConfirm={() => setShowCompareModal(false)}
-        title="Comparar Versiones (A vs B)"
-        confirmText="Cerrar"
+        title={t('versions.compareModal.title')}
+        confirmText={t('common.close')}
         cancelText=""
       >
         {snapshotA && snapshotB && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh]">
             <div>
-              <h4 className="font-semibold mb-1">Versión A: {snapshotA.name}</h4>
+              <h4 className="font-semibold mb-1">{t('versions.compareModal.versionA', {name: snapshotA.name})}</h4>
               <ScrollArea className="h-80 border rounded-md">
-                 <CodeBlock code={snapshotA.code} language="plaintext" maxHeight="100%"/>
+                 <CodeBlock code={snapshotA.code} language={snapshotA.source === 'codealchemist-app-state' ? 'json' : 'plaintext'} maxHeight="100%"/>
               </ScrollArea>
             </div>
             <div>
-              <h4 className="font-semibold mb-1">Versión B: {snapshotB.name}</h4>
+              <h4 className="font-semibold mb-1">{t('versions.compareModal.versionB', {name: snapshotB.name})}</h4>
               <ScrollArea className="h-80 border rounded-md">
-                <CodeBlock code={snapshotB.code} language="plaintext" maxHeight="100%"/>
+                <CodeBlock code={snapshotB.code} language={snapshotB.source === 'codealchemist-app-state' ? 'json' : 'plaintext'} maxHeight="100%"/>
               </ScrollArea>
             </div>
-            {/* Basic diff rendering example - replace with actual diff library if needed */}
-            {/* <div className="md:col-span-2 mt-2">
-              <h4 className="font-semibold mb-1">Diferencias (caracteres):</h4>
-              <ScrollArea className="h-40 border rounded-md p-2 text-xs bg-muted">
-                {
-                  DiffChars(snapshotA.code, snapshotB.code).map((part, index) => (
-                    <span key={index} className={part.added ? 'bg-green-200 text-green-800' : part.removed ? 'bg-red-200 text-red-800 line-through' : ''}>
-                      {part.value}
-                    </span>
-                  ))
-                }
-              </ScrollArea>
-            </div> */}
           </div>
         )}
       </ConfirmDialog>
 
-      {/* Delete All Confirm Dialog */}
       <ConfirmDialog
         isOpen={showDeleteAllConfirm}
         onClose={() => setShowDeleteAllConfirm(false)}
         onConfirm={confirmDeleteAllSnapshots}
-        title="Confirmar Eliminación Total"
-        description="¿Estás seguro de que quieres eliminar TODOS los snapshots guardados? Esta acción no se puede deshacer."
-        confirmText="Sí, Eliminar Todos"
+        title={t('versions.deleteAllModal.title')}
+        description={t('versions.deleteAllModal.description')}
+        confirmText={t('versions.deleteAllModal.confirm')}
       />
       
-      {/* Delete Single Confirm Dialog */}
       <ConfirmDialog
         isOpen={!!snapshotToDelete}
         onClose={() => setSnapshotToDelete(null)}
         onConfirm={confirmDeleteSnapshot}
-        title={`Confirmar Eliminación: ${snapshotToDelete?.name}`}
-        description="¿Estás seguro de que quieres eliminar este snapshot? Esta acción no se puede deshacer."
-        confirmText="Sí, Eliminar"
+        title={t('versions.deleteSingleModal.title', { name: snapshotToDelete?.name || '' })}
+        description={t('versions.deleteSingleModal.description')}
+        confirmText={t('versions.deleteSingleModal.confirm')}
       />
     </Card>
   );

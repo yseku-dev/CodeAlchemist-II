@@ -1,4 +1,3 @@
-
 // src/lib/i18n/translations.ts
 
 // Importaciones de Español
@@ -20,7 +19,6 @@ import esError from './locales/es/error.json';
 import esFlows from './locales/es/flows.json';
 import esFileTree from './locales/es/fileTree.json';
 import esCodeEditor from './locales/es/codeEditor.json';
-
 
 // Importaciones de Inglés
 import enCommon from './locales/en/common.json';
@@ -82,11 +80,8 @@ export interface LanguageTranslations {
   flows: TranslationSet;
   fileTree: TranslationSet;
   codeEditor: TranslationSet;
-  // Allow any other string keys for flexibility during development
-  // This helps if a new JSON file is added but not yet typed in LanguageTranslations
   [key: string]: TranslationSet | undefined;
 }
-
 
 /**
  * Type for all translations, mapping language codes (e.g., 'es', 'en')
@@ -102,51 +97,50 @@ export type AllTranslations = {
  */
 export type TranslationKey = string;
 
-
 /**
  * The primary export containing all translations for the application.
  * Each language object now contains top-level keys corresponding to the imported JSON files.
  */
 export const translationsData: AllTranslations = {
   es: {
-    common: esCommon as TranslationSet,
-    dashboard: esDashboard as TranslationSet,
-    settings: esSettings as TranslationSet,
-    generateCode: esGenerateCode as TranslationSet,
-    generateProject: esGenerateProject as TranslationSet,
-    analyzeCode: esAnalyzeCode as TranslationSet,
-    analyzeProject: esAnalyzeProject as TranslationSet,
-    refactorProject: esRefactorProject as TranslationSet,
-    autoupdate: esAutoupdate as TranslationSet,
-    versions: esVersions as TranslationSet,
-    chat: esChat as TranslationSet,
-    agents: esAgents as TranslationSet,
-    groups: esGroups as TranslationSet,
-    layout: esLayout as TranslationSet,
-    error: esError as TranslationSet,
-    flows: esFlows as TranslationSet,
-    fileTree: esFileTree as TranslationSet,
-    codeEditor: esCodeEditor as TranslationSet,
+    common: esCommon,
+    dashboard: esDashboard,
+    settings: esSettings,
+    generateCode: esGenerateCode,
+    generateProject: esGenerateProject,
+    analyzeCode: esAnalyzeCode,
+    analyzeProject: esAnalyzeProject,
+    refactorProject: esRefactorProject,
+    autoupdate: esAutoupdate,
+    versions: esVersions,
+    chat: esChat,
+    agents: esAgents,
+    groups: esGroups,
+    layout: esLayout,
+    error: esError,
+    flows: esFlows,
+    fileTree: esFileTree,
+    codeEditor: esCodeEditor,
   },
   en: {
-    common: enCommon as TranslationSet,
-    dashboard: enDashboard as TranslationSet,
-    settings: enSettings as TranslationSet,
-    generateCode: enGenerateCode as TranslationSet,
-    generateProject: enGenerateProject as TranslationSet,
-    analyzeCode: enAnalyzeCode as TranslationSet,
-    analyzeProject: enAnalyzeProject as TranslationSet,
-    refactorProject: enRefactorProject as TranslationSet,
-    autoupdate: enAutoupdate as TranslationSet,
-    versions: enVersions as TranslationSet,
-    chat: enChat as TranslationSet,
-    agents: enAgents as TranslationSet,
-    groups: enGroups as TranslationSet,
-    layout: enLayout as TranslationSet,
-    error: enError as TranslationSet,
-    flows: enFlows as TranslationSet,
-    fileTree: enFileTree as TranslationSet,
-    codeEditor: enCodeEditor as TranslationSet,
+    common: enCommon,
+    dashboard: enDashboard,
+    settings: enSettings,
+    generateCode: enGenerateCode,
+    generateProject: enGenerateProject,
+    analyzeCode: enAnalyzeCode,
+    analyzeProject: enAnalyzeProject,
+    refactorProject: enRefactorProject,
+    autoupdate: enAutoupdate,
+    versions: enVersions,
+    chat: enChat,
+    agents: enAgents,
+    groups: enGroups,
+    layout: enLayout,
+    error: enError,
+    flows: enFlows,
+    fileTree: enFileTree,
+    codeEditor: enCodeEditor,
   },
 };
 

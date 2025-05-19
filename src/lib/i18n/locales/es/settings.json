@@ -90,7 +90,9 @@
     },
     "configImportError": {
       "title": "Error de Importación",
-      "description": "{error}"
+      "description": "{error}",
+      "invalidFormat": "Formato de archivo de configuración inválido.",
+      "readError": "No se pudo leer el archivo de configuración."
     },
     "languageChanged": {
       "title": "Idioma Cambiado",

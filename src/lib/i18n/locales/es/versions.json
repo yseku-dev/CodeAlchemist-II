@@ -31,6 +31,10 @@
     "suggested": "Sugerido (Análisis)",
     "codealchemist-app-state": "Estado App",
     "codealchemist-current": "Código Actual (AutoUpdate)",
+    "project-analysis": "Análisis de Proyecto",
+    "generated-project": "Proyecto Generado",
+    "refactored-project": "Proyecto Refactorizado",
+    "autoupdate-snapshot": "Snapshot de AutoUpdate",
     "unknown": "Desconocido"
   },
   "viewModal": {
@@ -56,7 +60,8 @@
   "toast": {
     "appStateSaved": {
       "title": "Estado de Aplicación Guardado",
-      "description": "El estado actual de la aplicación \"{name}\" ha sido guardado."
+      "description": "El estado actual de la aplicación \"{name}\" ha sido guardado.",
+      "name": "Estado App - {time}"
     },
     "appStateSavedAndDownloaded": {
       "title": "Estado de Aplicación Guardado y Descargado",
@@ -75,6 +80,7 @@
       "description": "Snapshot \"{name}\" eliminado."
     },
     "compareError": {
+      "title": "Error de Comparación",
       "notFound": "No se encontraron los snapshots seleccionados.",
       "selectionIncomplete": "Selecciona dos versiones (A y B) para comparar."
     },
