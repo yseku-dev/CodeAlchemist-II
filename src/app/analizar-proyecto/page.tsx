@@ -1,15 +1,15 @@
-
+// src/app/analizar-proyecto/page.tsx
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput } from '@/types';
-import { callAnalyzeSelfCode as analyzeProjectFlow, callRedefinePrompt } from '@/utils/apiClient'; // Added callRedefinePrompt
+import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput, Agent, AIAgentGroup } from '@/types';
+import { callAnalyzeSelfCode as analyzeProjectFlow, callRedefinePrompt } from '@/utils/apiClient';
 import { useAppState } from '@/context/AppStateContext';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
@@ -57,14 +57,35 @@ export default function AnalizarProyectoPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const allowedTypes = ['application/zip', 'application/json'];
-      if (allowedTypes.includes(file.type) && file.size <= 25 * 1024 * 1024) {
+      const fileName = file.name.toLowerCase();
+      const isZip = fileName.endsWith('.zip');
+      const isJson = fileName.endsWith('.json');
+      const isValidSize = file.size <= 25 * 1024 * 1024; // 25MB
+
+      if ((isZip || isJson) && isValidSize) {
         setUploadedFile(file);
-        addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Project file selected for analysis: ${file.name}, type: ${file.type}, size: ${file.size} bytes`, flowName: 'handleFileChange'});
+        setError(null); // Clear previous errors if file is now valid
+        addLog({
+          source: 'AnalizarProyectoPage',
+          type: 'INFO',
+          message: `Project file selected for analysis: ${file.name}, type: ${file.type || (isZip ? 'zip' : 'json')}, size: ${file.size} bytes`,
+          flowName: 'handleFileChange'
+        });
       } else {
-        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title'), description: t('analyzeProject.toast.invalidFile.description') });
+        const errorMsgKey = 'analyzeProject.toast.invalidFile.description' as TranslationKey;
+        const errorTitleKey = 'analyzeProject.toast.invalidFile.title' as TranslationKey;
+        const localizedErrorMsg = t(errorMsgKey);
+
+        toast({ variant: "destructive", title: t(errorTitleKey), description: localizedErrorMsg });
+        setError(localizedErrorMsg); // Set error state to display ErrorDisplay component
         setUploadedFile(null);
-        if(fileInputRef.current) fileInputRef.current.value = "";
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        addLog({
+            source: 'AnalizarProyectoPage',
+            type: 'WARN',
+            message: `Invalid file attempt: ${file.name}, type: ${file.type}, size: ${file.size}. Valid: ${isZip || isJson}, SizeOK: ${isValidSize}`,
+            flowName: 'handleFileChange'
+        });
       }
     }
   };
@@ -112,7 +133,7 @@ export default function AnalizarProyectoPage() {
   const handleAnalyze = async () => {
     setIsLoading(true);
     setLoadingMessage(t('common.processing'));
-    setError(null);
+    setError(null); // Clear previous errors
     setResult(null);
 
     let agentSystemPrompt: string | undefined;
@@ -126,7 +147,7 @@ export default function AnalizarProyectoPage() {
 
     let analysisInputBase: AnalyzeCodeInput = {
         sourceCodeLocation: projectSourceType === 'git' ? 'Git' : 'UploadedString',
-        analysisPreferences: focusArea || undefined,
+        analysisPreferences: focusArea || undefined, // analysisPreferences is deprecated, use focusArea
         searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
         focusArea: focusArea || undefined,
         agentSystemPrompt: agentSystemPrompt
@@ -146,22 +167,28 @@ export default function AnalizarProyectoPage() {
           await executeActualAnalysis(analysisInput);
       };
       reader.onerror = () => {
-          toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title'), description: t('analyzeProject.toast.readError.description')});
+          const errorMsg = t('analyzeProject.toast.readError.description');
+          toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title'), description: errorMsg});
+          setError(errorMsg);
           setIsLoading(false);
           setLoadingMessage(null);
       }
-      if (uploadedFile.type === 'application/json') {
-        reader.readAsText(uploadedFile);
-      } else if (uploadedFile.type === 'application/zip') {
-        const analysisInput: AnalyzeCodeInput = { 
+      // For ZIP, we can't read content client-side easily for analysis. Pass a placeholder/reference.
+      if (uploadedFile.name.toLowerCase().endsWith('.zip')) {
+          const analysisInput: AnalyzeCodeInput = { 
             ...analysisInputBase,
             projectContent: `Contenido del archivo ZIP: ${uploadedFile.name}. La IA debe inferir el contenido o la estructura relevante.`,
-            sourceCodeLocation: "UploadedString",
-        };
+            sourceCodeLocation: "UploadedString", // Could also be a specific type like 'UploadedZipReference'
+          };
         addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Analyzing uploaded ZIP project (by reference): ${uploadedFile.name}`, flowName: 'analyzeProject'});
         await executeActualAnalysis(analysisInput);
+      } else if (uploadedFile.name.toLowerCase().endsWith('.json')) {
+        reader.readAsText(uploadedFile);
       } else {
-          toast({ variant: "destructive", title: t('analyzeProject.toast.unsupportedFileType.title'), description: t('analyzeProject.toast.unsupportedFileType.description')});
+          // This case should ideally be caught by the initial file validation
+          const errorMsg = t('analyzeProject.toast.unsupportedFileType.description');
+          toast({ variant: "destructive", title: t('analyzeProject.toast.unsupportedFileType.title'), description: errorMsg});
+          setError(errorMsg);
           setIsLoading(false);
           setLoadingMessage(null);
       }
@@ -180,32 +207,37 @@ export default function AnalizarProyectoPage() {
             sourceCodeLocation: "Git",
           };
           if (gitResult.logsBuilt) {
-            gitResult.logsBuilt.forEach(logMsg => addLog({ source: 'FetchRemoteGit(AnalyzeProject)', message: logMsg }));
+            gitResult.logsBuilt.forEach(logMsg => addLog({ source: 'FetchRemoteGit(AnalyzeProject)', type: 'INFO', message: logMsg }));
           }
           await executeActualAnalysis(analysisInput);
         } else {
           throw new Error(gitResult.error || t('analyzeProject.toast.gitFetchError.unknown'));
         }
       } catch (gitError: any) {
-        toast({ variant: "destructive", title: t('analyzeProject.toast.gitFetchError.title'), description: gitError.message });
-        setError(gitError.message);
+        const errorMsg = gitError.message || t('analyzeProject.toast.gitFetchError.unknown');
+        toast({ variant: "destructive", title: t('analyzeProject.toast.gitFetchError.title'), description: errorMsg });
+        setError(errorMsg);
         setIsLoading(false);
         setLoadingMessage(null);
         return;
       }
     } else {
-      toast({ variant: "destructive", title: t('analyzeProject.toast.sourceRequired.title'), description: t('analyzeProject.toast.sourceRequired.description') });
+      const errorMsg = t('analyzeProject.toast.sourceRequired.description');
+      toast({ variant: "destructive", title: t('analyzeProject.toast.sourceRequired.title'), description: errorMsg });
+      setError(errorMsg); // Set error for ErrorDisplay
       setIsLoading(false);
       setLoadingMessage(null);
       return;
     }
   };
 
-  const handleAutoFixError = async (errorMsg: string) => {
+  const handleAutoFixError = async (errorToFix: string) => {
+    addLog({ source: 'AnalizarProyectoPage', type: 'INFO', message: `Attempting Auto-Fix for error: ${errorToFix}`, flowName: 'analyzeProject (AutoFix)'});
     toast({
-      title: t('common.processing'),
-      description: t('errorDisplay.toast.autofixAttempt.description')
+      title: t('common.processing' as TranslationKey),
+      description: t('errorDisplay.toast.autofixAttempt.description' as TranslationKey)
     });
+    // Actual auto-fix logic via ErrorDisplay component's internal call to callAutoFixErrorWithGroup
   };
   
   const handleRedefineFocusAreaProject = async () => {
@@ -217,10 +249,10 @@ export default function AnalizarProyectoPage() {
     addLog({ source: 'AnalizarProyectoPage', type: 'INFO', message: `Redefining focus area. Original: ${focusArea.substring(0, 100)}...` });
     toast({ title: t('common.toast.redefining.title'), description: t('common.toast.redefining.description') });
     try {
-      const result = await callRedefinePrompt({ originalPrompt: focusArea });
-      setFocusArea(result.redefinedPrompt);
+      const resultOutput = await callRedefinePrompt({ originalPrompt: focusArea });
+      setFocusArea(resultOutput.redefinedPrompt);
       toast({ title: t('common.toast.redefinedSuccess.title'), description: t('common.toast.redefinedSuccess.description') });
-      addLog({ source: 'AnalizarProyectoPage', type: 'SUCCESS', message: `'focusArea' redefined. New: ${result.redefinedPrompt.substring(0, 100)}...` });
+      addLog({ source: 'AnalizarProyectoPage', type: 'SUCCESS', message: `'focusArea' redefined. New: ${resultOutput.redefinedPrompt.substring(0, 100)}...` });
     } catch (e: any) {
       const errorMsg = e instanceof AppError ? e.friendlyMessage : (e.message || t('common.toast.redefineError.description'));
       toast({ variant: 'destructive', title: t('common.toast.redefineError.title'), description: errorMsg });
@@ -233,7 +265,7 @@ export default function AnalizarProyectoPage() {
 
   return (
     <Card className="max-w-4xl mx-auto">
-      <AnalyzeProjectHeader t={t} />
+      <AnalyzeProjectHeader />
       <CardContent className="space-y-6">
         <AnalyzeProjectForm
           llmConfigSource={llmConfigSource}
@@ -257,7 +289,7 @@ export default function AnalizarProyectoPage() {
           onRedefineFocusArea={handleRedefineFocusAreaProject}
         />
 
-        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || t('common.unknownError'))} />}
+        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || t('common.unknownError' as TranslationKey))} />}
 
         {isLoading && !result && !error && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{loadingMessage || t('analyzeProject.results.analyzing')}</p></div>}
 
