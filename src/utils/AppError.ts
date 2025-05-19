@@ -1,6 +1,5 @@
-
 // src/utils/AppError.ts
-"use client"; // Though not strictly necessary for a class, good for consistency if other utils are client-side
+// Eliminada la directiva "use client";
 
 /**
  * @fileOverview Defines a custom error class for application-specific errors.
@@ -45,5 +44,3 @@ export class AppError extends Error {
     // (originalError, type, redirectTo, statusCode are already handled by being public constructor parameters)
   }
 }
-
-    
