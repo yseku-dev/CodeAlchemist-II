@@ -3,6 +3,7 @@
   "title": "Chat con IA",
   "description": "Interactúa con un asistente IA para consultas, ideas y más.",
   "inputPlaceholder": "Escribe tu mensaje aquí...",
+  "inputLabel": "Escribe tu mensaje:",
   "sendButton": "Enviar",
   "clearButton": "Borrar Chat",
   "thinking": "Pensando...",
@@ -31,5 +32,6 @@
   },
   "autofix": {
     "userRequest": "Por favor, analiza este error y sugiere una solución: {errorMsg}"
-  }
+  },
+  "groupResponsePrefix": "Respuesta del grupo '{groupName}' (coordinado por OrquestadorFlujoAgentes):"
 }

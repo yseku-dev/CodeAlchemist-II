@@ -3,6 +3,7 @@
   "title": "AI Chat",
   "description": "Interact with an AI assistant for queries, ideas, and more.",
   "inputPlaceholder": "Type your message here...",
+  "inputLabel": "Type your message:",
   "sendButton": "Send",
   "clearButton": "Clear Chat",
   "thinking": "Thinking...",
@@ -31,5 +32,6 @@
   },
   "autofix": {
     "userRequest": "Please analyze this error and suggest a solution: {errorMsg}"
-  }
+  },
+  "groupResponsePrefix": "Response from group '{groupName}' (coordinated by OrchestratorAgent):"
 }

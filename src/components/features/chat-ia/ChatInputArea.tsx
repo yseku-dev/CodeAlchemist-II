@@ -4,7 +4,7 @@
 import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Trash2, Loader2, Wand2 } from 'lucide-react'; // Added Loader2, Wand2
+import { Send, Trash2, Loader2, Wand2 } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption, ChatMessage } from '@/types';
 import ErrorDisplay from '@/components/error-display';
@@ -23,8 +23,8 @@ interface ChatInputAreaProps {
   error: string | null;
   onAutoFixError: (errorMsg: string) => void;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
-  isRedefiningCurrentMessage: boolean; // New prop
-  onRedefineCurrentMessage: () => Promise<void>; // New prop
+  isRedefiningCurrentMessage: boolean;
+  onRedefineCurrentMessage: () => Promise<void>;
 }
 
 const ChatInputArea: React.FC<ChatInputAreaProps> = ({
@@ -44,7 +44,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
       </div>
       <div className="space-y-1 mt-2">
         <div className="flex justify-between items-center mb-1">
-          <span className="text-sm text-muted-foreground">{t('chat.inputLabel')}</span> {/* Assuming you add chat.inputLabel */}
+          <span className="text-sm text-muted-foreground">{t('chat.inputLabel')}</span>
           <Button
             variant="outline"
             size="sm"
