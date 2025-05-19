@@ -2,6 +2,7 @@
 {
   "title": "Generate Project",
   "description": "Create a base structure for new projects from your specifications.",
+  "redefineRequestButton": "Redefine Request with AI",
   "describeProjectLabel": "Describe your project",
   "describeProjectPlaceholder": "E.g.: A REST API with Node.js and Express, with routes for users and products, and a PostgreSQL database.",
   "generateButton": "Generate Project",
@@ -49,6 +50,22 @@
     "autofixSimulated": {
       "title": "Auto-Fix (Simulated)",
       "description": "AI is analyzing the error to propose a solution."
+    },
+    "redefineEmpty": {
+      "title": "Empty Description",
+      "description": "Please write a description to redefine."
+    },
+    "redefining": {
+      "title": "Redefining Request...",
+      "description": "AI is working to improve your description."
+    },
+    "redefinedSuccess": {
+      "title": "Request Redefined",
+      "description": "Your project description has been updated by the AI."
+    },
+    "redefineError": {
+      "title": "Redefine Error",
+      "description": "Could not redefine the request with AI."
     }
   }
 }

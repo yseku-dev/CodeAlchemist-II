@@ -2,6 +2,7 @@
 {
   "title": "Generar Proyecto",
   "description": "Crea una estructura base para nuevos proyectos a partir de tus especificaciones.",
+  "redefineRequestButton": "Redefinir Petición con IA",
   "describeProjectLabel": "Describe tu proyecto",
   "describeProjectPlaceholder": "Ej: Un API REST con Node.js y Express, con rutas para usuarios y productos, y una base de datos PostgreSQL.",
   "generateButton": "Generar Proyecto",
@@ -49,6 +50,22 @@
     "autofixSimulated": {
       "title": "Auto-Fix (Simulado)",
       "description": "La IA está analizando el error para proponer una solución."
+    },
+    "redefineEmpty": {
+      "title": "Descripción Vacía",
+      "description": "Por favor, escribe una descripción para redefinir."
+    },
+    "redefining": {
+      "title": "Redefiniendo Petición...",
+      "description": "La IA está trabajando para mejorar tu descripción."
+    },
+    "redefinedSuccess": {
+      "title": "Petición Redefinida",
+      "description": "La descripción de tu proyecto ha sido actualizada por la IA."
+    },
+    "redefineError": {
+      "title": "Error al Redefinir",
+      "description": "No se pudo redefinir la petición con la IA."
     }
   }
 }

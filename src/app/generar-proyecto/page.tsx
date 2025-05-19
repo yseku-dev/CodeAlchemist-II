@@ -2,23 +2,23 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card'; 
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Loader2, Download, FolderPlus } from 'lucide-react';
+import { Loader2, Download, FolderPlus, Wand2 } from 'lucide-react'; // Added Wand2
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ConfirmDialog from '@/components/confirm-dialog';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, ProjectGenerationResult, GenerateProjectInput, Agent } from '@/types';
+import type { LLMConfigSourceOption, ProjectGenerationResult, GenerateProjectInput, Agent, RedefinePromptOutput } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import FileTreeDisplay from '@/components/file-tree';
 import LogsDisplay from '@/components/logs-display';
 import { useAppState } from '@/context/AppStateContext';
 import { AppError } from '@/utils/AppError';
-import { callGenerateProjectStructure } from '@/utils/apiClient';
+import { callGenerateProjectStructure, callRedefinePrompt } from '@/utils/apiClient'; // Added callRedefinePrompt
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
 import JSZip from 'jszip';
@@ -34,20 +34,27 @@ import type { TranslationKey } from '@/lib/i18n/translations';
  * All UI texts are internationalized.
  */
 export default function GenerarProyectoPage() {
-  const { agents, groups, getAgentById } = useAppState();
+  const { agents, groups, getAgentById, getGroupById } = useAppState();
   const router = useRouter();
   const { t } = useI18n();
 
-  const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>({ type: 'Ajustes Globales' });
+  const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(undefined);
   const [description, setDescription] = useState('');
   const [currentPromptForDialog, setCurrentPromptForDialog] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRedefining, setIsRedefining] = useState(false); // State for redefine button
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ProjectGenerationResult | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  
+
   const { addLog } = useDebug();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Ensure llmConfigSource is initialized consistently on client after mount
+    // This helps prevent hydration issues if its initial value depends on localStorage indirectly
+    setLlmConfigSource({ type: 'Ajustes Globales' });
+  }, []);
 
   /**
    * Handles the project generation process once confirmed by the user.
@@ -59,7 +66,7 @@ export default function GenerarProyectoPage() {
     setIsLoading(true);
     setError(null);
     setResult(null);
-    
+
     let agentSystemPrompt: string | undefined;
     let flowName = 'generateProjectStructure';
     const orchestratorAgent = getAgentById('orquestador-flujo-agentes');
@@ -70,7 +77,7 @@ export default function GenerarProyectoPage() {
       flowName = `generateProjectStructure (Agent: ${agent?.name || llmConfigSource.id})`;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
       const group = groups.find(g => g.id === llmConfigSource.id);
-      agentSystemPrompt = group?.mainTask || orchestratorAgent?.systemPrompt; 
+      agentSystemPrompt = group?.mainTask || orchestratorAgent?.systemPrompt;
       flowName = `generateProjectStructure (Group: ${group?.name || llmConfigSource.id})`;
       addLog({message: `Generating project with Group: ${llmConfigSource.name}. Using group's task/context for generation flow.`, flowName});
     } else {
@@ -81,16 +88,16 @@ export default function GenerarProyectoPage() {
       description: finalPrompt,
       agentSystemPrompt: agentSystemPrompt,
     };
-    
+
     addLog({message: `Generating project input: ${JSON.stringify(generationInput).substring(0,100)}...`, config: llmConfigSource, flowName});
 
     try {
       const aiResult = await callGenerateProjectStructure(generationInput);
-      
+
       let groupLogForDisplay: string | undefined = undefined;
       if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
         const group = groups.find(g => g.id === llmConfigSource.id);
-        groupLogForDisplay = t('generateProject.results.groupContextLog' as TranslationKey, {
+        groupLogForDisplay = t('generateProject.logs.groupContextLog' as TranslationKey, {
             groupName: llmConfigSource.name,
             groupTask: (group?.mainTask || 'N/A').substring(0,150),
             userInput: finalPrompt.substring(0, 100),
@@ -101,9 +108,9 @@ export default function GenerarProyectoPage() {
 
       setResult({...aiResult, groupLog: groupLogForDisplay});
       addLog({message: "Project generation successful.", flowName});
-      toast({ 
-        title: t('generateProject.toast.projectGenerated.title' as TranslationKey), 
-        description: t('generateProject.toast.projectGenerated.description' as TranslationKey, { projectName: aiResult.projectName }) 
+      toast({
+        title: t('generateProject.toast.projectGenerated.title' as TranslationKey),
+        description: t('generateProject.toast.projectGenerated.description' as TranslationKey, { projectName: aiResult.projectName })
       });
     } catch (e: any) {
       addLog({ message: "Project generation failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
@@ -122,16 +129,16 @@ export default function GenerarProyectoPage() {
       setIsLoading(false);
     }
   };
-  
+
   /**
    * Handles the click event for the "Generar Proyecto" button.
    * Validates input and opens the confirmation dialog.
    */
   const handleGenerateClick = () => {
     if (!description.trim()) {
-      toast({ 
-        variant: "destructive", 
-        title: t('generateProject.toast.descriptionEmpty.title' as TranslationKey), 
+      toast({
+        variant: "destructive",
+        title: t('generateProject.toast.descriptionEmpty.title' as TranslationKey),
         description: t('generateProject.toast.descriptionEmpty.description' as TranslationKey)
       });
       return;
@@ -145,10 +152,10 @@ export default function GenerarProyectoPage() {
    */
   const handleDownloadProject = async () => {
     if (!result || !result.files || result.files.length === 0) {
-      toast({ 
-        variant: "destructive", 
-        title: t('generateProject.toast.downloadError.title' as TranslationKey), 
-        description: t('generateProject.toast.downloadError.description' as TranslationKey) 
+      toast({
+        variant: "destructive",
+        title: t('generateProject.toast.downloadError.title' as TranslationKey),
+        description: t('generateProject.toast.downloadError.description' as TranslationKey)
       });
       return;
     }
@@ -159,17 +166,15 @@ export default function GenerarProyectoPage() {
     result.files.forEach(file => {
       if (file.isFolder || file.path.endsWith('/')) {
         zip.folder(file.path);
-        addLog(`Added folder to ZIP: ${file.path}`);
       } else {
         zip.file(file.path, file.content);
-        addLog(`Added file to ZIP: ${file.path} (content length: ${file.content.length})`);
       }
     });
 
     try {
       const zipBlob = await zip.generateAsync({ type: "blob" });
       const filename = `${result.projectName.replace(/\s+/g, '_').toLowerCase() || 'proyecto_generado'}.zip`;
-      
+
       const link = document.createElement('a');
       link.href = URL.createObjectURL(zipBlob);
       link.download = filename;
@@ -178,33 +183,78 @@ export default function GenerarProyectoPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
 
-      toast({ 
-        title: t('generateProject.toast.zipDownloadSuccess.title' as TranslationKey), 
+      toast({
+        title: t('generateProject.toast.zipDownloadSuccess.title' as TranslationKey),
         description: t('generateProject.toast.zipDownloadSuccess.description' as TranslationKey, { filename, projectName: result.projectName })
       });
       addLog(`Project structure "${result.projectName}" downloaded as ${filename}.`);
     } catch (e: any) {
         const errorMsg = e.message || t('generateProject.toast.zipDownloadError.description' as TranslationKey, { error: "desconocido" });
-        toast({ 
-          variant: "destructive", 
-          title: t('generateProject.toast.zipDownloadError.title' as TranslationKey), 
-          description: errorMsg 
+        toast({
+          variant: "destructive",
+          title: t('generateProject.toast.zipDownloadError.title' as TranslationKey),
+          description: errorMsg
         });
         addLog(`Failed to generate or download ZIP for project ${result.projectName}: ${errorMsg}`);
     }
   };
 
   /**
-   * Placeholder for an AI-driven error fixing mechanism for this page.
-   * @param {string} errorMsg - The error message to be fixed.
+   * Attempts to use AI to provide a solution or explanation for a displayed error.
+   * @param {string} errorMsg - The error message to analyze.
    */
   const handleAutoFixError = async (errorMsg: string) => {
-    // This functionality is now handled by ErrorDisplay component itself
-    toast({ 
-      title: t('common.processing' as TranslationKey), 
+    toast({
+      title: t('common.processing' as TranslationKey),
       description: t('errorDisplay.toast.autofixAttempt.description' as TranslationKey)
     });
   };
+
+  /**
+   * Handles the "Redefinir Petición" button click.
+   * Calls an AI flow to refine the project description.
+   */
+  const handleRedefineRequest = async () => {
+    if (!description.trim()) {
+      toast({
+        variant: "destructive",
+        title: t('generateProject.toast.redefineEmpty.title' as TranslationKey),
+        description: t('generateProject.toast.redefineEmpty.description' as TranslationKey)
+      });
+      return;
+    }
+    setIsRedefining(true);
+    setError(null);
+    const flowName = 'redefinePromptFlow (GenerarProyecto)';
+    addLog({message: `Redefining project description. Original: ${description.substring(0,100)}...`, flowName});
+    toast({ title: t('generateProject.toast.redefining.title'), description: t('generateProject.toast.redefining.description') });
+
+    try {
+      const resultOutput: RedefinePromptOutput = await callRedefinePrompt({ originalPrompt: description });
+      setDescription(resultOutput.redefinedPrompt);
+      toast({
+        title: t('generateProject.toast.redefinedSuccess.title'),
+        description: t('generateProject.toast.redefinedSuccess.description')
+      });
+      addLog({message: "Project description redefined successfully.", newPrompt: resultOutput.redefinedPrompt.substring(0,100)+"...", flowName});
+    } catch (e: any) {
+      addLog({ message: "Redefining project description failed.", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      if (e instanceof AppError) {
+        setError(e.friendlyMessage); // Could display this near the textarea or as a more persistent error
+        toast({ variant: "destructive", title: t('generateProject.toast.redefineError.title'), description: e.friendlyMessage });
+        if (e.redirectTo) {
+          router.push(e.redirectTo);
+        }
+      } else {
+        const errorMsg = e.message || t('generateProject.toast.redefineError.description');
+        setError(errorMsg);
+        toast({ variant: "destructive", title: t('generateProject.toast.redefineError.title'), description: errorMsg });
+      }
+    } finally {
+      setIsRedefining(false);
+    }
+  };
+
 
   return (
     <Card className="max-w-4xl mx-auto">
@@ -214,25 +264,36 @@ export default function GenerarProyectoPage() {
         description={t('generateProject.description' as TranslationKey)}
       />
       <CardContent className="space-y-6">
-        <LLMConfigSelector 
-          value={llmConfigSource} 
-          onChange={setLlmConfigSource} 
-          label={t('common.llmSourceLabel' as TranslationKey)} 
+        <LLMConfigSelector
+          value={llmConfigSource}
+          onChange={setLlmConfigSource}
+          label={t('common.llmSourceLabel' as TranslationKey)}
         />
-        
-        <div className="space-y-2">
-          <Label htmlFor="description">{t('generateProject.describeProjectLabel' as TranslationKey)}</Label>
+
+        <div className="space-y-1">
+          <div className="flex justify-between items-center mb-1">
+            <Label htmlFor="description">{t('generateProject.describeProjectLabel' as TranslationKey)}</Label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRedefineRequest}
+              disabled={!description.trim() || isRedefining || isLoading}
+            >
+              {isRedefining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+              {t('generateProject.redefineRequestButton' as TranslationKey)}
+            </Button>
+          </div>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t('generateProject.describeProjectPlaceholder' as TranslationKey)}
             rows={8}
-            disabled={isLoading}
+            disabled={isLoading || isRedefining}
           />
         </div>
-        
-        <Button onClick={handleGenerateClick} disabled={isLoading} className="w-full">
+
+        <Button onClick={handleGenerateClick} disabled={isLoading || isRedefining || !description.trim()} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {t('generateProject.generateButton' as TranslationKey)}
         </Button>
@@ -241,25 +302,8 @@ export default function GenerarProyectoPage() {
 
         {result && (
           <div className="space-y-6 mt-6 p-4 border rounded-md bg-background">
-            <div>
-              <h3 className="font-semibold text-xl mb-1">{t('generateProject.results.suggestedNameLabel' as TranslationKey)}</h3>
-              <p className="text-lg text-primary">{result.projectName}</p>
-            </div>
-             {result.aiNotes && (
-              <div>
-                <h3 className="font-semibold text-lg mb-1">{t('generateProject.results.aiNotesLabel' as TranslationKey)}</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.aiNotes}</p>
-              </div>
-            )}
-            <div>
-              <h3 className="font-semibold text-lg mb-2">{t('generateProject.results.generatedFilesLabel' as TranslationKey)}</h3>
-              <FileTreeDisplay files={result.files} />
-            </div>
-            <Button onClick={handleDownloadProject} variant="outline">
-              <Download className="mr-2 h-4 w-4" /> {t('generateProject.results.downloadButton' as TranslationKey)}
-            </Button>
-            {/* Removed the static note, as the toast message is now dynamic and specific */}
-            {result.groupLog && ( 
+            <GenerateProjectResultsDisplay result={result} t={t} onDownloadProject={handleDownloadProject} />
+             {result.groupLog && (
               <LogsDisplay title={t('generateProject.results.groupLogTitle' as TranslationKey)} logs={result.groupLog} />
             )}
           </div>
@@ -298,4 +342,3 @@ export default function GenerarProyectoPage() {
     </Card>
   );
 }
-

@@ -12,3 +12,4 @@ import '@/ai/flows/suggest-group-definition-flow.ts';
 import '@/ai/flows/analyze-code-snippet.ts';
 import '@/ai/flows/generate-project-structure-flow.ts';
 import '@/ai/flows/auto-fix-error-with-group-flow.ts';
+import '@/ai/flows/redefine-prompt-flow.ts';
