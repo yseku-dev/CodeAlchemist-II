@@ -88,12 +88,12 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                       <strong>{t('analyzeProject.results.suggestionPriorityLabel')}</strong> {suggestion.priority}
                     </p>
                     {suggestion.suggestedPromptForImplementation && (
-                       <p className="text-xs mt-1">
+                       <div className="text-xs mt-1">
                         <strong>{t('analyzeProject.results.suggestedPromptLabel')}</strong>
                         <pre className="mt-1 p-1.5 bg-background rounded-sm text-xs whitespace-pre-wrap border">
                             {suggestion.suggestedPromptForImplementation}
                         </pre>
-                      </p>
+                      </div>
                     )}
                   </li>
                 ))}
@@ -111,3 +111,4 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 };
 
 export default AnalyzeProjectResultsDisplay;
+
