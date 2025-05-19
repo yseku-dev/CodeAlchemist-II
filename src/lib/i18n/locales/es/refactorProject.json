@@ -19,7 +19,7 @@
     "PriorizarSeguridad": "Priorizar Seguridad",
     "PriorizarLegibilidad": "Priorizar Legibilidad",
     "PriorizarRendimiento": "Priorizar Rendimiento",
-    "EstandarizarCodigo": "Estandarizar Código",
+    "EstandarizarCódigo": "Estandarizar Código",
     "ReducirComplejidad": "Reducir Complejidad"
   },
   "depthLabel": "Profundidad de Búsqueda (opcional)",
