@@ -25,7 +25,7 @@ interface RefactorProjectResultsSectionProps {
   onViewDiff: (suggestion: RefactorSuggestion) => void;
   onDiscardSuggestion: (id: string) => void;
   onApplyAll: () => void;
-  setSuggestions: React.Dispatch<React.SetStateAction<RefactorSuggestion[]>>;
+  setSuggestions: React.Dispatch<React.SetStateAction<RefactorSuggestion[]>>; // To allow reverting state
   showDiffModal: boolean;
   onCloseDiffModal: () => void;
   currentDiff: { original?: string; modified?: string } | null;
@@ -79,7 +79,7 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
         }
       />
       <CardContent>
-        {error && <ErrorDisplay error={error} />}
+        {error && <ErrorDisplay error={error} onAutoFix={() => { /* Placeholder for auto-fix logic if needed */ }} />}
         {isLoading && (
           <div className="flex justify-center items-center py-10">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -92,7 +92,7 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
         )}
 
         {analysisResult && (
-          <ScrollArea className="h-[calc(100vh-12rem)] pr-4">
+          <ScrollArea className="h-[calc(100vh-12rem)] pr-4"> {/* Adjusted height to match the example */}
             <div className="space-y-4">
               {analysisResult.projectOverview && (
                 <Card className="mb-4 bg-muted/30">
@@ -185,10 +185,10 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
       <ConfirmDialog
         isOpen={showDiffModal}
         onClose={onCloseDiffModal}
-        onConfirm={onCloseDiffModal}
+        onConfirm={onCloseDiffModal} // Confirm action is just to close
         title={t('refactorProject.diffModal.title')}
         confirmText={t('common.close')}
-        cancelText=""
+        cancelText="" // No cancel button for this specific dialog use case
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
           <div>

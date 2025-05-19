@@ -19,7 +19,7 @@
     "PriorizarSeguridad": "Priorizar Seguridad",
     "PriorizarLegibilidad": "Priorizar Legibilidad",
     "PriorizarRendimiento": "Priorizar Rendimiento",
-    "EstandarizarCódigo": "Estandarizar Código",
+    "EstandarizarCodigo": "Estandarizar Código",
     "ReducirComplejidad": "Reducir Complejidad"
   },
   "depthLabel": "Profundidad de Búsqueda (opcional)",
@@ -41,8 +41,6 @@
   "suggestion": {
     "priorityLabel": "Prioridad:",
     "snippetLabel": "Snippet Sugerido:",
-    "snippetOriginal": "Original:",
-    "snippetModified": "Modificado:",
     "viewDiffButton": "Ver Diff",
     "discardButton": "Descartar",
     "applyButton": "Marcar como Aplicada",
@@ -107,5 +105,3 @@
     }
   }
 }
-
-    

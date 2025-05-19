@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, GitPullRequestDraft, Wand2 } from 'lucide-react'; // Added Wand2
+import { Loader2, GitPullRequestDraft, Wand2 } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
 import { GENERAL_PRIORITIES, type GeneralPriority } from '@/lib/constants';
@@ -144,7 +144,7 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
           <Input id="focus-area" value={focusArea} onChange={(e) => onFocusAreaChange(e.target.value)} placeholder={t('refactorProject.focusPlaceholder')} disabled={isLoading || isRedefiningFocusArea} />
         </div>
 
-        <Button onClick={onAnalyze} disabled={isLoading || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
+        <Button onClick={onAnalyze} disabled={isLoading || isRedefiningGoals || isRedefiningFocusArea || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
           {isLoading && loadingMessage ? loadingMessage : t('refactorProject.analyzeButton')}
         </Button>
