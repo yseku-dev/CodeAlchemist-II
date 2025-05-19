@@ -36,6 +36,10 @@
       "title": "Read Error",
       "description": "Could not read the file."
     },
+    "zipReadError": {
+        "title": "ZIP Read Error",
+        "description": "Could not read the ZIP file: {error}"
+    },
     "unsupportedFileType": {
       "title": "Unsupported File Type",
       "description": "Analysis for this file type is not fully implemented."

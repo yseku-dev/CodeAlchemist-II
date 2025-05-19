@@ -36,6 +36,10 @@
       "title": "Error de Lectura",
       "description": "No se pudo leer el archivo."
     },
+    "zipReadError": {
+        "title": "Error al Leer ZIP",
+        "description": "No se pudo leer el archivo ZIP: {error}"
+    },
     "unsupportedFileType": {
       "title": "Tipo de Archivo no Soportado",
       "description": "El análisis de este tipo de archivo no está completamente implementado."

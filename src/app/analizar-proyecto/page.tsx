@@ -20,6 +20,7 @@ import AnalyzeProjectHeader from '@/components/features/analizar-proyecto/Analyz
 import AnalyzeProjectForm from '@/components/features/analizar-proyecto/AnalyzeProjectForm';
 import AnalyzeProjectResultsDisplay from '@/components/features/analizar-proyecto/AnalyzeProjectResultsDisplay';
 import { fetchRemoteGitRepository } from '@/app/autoupdate/actions';
+import JSZip from 'jszip';
 
 
 type ProjectSourceType = "upload" | "git";
@@ -27,7 +28,7 @@ type ProjectSourceType = "upload" | "git";
 /**
  * @fileOverview AnalizarProyectoPage component allows users to perform a holistic analysis
  * of an entire project. Users can upload a project (ZIP/JSON) or provide a Git URL,
- * select an LLM configuration, and specify analysis parameters. The component then
+ * select an LLM configuration source, and specify analysis parameters. The component then
  * displays the AI's overall assessment, identified areas, and specific suggestions.
  * All UI texts are internationalized.
  */
@@ -155,37 +156,78 @@ export default function AnalizarProyectoPage() {
 
     if (projectSourceType === "upload" && uploadedFile) {
       setLoadingMessage(t('analyzeProject.toast.processingFile'));
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-          const projectContent = e.target?.result as string;
+      
+      if (uploadedFile.name.toLowerCase().endsWith('.zip')) {
+        addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Processing uploaded ZIP file: ${uploadedFile.name}`, flowName: 'analyzeProject'});
+        try {
+          const jszip = new JSZip();
+          const zip = await jszip.loadAsync(uploadedFile);
+          let projectContentString = "";
+          const fileProcessingPromises: Promise<void>[] = [];
+          const textFileExtensions = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.go', '.php', '.rb', '.md', '.txt', '.xml', '.yaml', '.yml', '.env', '.ini', '.cfg', '.sh', '.bat', '.sql', '.graphql', '.tf', '.hcl'];
+          const ignorePatternsSimple = ['node_modules/', '.git/', '.next/', 'dist/', 'build/', '__pycache__/'];
+
+
+          zip.forEach((relativePath, fileEntry) => {
+            if (!fileEntry.dir && 
+                textFileExtensions.some(ext => relativePath.toLowerCase().endsWith(ext)) &&
+                !ignorePatternsSimple.some(pattern => relativePath.startsWith(pattern))) {
+              fileProcessingPromises.push(
+                fileEntry.async("string").then(content => {
+                  projectContentString += `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${relativePath} ---\n${content}\n\n`;
+                }).catch(err => {
+                  addLog({source: 'AnalizarProyectoPage', type: 'WARN', message: `Could not read file ${relativePath} from ZIP as text: ${err.message}`, flowName: 'analyzeProject'});
+                })
+              );
+            }
+          });
+
+          await Promise.all(fileProcessingPromises);
+          
+          if (!projectContentString) {
+            addLog({source: 'AnalizarProyectoPage', type: 'WARN', message: 'No text-based files found or read from the ZIP.', flowName: 'analyzeProject'});
+            // Pass a message to AI indicating the ZIP was empty or had no readable content
+            projectContentString = `El archivo ZIP subido '${uploadedFile.name}' no contiene archivos de texto legibles o está vacío.`;
+          }
+
+          addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Extracted content from ZIP for analysis. Total length: ${projectContentString.length}`});
           const analysisInput: AnalyzeCodeInput = {
             ...analysisInputBase,
-            projectContent: projectContent,
+            projectContent: projectContentString,
             sourceCodeLocation: "UploadedString",
           };
-          addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Analyzing uploaded project: ${uploadedFile.name}`, flowName: 'analyzeProject'});
           await executeActualAnalysis(analysisInput);
-      };
-      reader.onerror = () => {
-          const errorMsg = t('analyzeProject.toast.readError.description');
-          toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title'), description: errorMsg});
+
+        } catch (zipError: any) {
+          const errorMsg = t('analyzeProject.toast.zipReadError.description', { error: zipError.message });
+          toast({ variant: "destructive", title: t('analyzeProject.toast.zipReadError.title'), description: errorMsg});
           setError(errorMsg);
           setIsLoading(false);
           setLoadingMessage(null);
-      }
-      // For ZIP, we can't read content client-side easily for analysis. Pass a placeholder/reference.
-      if (uploadedFile.name.toLowerCase().endsWith('.zip')) {
-          const analysisInput: AnalyzeCodeInput = { 
-            ...analysisInputBase,
-            projectContent: `Contenido del archivo ZIP: ${uploadedFile.name}. La IA debe inferir el contenido o la estructura relevante.`,
-            sourceCodeLocation: "UploadedString", // Could also be a specific type like 'UploadedZipReference'
-          };
-        addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Analyzing uploaded ZIP project (by reference): ${uploadedFile.name}`, flowName: 'analyzeProject'});
-        await executeActualAnalysis(analysisInput);
+          addLog({source: 'AnalizarProyectoPage', type: 'ERROR', message: `Error processing ZIP: ${zipError.message}`, errorDetails: zipError, flowName: 'analyzeProject'});
+          return;
+        }
       } else if (uploadedFile.name.toLowerCase().endsWith('.json')) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const projectContent = e.target?.result as string;
+            const analysisInput: AnalyzeCodeInput = {
+              ...analysisInputBase,
+              projectContent: projectContent,
+              sourceCodeLocation: "UploadedString",
+            };
+            addLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Analyzing uploaded JSON project: ${uploadedFile.name}`, flowName: 'analyzeProject'});
+            await executeActualAnalysis(analysisInput);
+        };
+        reader.onerror = () => {
+            const errorMsg = t('analyzeProject.toast.readError.description');
+            toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title'), description: errorMsg});
+            setError(errorMsg);
+            setIsLoading(false);
+            setLoadingMessage(null);
+        }
         reader.readAsText(uploadedFile);
       } else {
-          // This case should ideally be caught by the initial file validation
           const errorMsg = t('analyzeProject.toast.unsupportedFileType.description');
           toast({ variant: "destructive", title: t('analyzeProject.toast.unsupportedFileType.title'), description: errorMsg});
           setError(errorMsg);
