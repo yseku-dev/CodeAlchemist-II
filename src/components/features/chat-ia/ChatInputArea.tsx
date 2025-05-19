@@ -61,8 +61,8 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           onChange={(e) => onCurrentMessageChange(e.target.value)}
           onKeyPress={onKeyPress}
           placeholder={t('chat.inputPlaceholder')}
-          rows={1}
-          className="min-h-[40px] max-h-[120px] flex-1 resize-none"
+          rows={3} // Aumentado de 1 a 3
+          className="min-h-[60px] max-h-[180px] flex-1 resize-none" // Ajustado min-h y max-h si es necesario
           disabled={isLoading || isRedefiningCurrentMessage}
         />
       </div>
