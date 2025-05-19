@@ -2,7 +2,7 @@
 // src/app/generar-proyecto/page.tsx
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'; // Added useRef
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -10,19 +10,19 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, ProjectGenerationResult, GenerateProjectInput, Agent, RedefinePromptOutput, AIAgentGroup, ChatMessage } from '@/types';
+import type { LLMConfigSourceOption, ProjectGenerationResult, GenerateProjectInput, Agent, RedefinePromptOutput, AIAgentGroup, ChatMessage, ModifyProjectStructureInput } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import LogsDisplay from '@/components/logs-display';
 import { useAppState } from '@/context/AppStateContext';
 import { AppError } from '@/utils/AppError';
-import { callGenerateProjectStructure, callRedefinePrompt } from '@/utils/apiClient';
+import { callGenerateProjectStructure, callRedefinePrompt, callModifyProjectStructure } from '@/utils/apiClient';
 import { useRouter } from 'next/navigation';
 import JSZip from 'jszip';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { Button } from '@/components/ui/button';
 import { Loader2, Wand2 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid'; // For chat message IDs
+import { v4 as uuidv4 } from 'uuid';
 
 import GenerateProjectHeader from '@/components/features/generar-proyecto/GenerateProjectHeader';
 import GenerateProjectForm from '@/components/features/generar-proyecto/GenerateProjectForm';
@@ -33,10 +33,9 @@ import GenerateProjectResultsDisplay from '@/components/features/generar-proyect
  * @fileOverview GenerarProyectoPage component allows users to generate a base project structure.
  * Users describe the project, select an LLM configuration source, and the AI generates
  * a suggested project name, notes, and a list of files with their content.
- * The generated structure can be downloaded as a ZIP archive.
+ * The generated structure can be downloaded.
  * After generation, users can interactively request modifications to the project via a chat interface.
  * All UI texts are internationalized.
- * This page has been refactored into smaller, more granular components.
  */
 export default function GenerarProyectoPage() {
   const { agents, groups, getAgentById, getGroupById } = useAppState();
@@ -58,12 +57,13 @@ export default function GenerarProyectoPage() {
   const [currentModificationRequest, setCurrentModificationRequest] = useState('');
   const [isModifyingProject, setIsModifyingProject] = useState(false);
   const [isRedefiningModificationRequest, setIsRedefiningModificationRequest] = useState(false);
-  const scrollAreaRefChat = useRef<HTMLDivElement>(null); // Ref for chat scroll area
+  const scrollAreaRefChat = useRef<HTMLDivElement>(null);
 
   const { addLog } = useDebug();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Initialize on client to avoid SSR issues with localStorage access from useAppState
     setLlmConfigSource({ type: 'Ajustes Globales' });
   }, []);
 
@@ -75,7 +75,7 @@ export default function GenerarProyectoPage() {
 
   const handleDescriptionChange = (value: string) => {
     setDescription(value);
-    setCurrentPromptForDialog(value);
+    setCurrentPromptForDialog(value); // Keep dialog prompt in sync
   };
 
   const handleProjectGeneration = async (finalPrompt: string) => {
@@ -96,7 +96,7 @@ export default function GenerarProyectoPage() {
       addLog({source: 'GenerarProyectoPage', type: 'INFO', message: `Generating project with Agent: ${llmConfigSource.name}. Agent's system prompt will be used.`, flowName});
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id && llmConfigSource.name) {
       const group = getGroupById(llmConfigSource.id);
-      agentSystemPrompt = group?.mainTask;
+      agentSystemPrompt = group?.mainTask; // Use group's main task as context for project generation
       flowName = `generateProjectStructure (Group: ${group?.name || llmConfigSource.id})`;
       addLog({source: 'GenerarProyectoPage', type: 'INFO', message: `Generating project with Group: ${llmConfigSource.name}. Group's main task will be used as context.`, flowName});
     } else {
@@ -240,7 +240,7 @@ export default function GenerarProyectoPage() {
     try {
       const resultOutput: RedefinePromptOutput = await callRedefinePrompt({ originalPrompt: description });
       setDescription(resultOutput.redefinedPrompt);
-      setCurrentPromptForDialog(resultOutput.redefinedPrompt);
+      setCurrentPromptForDialog(resultOutput.redefinedPrompt); // Keep dialog prompt in sync
       toast({
         title: t('common.toast.redefinedSuccess.title' as TranslationKey),
         description: t('common.toast.redefinedSuccess.description' as TranslationKey)
@@ -289,6 +289,7 @@ export default function GenerarProyectoPage() {
     } catch (e: any) {
       addLog({source: 'GenerarProyectoPage', type: 'ERROR', message: "Redefining dialog prompt failed.", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
       if (e instanceof AppError) {
+        // Don't setError on the main page for a dialog error, just toast
         toast({ variant: "destructive", title: t('common.toast.redefineError.title' as TranslationKey), description: e.friendlyMessage });
         if (e.redirectTo) {
           router.push(e.redirectTo);
@@ -303,58 +304,80 @@ export default function GenerarProyectoPage() {
   };
 
   const handleSendModificationRequest = async () => {
-    if (!currentModificationRequest.trim()) {
-        toast({ variant: "destructive", title: t('generateProject.toast.emptyModificationRequest.title'), description: t('generateProject.toast.emptyModificationRequest.description') });
+    if (!currentModificationRequest.trim() || !result) {
+        toast({ variant: "destructive", title: t('generateProject.toast.emptyModificationRequest.title' as TranslationKey), description: t('generateProject.toast.emptyModificationRequest.description' as TranslationKey) });
         return;
     }
     setIsModifyingProject(true);
-    addLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Sending modification request: ${currentModificationRequest}` });
+    const flowName = 'modifyProjectStructure';
+    addLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Sending modification request: ${currentModificationRequest}`, data: { currentProjectName: result.projectName }, flowName});
 
     const userMessage: ChatMessage = { id: uuidv4(), role: 'user', content: currentModificationRequest, timestamp: new Date().toISOString() };
     setChatHistory(prev => [...prev, userMessage]);
     const tempCurrentModificationRequest = currentModificationRequest;
     setCurrentModificationRequest('');
 
-    // Simulate AI response for now
-    setTimeout(() => {
-        const aiResponseContent = t('chat.agent.assistant') + `: Entendido, intentaré aplicar la modificación: \"${tempCurrentModificationRequest.substring(0,50)}...\". (Esta es una simulación, la modificación real del proyecto requeriría un flujo Genkit complejo.)`;
-        const aiMessage: ChatMessage = { id: uuidv4(), role: 'assistant', content: aiResponseContent, timestamp: new Date().toISOString() };
-        setChatHistory(prev => [...prev, aiMessage]);
+    let agentSystemPromptForModification: string | undefined;
+    if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
+      const agent = getAgentById(llmConfigSource.id);
+      agentSystemPromptForModification = agent?.systemPrompt;
+    } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
+      const group = getGroupById(llmConfigSource.id);
+      agentSystemPromptForModification = group?.mainTask; // Or orchestrator's prompt
+    }
+    
+    try {
+      const modificationInput: ModifyProjectStructureInput = {
+        currentProject: result,
+        modificationRequest: tempCurrentModificationRequest,
+        chatHistory: chatHistory, // Pass the history up to this point
+        agentSystemPrompt: agentSystemPromptForModification,
+      };
+      const modifiedProjectResult = await callModifyProjectStructure(modificationInput);
+      
+      setResult(modifiedProjectResult); // Update the main project result
 
-        // Simulate updating AI notes (in a real scenario, 'result.files' would change)
-        setResult(prevResult => prevResult ? ({
-            ...prevResult,
-            aiNotes: `${prevResult.aiNotes}\n\n[Modificación Solicitada]: ${tempCurrentModificationRequest}\n[Respuesta IA (simulada)]: ${aiResponseContent}`
-        }) : null);
+      const assistantResponseMessage = modifiedProjectResult.aiNotes || t('generateProject.toast.modificationSuccess.defaultAiNote' as TranslationKey);
+      const aiMessage: ChatMessage = { id: uuidv4(), role: 'assistant', content: assistantResponseMessage, timestamp: new Date().toISOString() };
+      setChatHistory(prev => [...prev, aiMessage]);
 
-        toast({ title: t('generateProject.toast.modificationSent.title'), description: t('generateProject.toast.modificationSent.description') });
-        setIsModifyingProject(false);
-    }, 1500);
-    // In a real implementation, you would call a Genkit flow here:
-    // try {
-    //   const modifiedProject = await callModifyProjectStructureFlow({ currentProject: result, modificationRequest: tempCurrentModificationRequest, chatHistory });
-    //   setResult(modifiedProject);
-    //   setChatHistory(prev => [...prev, { id: uuidv4(), role: 'assistant', content: modifiedProject.aiNotes, timestamp: new Date().toISOString() }]);
-    //   toast({ title: "Proyecto Modificado", description: "La IA ha modificado el proyecto." });
-    // } catch (e) { ... } finally { setIsModifyingProject(false); }
+      toast({ title: t('generateProject.toast.modificationSuccess.title' as TranslationKey), description: t('generateProject.toast.modificationSuccess.description' as TranslationKey) });
+      addLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: 'Project modification successful.', data: { newNotes: modifiedProjectResult.aiNotes }, flowName });
+
+    } catch (e: any) {
+      addLog({source: 'GenerarProyectoPage', type: 'ERROR', message: "Project modification failed in UI", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      const errorMsg = e instanceof AppError ? e.friendlyMessage : (e.message || t('generateProject.toast.modificationError.description' as TranslationKey));
+      
+      const systemErrorMessage: ChatMessage = { id: uuidv4(), role: 'system', content: t('chat.systemMessage.errorPrefix' as TranslationKey) + errorMsg, timestamp: new Date().toISOString() };
+      setChatHistory(prev => [...prev, systemErrorMessage]);
+      
+      toast({ variant: "destructive", title: t('generateProject.toast.modificationError.title' as TranslationKey), description: errorMsg });
+      if (e instanceof AppError && e.redirectTo) {
+        router.push(e.redirectTo);
+      }
+    } finally {
+      setIsModifyingProject(false);
+    }
   };
 
   const handleRedefineModificationRequest = async () => {
     if (!currentModificationRequest.trim()) {
-      toast({ variant: 'destructive', title: t('common.toast.redefineEmpty.title'), description: t('common.toast.redefineEmpty.description') });
+      toast({ variant: 'destructive', title: t('common.toast.redefineEmpty.title' as TranslationKey), description: t('common.toast.redefineEmpty.description' as TranslationKey) });
       return;
     }
     setIsRedefiningModificationRequest(true);
-    addLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Redefining modification request. Original: ${currentModificationRequest.substring(0, 100)}...` });
-    toast({ title: t('common.toast.redefining.title'), description: t('common.toast.redefining.description') });
+    const flowName = 'redefinePromptFlow (GenerarProyecto - Modification)';
+    addLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Redefining modification request. Original: ${currentModificationRequest.substring(0, 100)}...`, flowName });
+    toast({ title: t('common.toast.redefining.title' as TranslationKey), description: t('common.toast.redefining.description' as TranslationKey) });
     try {
       const redefined = await callRedefinePrompt({ originalPrompt: currentModificationRequest });
       setCurrentModificationRequest(redefined.redefinedPrompt);
-      toast({ title: t('common.toast.redefinedSuccess.title'), description: t('common.toast.redefinedSuccess.description') });
+      toast({ title: t('common.toast.redefinedSuccess.title' as TranslationKey), description: t('common.toast.redefinedSuccess.description' as TranslationKey) });
+      addLog({source: 'GenerarProyectoPage', type: 'SUCCESS', message: "Modification request redefined.", data: {newPrompt: redefined.redefinedPrompt.substring(0,100)+"..." }, flowName});
     } catch (e: any) {
-      const errorMsg = e instanceof AppError ? e.friendlyMessage : (e.message || t('common.toast.redefineError.description'));
-      toast({ variant: 'destructive', title: t('common.toast.redefineError.title'), description: errorMsg });
-      addLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: `Redefining modification request failed`, errorDetails: e });
+      const errorMsg = e instanceof AppError ? e.friendlyMessage : (e.message || t('common.toast.redefineError.description' as TranslationKey));
+      toast({ variant: 'destructive', title: t('common.toast.redefineError.title' as TranslationKey), description: errorMsg });
+      addLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: `Redefining modification request failed`, errorDetails: e, flowName });
       if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
     } finally {
       setIsRedefiningModificationRequest(false);
@@ -395,8 +418,7 @@ export default function GenerarProyectoPage() {
                 onRedefineModificationRequest={handleRedefineModificationRequest}
                 scrollAreaRefChat={scrollAreaRefChat}
             />
-             {/* This LogsDisplay was for the main generation group log, distinct from chat history */}
-             {result.groupLog && !chatHistory.length && (
+             {result.groupLog && !chatHistory.length && ( // Only show initial group log if no chat modifications yet
               <LogsDisplay title={t('generateProject.results.groupLogTitle' as TranslationKey)} logs={result.groupLog} />
             )}
           </div>
@@ -426,7 +448,7 @@ export default function GenerarProyectoPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleRedefineInDialog}
-                  disabled={isRedefiningInDialog || !currentPromptForDialog.trim() || isLoading}
+                  disabled={!currentPromptForDialog.trim() || isRedefiningInDialog || isLoading}
                   className="text-xs"
                 >
                   {isRedefiningInDialog ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Wand2 className="mr-1.5 h-3.5 w-3.5" />}
@@ -450,3 +472,5 @@ export default function GenerarProyectoPage() {
     </Card>
   );
 }
+
+    
