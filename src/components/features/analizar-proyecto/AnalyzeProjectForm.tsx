@@ -6,11 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Wand2 } from 'lucide-react'; // Added Wand2
+import { Loader2, Wand2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
+import { Textarea } from '@/components/ui/textarea'; // Added Textarea import
 
 type ProjectSourceType = "upload" | "git";
 
@@ -32,8 +33,8 @@ interface AnalyzeProjectFormProps {
   isLoading: boolean;
   loadingMessage: string | null;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
-  isRedefiningFocusArea: boolean; // New prop
-  onRedefineFocusArea: () => Promise<void>; // New prop
+  isRedefiningFocusArea: boolean;
+  onRedefineFocusArea: () => Promise<void>;
 }
 
 const AnalyzeProjectForm: React.FC<AnalyzeProjectFormProps> = ({
@@ -87,7 +88,14 @@ const AnalyzeProjectForm: React.FC<AnalyzeProjectFormProps> = ({
             {t('common.redefineRequestButton')}
           </Button>
         </div>
-        <Input id="focus-area-project" value={focusArea} onChange={(e) => onFocusAreaChange(e.target.value)} placeholder={t('analyzeProject.focusPlaceholder')} disabled={isLoading || isRedefiningFocusArea} />
+        <Textarea
+          id="focus-area-project"
+          value={focusArea}
+          onChange={(e) => onFocusAreaChange(e.target.value)}
+          placeholder={t('analyzeProject.focusPlaceholder')}
+          disabled={isLoading || isRedefiningFocusArea}
+          rows={3} // Make the textarea larger
+        />
       </div>
 
       <Button onClick={onAnalyze} disabled={isLoading || isRedefiningFocusArea || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
