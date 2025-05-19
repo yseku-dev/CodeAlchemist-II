@@ -1,4 +1,3 @@
-
 {
   "title": "Generar Proyecto",
   "description": "Crea una estructura base para nuevos proyectos a partir de tus especificaciones.",
@@ -12,7 +11,11 @@
     "generatedFilesLabel": "Archivos Generados:",
     "downloadButton": "Descargar Proyecto (ZIP)",
     "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
-    "groupLogTitle": "Log Detallado del Grupo"
+    "groupLogTitle": "Log Detallado del Grupo",
+    "modifyProjectSectionTitle": "Modificar Proyecto con IA",
+    "modificationInputLabel": "Describe tu modificación:",
+    "modificationInputPlaceholder": "Ej: Añade un archivo 'utils.js' en la carpeta 'src'.",
+    "sendModificationButton": "Enviar Modificación"
   },
   "logs": {
     "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
@@ -42,32 +45,24 @@
       "description": "No hay estructura de proyecto para descargar."
     },
     "zipDownloadSuccess": {
-      "title": "Proyecto Descargado (ZIP)",
-      "description": "Se ha descargado un archivo ZIP ({filename}) con la estructura y contenido del proyecto \"{projectName}\"."
+      "title": "Proyecto Descargado (como JSON)",
+      "description": "Se ha descargado un archivo JSON ({filename}) con la estructura y contenido del proyecto \"{projectName}\". Puedes usar este archivo para crear los archivos y carpetas manualmente o con un script. La generación directa de archivos ZIP no es soportada por esta función en el navegador."
     },
     "zipDownloadError": {
       "title": "Error al Descargar ZIP",
       "description": "No se pudo generar el archivo ZIP: {error}"
     },
-    "autofixSimulated": {
-      "title": "Auto-Fix (Simulado)",
-      "description": "La IA está analizando el error para proponer una solución."
+    "modificationSent": {
+      "title": "Modificación Enviada",
+      "description": "Tu solicitud de modificación ha sido enviada a la IA (simulado)."
     },
-    "redefineEmpty": {
-      "title": "Descripción Vacía",
-      "description": "Por favor, escribe una descripción para redefinir."
+    "modificationError": {
+      "title": "Error al Modificar",
+      "description": "No se pudo procesar la solicitud de modificación."
     },
-    "redefining": {
-      "title": "Redefiniendo Petición...",
-      "description": "La IA está trabajando para mejorar tu descripción."
-    },
-    "redefinedSuccess": {
-      "title": "Petición Redefinida",
-      "description": "La descripción de tu proyecto ha sido actualizada por la IA."
-    },
-    "redefineError": {
-      "title": "Error al Redefinir",
-      "description": "No se pudo redefinir la petición con la IA."
+    "emptyModificationRequest": {
+        "title": "Petición Vacía",
+        "description": "Por favor, describe la modificación que deseas realizar."
     }
   }
 }

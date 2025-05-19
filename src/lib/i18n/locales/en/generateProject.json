@@ -1,4 +1,3 @@
-
 {
   "title": "Generate Project",
   "description": "Create a base structure for new projects from your specifications.",
@@ -12,7 +11,11 @@
     "generatedFilesLabel": "Generated Files:",
     "downloadButton": "Download Project (ZIP)",
     "downloadNote": "Note: The download will be a JSON file with the project structure.",
-    "groupLogTitle": "Detailed Group Log"
+    "groupLogTitle": "Detailed Group Log",
+    "modifyProjectSectionTitle": "Modify Project with AI",
+    "modificationInputLabel": "Describe your modification:",
+    "modificationInputPlaceholder": "E.g.: Add a 'utils.js' file in the 'src' folder.",
+    "sendModificationButton": "Send Modification"
   },
   "logs": {
     "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
@@ -42,32 +45,24 @@
       "description": "There is no project structure to download."
     },
     "zipDownloadSuccess": {
-      "title": "Project Downloaded (ZIP)",
-      "description": "A ZIP file ({filename}) with the project structure and content for \"{projectName}\" has been downloaded."
+      "title": "Project Downloaded (as JSON)",
+      "description": "A JSON file ({filename}) with the project structure and content for \"{projectName}\" has been downloaded. You can use this file to create files and folders manually or with a script. Direct ZIP file generation is not supported by this browser feature."
     },
     "zipDownloadError": {
       "title": "ZIP Download Error",
       "description": "Could not generate the ZIP file: {error}"
     },
-    "autofixSimulated": {
-      "title": "Auto-Fix (Simulated)",
-      "description": "AI is analyzing the error to propose a solution."
+    "modificationSent": {
+      "title": "Modification Sent",
+      "description": "Your modification request has been sent to the AI (simulated)."
     },
-    "redefineEmpty": {
-      "title": "Empty Description",
-      "description": "Please write a description to redefine."
+    "modificationError": {
+      "title": "Modification Error",
+      "description": "Could not process the modification request."
     },
-    "redefining": {
-      "title": "Redefining Request...",
-      "description": "AI is working to improve your description."
-    },
-    "redefinedSuccess": {
-      "title": "Request Redefined",
-      "description": "Your project description has been updated by the AI."
-    },
-    "redefineError": {
-      "title": "Redefine Error",
-      "description": "Could not redefine the request with AI."
+    "emptyModificationRequest": {
+        "title": "Empty Request",
+        "description": "Please describe the modification you want to make."
     }
   }
 }
