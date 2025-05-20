@@ -6,14 +6,7 @@
  * 1. Single Prompt Mode: If no agentSystemPrompt (group orchestrator context) is provided,
  *    it makes a single call to an LLM to generate the entire project structure.
  * 2. Group/Multi-Turn Mode: If an agentSystemPrompt (typically the orchestrator's system prompt
- *    for a selected group) is provided, it orchestrates a multi-turn interaction:
- *    - It calls the orchestrator to get a plan/next step.
- *    - It then calls a delegate agent based on the orchestrator's decision.
- *    - This loop continues for a limited number of turns or until the orchestrator signals completion.
- *
- * - generateProjectStructure - A function that handles project structure generation.
- * - GenerateProjectInput - The input type for the function.
- * - ProjectGenerationResult - The return type.
+ *    for a selected group) is provided, it orchestrates a multi-turn interaction.
  */
 
 import { ai } from '@/ai/genkit';
@@ -24,7 +17,7 @@ import type {
   GeneratedFile,
 } from '@/types';
 import { AppError } from '@/utils/AppError';
-import { DEFAULT_AGENTS } from '@/lib/constants'; // To get default agent prompts
+import { DEFAULT_AGENTS } from '@/lib/constants';
 
 // Schemas for the flow's internal logic and prompt outputs
 const GeneratedFileSchema = z.object({
@@ -35,7 +28,7 @@ const GeneratedFileSchema = z.object({
     ),
   content: z
     .string()
-    .optional() // Content can be optional, especially for folders or if AI generates it incrementally
+    .optional()
     .describe(
       'Contenido COMPLETO y funcional del archivo. Vacío para carpetas o si se genera por separado.'
     ),
@@ -97,14 +90,12 @@ const GenerateProjectInputSchema = z.object({
     ),
 });
 
-// Helper to get a default system prompt for a delegate agent
 function getAgentSystemPrompt(agentId: string): string {
   const agent = DEFAULT_AGENTS.find((a) => a.id === agentId);
   if (agent) return agent.systemPrompt;
 
-  // Fallback a un prompt genérico si el agente no está en los defaults conocidos
-  const roleName = agentId.replace(/([A-Z])/g, ' $1').trim(); // Convierte CamelCase a "Camel Case"
-  return `Eres un ${roleName}. Tu tarea actual es la siguiente: {instruction}. Tu respuesta debe ser el resultado directo de la tarea, generalmente texto plano. Si se te pide generar el contenido de un archivo, devuelve solo ese contenido. Si se te pide un nombre de proyecto, devuelve solo el nombre. Responde en castellano.`;
+  const roleName = agentId.replace(/([A-Z])/g, ' $1').trim();
+  return `Eres un ${roleName}. Tu tarea actual es: {instruction}. Tu respuesta debe ser el resultado directo de la tarea. Si se te pide generar el contenido de un archivo, devuelve solo ese contenido. Si se te pide un nombre de proyecto, devuelve solo el nombre. Responde en castellano.`;
 }
 
 export async function generateProjectStructure(
@@ -112,7 +103,7 @@ export async function generateProjectStructure(
 ): Promise<ProjectGenerationResult> {
   const flowName = 'generateProjectStructureFlow';
 
-  // SINGLE PROMPT MODE (No group/orchestrator selected, or if agentSystemPrompt is missing)
+  // SINGLE PROMPT MODE
   if (!input.agentSystemPrompt) {
     console.log(`[Flow: ${flowName} (Modo Prompt Único)] Iniciado con descripción: ${input.description.substring(0,100)}...`);
     const promptLines = [
@@ -148,15 +139,15 @@ export async function generateProjectStructure(
       if (!output) {
         console.error(`[Flow: ${flowName} (Modo Prompt Único)] No output from LLM.`);
         throw new AppError(
-          'La IA no pudo generar la estructura del proyecto.',
+          'La IA no pudo generar la estructura del proyecto (modo prompt único).',
           { originalError: 'No output from LLM in single prompt mode' },
           'ai'
         );
       }
-      const processedFiles = output.files.map((file: GeneratedFile) => ({
-        ...file,
+      const processedFiles = output.files.map((file: Partial<GeneratedFile>) => ({
+        path: file.path || 'ruta/desconocida',
         content: file.content ?? '',
-        isFolder: file.isFolder ?? file.path.endsWith('/'),
+        isFolder: file.isFolder ?? file.path?.endsWith('/') ?? false,
       }));
       console.log(`[Flow: ${flowName} (Modo Prompt Único)] Generación exitosa. Proyecto: ${output.projectName}`);
       return { ...output, files: processedFiles, groupLog: "Generado con configuración global/agente (prompt único)." };
@@ -190,8 +181,8 @@ export async function generateProjectStructure(
   let currentTaskForOrchestrator = `Tarea Inicial: Generar un proyecto de software completo basado en la descripción del usuario: "${input.description}".
 Tu rol es planificar los pasos y delegar a los agentes apropiados (como 'JefeDeProducto', 'ArquitectoSoftware', 'DesarrolladorSoftware') para generar progresivamente el nombre del proyecto, las notas de la IA, y la lista de archivos con su contenido COMPLETO y FUNCIONAL.
 Tu respuesta DEBE ser un JSON válido con los campos "next_agent_id", "instruction_for_next_agent", "reasoning".
-Opcionalmente, puedes incluir "data_to_aggregate" (un objeto con claves "projectName", "aiNotes", "files" - donde "files" es un array de GeneratedFile) para pasar partes del proyecto que ya se hayan generado o acumulado.
-Cuando la tarea esté COMPLETADA, establece next_agent_id a "COMPLETADO" y proporciona el ProjectGenerationResult final COMPLETO (con projectName, aiNotes, y la lista COMPLETA de files con su contenido, incluyendo path, content, isFolder) en el campo "data_to_aggregate".
+Opcionalmente, puedes incluir "data_to_aggregate" (un objeto con claves "projectName", "aiNotes", "files" - donde "files" es un array de GeneratedFile con "path", "content", "isFolder") para pasar partes del proyecto que ya se hayan generado o acumulado.
+Cuando la tarea esté COMPLETADA, establece next_agent_id a "COMPLETADO" y proporciona el ProjectGenerationResult final COMPLETO (con projectName, aiNotes, y la lista COMPLETA de files con su contenido) en el campo "data_to_aggregate".
 Recuerda que el contenido de cada archivo de código debe ser COMPLETO Y FUNCIONAL. No uses placeholders.
 Todas tus respuestas deben estar en castellano.`;
 
@@ -199,24 +190,33 @@ Todas tus respuestas deben estar en castellano.`;
 
   while (turn <= MAX_TURNS && !completed) {
     executionLog.push(`\n--- [TURNO ${turn}/${MAX_TURNS}] ---`);
-    executionLog.push(`Orquestador Recibiendo Tarea (Turno ${turn}):\n${currentTaskForOrchestrator.substring(0, 300)}...`);
+    executionLog.push(`Orquestador Recibiendo Tarea (Turno ${turn}):\n${currentTaskForOrchestrator.substring(0, 500)}...`);
+    console.log(`[Flow: ${flowName} (Grupo)] Turno ${turn}: Llamando al Orquestador...`);
 
     let decision: z.infer<typeof orchestratorDecisionSchema> | undefined;
     try {
-      console.log(`[Flow: ${flowName} (Grupo)] Turno ${turn}: Llamando al Orquestador... Prompt (inicio): ${input.agentSystemPrompt?.substring(0,100)} --- Tarea (inicio): ${currentTaskForOrchestrator.substring(0,100)}`);
-      
       const orchestratorLlmResponse = await ai.generate({
         prompt: `${input.agentSystemPrompt}\n\n${currentTaskForOrchestrator}`,
         output: { schema: orchestratorDecisionSchema, format: 'json' },
         config: { temperature: 0.5 },
       });
-
-      decision = orchestratorLlmResponse.output;
       
-      executionLog.push(`Respuesta JSON cruda del Orquestador (Turno ${turn}): ${JSON.stringify(orchestratorLlmResponse.raw?.candidates?.[0]?.output || 'N/A')}`);
+      let rawOrchestratorOutputForLog = 'N/A';
+      if (orchestratorLlmResponse.raw?.candidates?.[0]?.output) {
+        try {
+          const tempString = JSON.stringify(orchestratorLlmResponse.raw.candidates[0].output);
+          rawOrchestratorOutputForLog = tempString.substring(0, 500) + (tempString.length > 500 ? '...' : '');
+        } catch (stringifyError) {
+          rawOrchestratorOutputForLog = '[Error al stringify la respuesta cruda para el log]';
+          console.error(`[Flow: ${flowName}] Error al stringify la respuesta cruda del orquestador:`, stringifyError);
+        }
+      }
+      executionLog.push(`Respuesta JSON cruda del Orquestador (Turno ${turn}) (truncada): ${rawOrchestratorOutputForLog}`);
+      
+      decision = orchestratorLlmResponse.output;
 
       if (!decision) {
-        const errorMsg = "El orquestador no devolvió 'output' estructurado o fue undefined. La respuesta cruda podría indicar un fallo en el formato JSON o un error del LLM.";
+        const errorMsg = "El orquestador no devolvió 'output' estructurado o fue undefined.";
         executionLog.push(`[ERROR CRÍTICO] Turno ${turn} - ${errorMsg}`);
         aiNotes += `\nError en Turno ${turn}: ${errorMsg}`;
         completed = true;
@@ -233,11 +233,11 @@ Todas tus respuestas deben estar en castellano.`;
       }
 
     } catch (e: any) {
-      const errorMsg = e.message || "Error desconocido llamando al Orquestador";
-      executionLog.push(`[ERROR] Turno ${turn} - Llamada al Orquestador falló: ${errorMsg}. Detalle: ${JSON.stringify(e)}`);
-      aiNotes += `\nError en Turno ${turn} con Orquestador: ${errorMsg}`;
-      console.error(`[Flow: ${flowName} (Grupo)] Error en turno ${turn} llamando al orquestador:`, e);
-      completed = true; // Finalizar si el orquestador falla críticamente
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      executionLog.push(`[ERROR CRÍTICO] Turno ${turn} - Llamada al Orquestador falló: ${errorMsg.substring(0, 200)}... (ver logs del servidor para detalles)`);
+      console.error(`[Flow: ${flowName}] Turno ${turn} - Error completo en llamada al orquestador:`, e);
+      aiNotes += `\nError en Turno ${turn} con Orquestador: ${errorMsg.substring(0,100)}...`;
+      completed = true;
       break;
     }
 
@@ -245,14 +245,16 @@ Todas tus respuestas deben estar en castellano.`;
       if (decision.data_to_aggregate.projectName) projectName = decision.data_to_aggregate.projectName;
       if (decision.data_to_aggregate.aiNotes) aiNotes = decision.data_to_aggregate.aiNotes;
       if (Array.isArray(decision.data_to_aggregate.files)) {
-        decision.data_to_aggregate.files.forEach((newFile) => {
-          const existingIndex = files.findIndex(f => f.path === newFile.path);
-          const finalContent = newFile.content ?? '';
-          const finalIsFolder = newFile.isFolder ?? newFile.path.endsWith('/');
-          if (existingIndex !== -1) {
-            files[existingIndex] = { ...files[existingIndex], content: finalContent, isFolder: finalIsFolder, ...newFile };
-          } else {
-            files.push({ ...newFile, content: finalContent, isFolder: finalIsFolder });
+        decision.data_to_aggregate.files.forEach((newFile: Partial<GeneratedFile>) => {
+          if (newFile.path) {
+            const existingIndex = files.findIndex(f => f.path === newFile.path);
+            const finalContent = newFile.content ?? '';
+            const finalIsFolder = newFile.isFolder ?? newFile.path.endsWith('/');
+            if (existingIndex !== -1) {
+              files[existingIndex] = { path: newFile.path, content: finalContent, isFolder: finalIsFolder, ...newFile };
+            } else {
+              files.push({ path: newFile.path, content: finalContent, isFolder: finalIsFolder });
+            }
           }
         });
       }
@@ -265,12 +267,11 @@ Todas tus respuestas deben estar en castellano.`;
       if(decision.data_to_aggregate?.projectName) projectName = decision.data_to_aggregate.projectName;
       
       if(decision.data_to_aggregate && Array.isArray(decision.data_to_aggregate.files)) {
-         files = decision.data_to_aggregate.files.map(f => ({path: f.path, content: f.content ?? '', isFolder: f.isFolder ?? f.path.endsWith('/') }));
+         files = decision.data_to_aggregate.files.map(f => ({path: f.path || 'ruta/desconocida', content: f.content ?? '', isFolder: f.isFolder ?? f.path?.endsWith('/') ?? false }));
          executionLog.push(`Proyecto final ensamblado desde data_to_aggregate. Archivos: ${files.length}`);
       } else if (files.length > 0) {
           executionLog.push(`Proyecto final ensamblado desde datos acumulados. Archivos: ${files.length}`);
-      }
-      else {
+      } else {
          console.warn(`[Flow: ${flowName} (Grupo)] Turno ${turn} - COMPLETADO pero data_to_aggregate.files no es un array o no existe, y 'files' acumulados está vacío.`);
          executionLog.push(`[ADVERTENCIA] Turno ${turn} - Orquestador indicó COMPLETADO pero no proporcionó 'data_to_aggregate.files' con la estructura final, ni se acumularon archivos. El resultado podría estar incompleto.`);
          aiNotes += "\nAdvertencia: El orquestador indicó completado pero no se pudo ensamblar una lista final de archivos.";
@@ -281,9 +282,7 @@ Todas tus respuestas deben estar en castellano.`;
 
     const agentIdToCall = decision.next_agent_id;
     const instructionForAgent = decision.instruction_for_next_agent;
-    // Usar un prompt genérico para el agente delegado, ya que el flujo no conoce los system prompts específicos de todos los agentes.
     const agentSystemPromptForDelegate = getAgentSystemPrompt(agentIdToCall);
-
 
     executionLog.push(`Llamando a Agente (Turno ${turn}): ${agentIdToCall} con instrucción (primeros 300 chars):\n${instructionForAgent.substring(0, 300)}...`);
     console.log(`[Flow: ${flowName} (Grupo)] Turno ${turn}: Llamando al Agente ${agentIdToCall}...`);
@@ -294,8 +293,7 @@ Todas tus respuestas deben estar en castellano.`;
         prompt: `${agentSystemPromptForDelegate}\n\nTu tarea actual es: ${instructionForAgent}. Tu respuesta debe ser un string, no un JSON, a menos que la instrucción lo pida específicamente. Si generas código, solo devuelve el código o el contenido del archivo.`,
         config: { temperature: 0.6 },
       });
-      agentResponseText = agentLlmResponse.text;
-
+      agentResponseText = agentLlmResponse.text ?? "";
       if (!agentResponseText && agentLlmResponse.output) {
          agentResponseText = JSON.stringify(agentLlmResponse.output);
       } else if (!agentResponseText) {
@@ -304,12 +302,12 @@ Todas tus respuestas deben estar en castellano.`;
       executionLog.push(`Respuesta de ${agentIdToCall} (Turno ${turn}, primeros 500 chars):\n${agentResponseText.substring(0, 500)}...`);
     } catch (e: any) {
       const errorMsg = e.message || `Error desconocido llamando al Agente ${agentIdToCall}`;
-      executionLog.push(`[ERROR] Turno ${turn} - Llamada al Agente ${agentIdToCall} falló: ${errorMsg}. Detalle: ${JSON.stringify(e)}`);
-      agentResponseText = `Error del agente ${agentIdToCall}: ${errorMsg}`;
-      console.error(`[Flow: ${flowName} (Grupo)] Error en turno ${turn} llamando al agente ${agentIdToCall}:`, e);
-      // No romper el bucle, pasar el error al orquestador
+      executionLog.push(`[ERROR] Turno ${turn} - Llamada al Agente ${agentIdToCall} falló: ${errorMsg.substring(0,200)}... (ver logs del servidor para detalles)`);
+      console.error(`[Flow: ${flowName} (Grupo)] Turno ${turn} - Error completo en llamada al agente ${agentIdToCall}:`, e);
+      agentResponseText = `Error del agente ${agentIdToCall}: ${errorMsg.substring(0,100)}...`;
     }
-    currentTaskForOrchestrator = `Contexto: El agente ${agentIdToCall} respondió a la instrucción "${instructionForAgent.substring(0,100)}..." con lo siguiente:\n"${agentResponseText}"\n\nEstado actual del proyecto (Nombre: ${projectName}, ${files.length} archivos generados, Notas (inicio): ${aiNotes.substring(0,100)}...). Objetivo general: "${input.description.substring(0,100)}...". ¿Cuál es el siguiente paso?
+    
+    currentTaskForOrchestrator = `Contexto: El agente ${agentIdToCall} respondió a la instrucción "${instructionForAgent.substring(0,100)}..." con lo siguiente:\n"${agentResponseText.substring(0, 1000)}..."\n\nEstado actual del proyecto (Nombre: ${projectName}, ${files.length} archivos generados, Notas (inicio): ${aiNotes.substring(0,100)}...). Objetivo general: "${input.description.substring(0,100)}...". ¿Cuál es el siguiente paso?
 Recuerda devolver tu decisión en JSON con "next_agent_id", "instruction_for_next_agent", "reasoning", y "data_to_aggregate" si tienes partes del proyecto para agregar/actualizar (como "projectName", "aiNotes", o nuevos "files").
 Si el proyecto está completo, usa "COMPLETADO" como next_agent_id y proporciona el ProjectGenerationResult final COMPLETO en "data_to_aggregate".`;
     
@@ -325,9 +323,9 @@ Si el proyecto está completo, usa "COMPLETADO" como next_agent_id y proporciona
   }
 
   const finalFiles = files.map((file) => ({
-    path: file.path, // Asegurar que path exista
+    path: file.path || 'ruta/desconocida',
     content: file.content ?? '',
-    isFolder: file.isFolder ?? file.path.endsWith('/'),
+    isFolder: file.isFolder ?? file.path?.endsWith('/') ?? false,
   }));
 
   console.log(`[Flow: ${flowName} (Grupo)] Generación por grupo finalizada. Proyecto: ${projectName}, Archivos: ${finalFiles.length}, Notas (inicio): ${aiNotes.substring(0,100)}`);
@@ -339,16 +337,16 @@ Si el proyecto está completo, usa "COMPLETADO" como next_agent_id y proporciona
     groupLog: executionLog.join('\n\n'),
   };
   
-  // Validar el resultado final contra el schema antes de devolver
   try {
     ProjectGenerationResultSchemaForFlow.parse(finalResult);
   } catch (validationError) {
     console.error(`[Flow: ${flowName} (Grupo)] Error de validación del resultado final:`, validationError);
     executionLog.push(`[ERROR FINAL] El resultado generado no cumple el schema: ${JSON.stringify(validationError)}`);
     finalResult.aiNotes += `\n[ERROR INTERNO] El resultado final no cumplió el schema. ${JSON.stringify(validationError)}`;
-    finalResult.groupLog = executionLog.join('\n\n'); // Asegurar que el log se incluya
-     // No lanzar error aquí, sino devolver el resultado con la nota de error para que el cliente lo maneje.
+    finalResult.groupLog = executionLog.join('\n\n');
   }
 
   return finalResult;
 }
+
+    
