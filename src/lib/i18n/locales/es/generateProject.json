@@ -1,3 +1,4 @@
+
 {
   "title": "Generar Proyecto",
   "description": "Crea una estructura base para nuevos proyectos a partir de tus especificaciones.",
@@ -10,15 +11,31 @@
     "aiNotesLabel": "Notas de la IA:",
     "generatedFilesLabel": "Archivos Generados:",
     "downloadButton": "Descargar Proyecto (ZIP)",
-    "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
+    "downloadNote": "Nota: La descarga será un archivo JSON con la estructura y contenido del proyecto.",
     "groupLogTitle": "Log Detallado del Grupo",
     "modifyProjectSectionTitle": "Modificar Proyecto con IA",
     "modificationInputLabel": "Describe tu modificación:",
     "modificationInputPlaceholder": "Ej: Añade un archivo 'utils.js' en la carpeta 'src'.",
-    "sendModificationButton": "Enviar Modificación"
+    "sendModificationButton": "Enviar Modificación",
+    "saveSnapshotButton": "Guardar Snapshot del Proyecto"
   },
   "logs": {
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "multiTurnLog": {
+      "orchestratorReceiving": "Orquestador (Turno {turn}) Recibiendo Tarea:\n{task}",
+      "orchestratorRawResponse": "Respuesta JSON Cruda del Orquestador (Turno {turn}):\n{response}",
+      "orchestratorDecision": "Decisión del Orquestador (Turno {turn}):\n  Próximo Agente: {nextAgentId}\n  Instrucción: {instruction}\n  Razonamiento: {reasoning}",
+      "callingAgent": "Llamando a Agente {agentName} (Turno {turn}) con Instrucción:\n{instruction}",
+      "agentResponding": "Respuesta de {agentName} (Turno {turn}):\n{response}",
+      "aggregation": "Agregando datos de {source} (Turno {turn}): Nombre Proyecto: {projectName}, Notas (inicio): {aiNotes}, Archivos: {fileCount}",
+      "completed": "Orquestador indica COMPLETADO (Turno {turn}). Resumen Final: {finalSummary}",
+      "maxTurnsReached": "\nSe alcanzó el límite máximo de {maxTurns} turnos en el flujo multi-agente.",
+      "errorTurn": "[ERROR] Turno {turn} ({actor}): {errorMessage}",
+      "diagnosticMode": "MODO DIAGNÓSTICO: Solo se ejecutará el Turno 1 del Orquestador.",
+      "diagnosticPrompt": "Prompt de Diagnóstico (Turno 1) para Orquestador (Longitud: {length}):\n{prompt}",
+      "diagnosticRawResponse": "Respuesta Cruda de Diagnóstico del Orquestador (Turno 1) (truncada):\n{response}",
+      "diagnosticDecision": "Decisión de Diagnóstico del Orquestador (Turno 1):\n{decision}"
+    }
   },
   "confirmDialog": {
     "title": "Confirmar Generación de Proyecto",
@@ -45,8 +62,8 @@
       "description": "No hay estructura de proyecto para descargar."
     },
     "zipDownloadSuccess": {
-      "title": "Proyecto Descargado (como JSON)",
-      "description": "Se ha descargado un archivo JSON ({filename}) con la estructura y contenido del proyecto \"{projectName}\". Puedes usar este archivo para crear los archivos y carpetas manualmente o con un script. La generación directa de archivos ZIP no es soportada por esta función en el navegador."
+      "title": "Proyecto Descargado (ZIP)",
+      "description": "Se ha descargado un archivo ZIP ({filename}) con la estructura y contenido del proyecto \"{projectName}\"."
     },
     "zipDownloadError": {
       "title": "Error al Descargar ZIP",
@@ -54,15 +71,23 @@
     },
     "modificationSent": {
       "title": "Modificación Enviada",
-      "description": "Tu solicitud de modificación ha sido enviada a la IA (simulado)."
+      "description": "Tu solicitud de modificación ha sido enviada a la IA."
     },
     "modificationError": {
       "title": "Error al Modificar",
       "description": "No se pudo procesar la solicitud de modificación."
     },
+    "modificationSuccess": {
+      "title": "Modificación Aplicada",
+      "description": "La IA ha procesado tu solicitud. Revisa los cambios."
+    },
     "emptyModificationRequest": {
         "title": "Petición Vacía",
         "description": "Por favor, describe la modificación que deseas realizar."
+    },
+    "snapshotSaved": {
+      "title": "Snapshot Guardado",
+      "description": "El estado actual del proyecto \"{name}\" ha sido guardado en Versiones."
     }
   }
 }

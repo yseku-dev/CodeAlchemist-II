@@ -1,3 +1,4 @@
+
 {
   "title": "Generate Project",
   "description": "Create a base structure for new projects from your specifications.",
@@ -10,15 +11,31 @@
     "aiNotesLabel": "AI Notes:",
     "generatedFilesLabel": "Generated Files:",
     "downloadButton": "Download Project (ZIP)",
-    "downloadNote": "Note: The download will be a JSON file with the project structure.",
+    "downloadNote": "Note: The download will be a JSON file with the project structure and content.",
     "groupLogTitle": "Detailed Group Log",
     "modifyProjectSectionTitle": "Modify Project with AI",
     "modificationInputLabel": "Describe your modification:",
     "modificationInputPlaceholder": "E.g.: Add a 'utils.js' file in the 'src' folder.",
-    "sendModificationButton": "Send Modification"
+    "sendModificationButton": "Send Modification",
+    "saveSnapshotButton": "Save Project Snapshot"
   },
   "logs": {
-    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
+    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+    "multiTurnLog": {
+      "orchestratorReceiving": "Orchestrator (Turn {turn}) Receiving Task:\n{task}",
+      "orchestratorRawResponse": "Raw JSON Response from Orchestrator (Turn {turn}):\n{response}",
+      "orchestratorDecision": "Orchestrator Decision (Turn {turn}):\n  Next Agent: {nextAgentId}\n  Instruction: {instruction}\n  Reasoning: {reasoning}",
+      "callingAgent": "Calling Agent {agentName} (Turn {turn}) with Instruction:\n{instruction}",
+      "agentResponding": "Response from {agentName} (Turn {turn}):\n{response}",
+      "aggregation": "Aggregating data from {source} (Turn {turn}): Project Name: {projectName}, AI Notes (start): {aiNotes}, Files: {fileCount}",
+      "completed": "Orchestrator indicates COMPLETED (Turn {turn}). Final Summary: {finalSummary}",
+      "maxTurnsReached": "\nMaximum of {maxTurns} turns reached in multi-agent flow.",
+      "errorTurn": "[ERROR] Turn {turn} ({actor}): {errorMessage}",
+      "diagnosticMode": "DIAGNOSTIC MODE: Only Orchestrator Turn 1 will be executed.",
+      "diagnosticPrompt": "Diagnostic Prompt (Turn 1) for Orchestrator (Length: {length}):\n{prompt}",
+      "diagnosticRawResponse": "Raw Diagnostic Response from Orchestrator (Turn 1) (truncated):\n{response}",
+      "diagnosticDecision": "Diagnostic Decision from Orchestrator (Turn 1):\n{decision}"
+    }
   },
   "confirmDialog": {
     "title": "Confirm Project Generation",
@@ -45,8 +62,8 @@
       "description": "There is no project structure to download."
     },
     "zipDownloadSuccess": {
-      "title": "Project Downloaded (as JSON)",
-      "description": "A JSON file ({filename}) with the project structure and content for \"{projectName}\" has been downloaded. You can use this file to create files and folders manually or with a script. Direct ZIP file generation is not supported by this browser feature."
+      "title": "Project Downloaded (ZIP)",
+      "description": "A ZIP file ({filename}) with the project structure and content for \"{projectName}\" has been downloaded."
     },
     "zipDownloadError": {
       "title": "ZIP Download Error",
@@ -54,15 +71,23 @@
     },
     "modificationSent": {
       "title": "Modification Sent",
-      "description": "Your modification request has been sent to the AI (simulated)."
+      "description": "Your modification request has been sent to the AI."
     },
     "modificationError": {
       "title": "Modification Error",
       "description": "Could not process the modification request."
     },
+    "modificationSuccess": {
+      "title": "Modification Applied",
+      "description": "The AI has processed your request. Please review the changes."
+    },
     "emptyModificationRequest": {
         "title": "Empty Request",
         "description": "Please describe the modification you want to make."
+    },
+    "snapshotSaved": {
+      "title": "Snapshot Saved",
+      "description": "The current state of project \"{name}\" has been saved to Versions."
     }
   }
 }
