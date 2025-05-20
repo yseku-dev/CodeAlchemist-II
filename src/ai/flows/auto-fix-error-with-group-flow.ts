@@ -17,6 +17,7 @@ import type {
 } from '@/types';
 import { callChatWithAIGroup } from '@/utils/apiClient'; // To call the orchestrator
 import { DEFAULT_AGENTS, DEFAULT_GROUPS } from '@/lib/constants'; // To get group/agent info
+import { AppError } from '@/utils/AppError';
 
 const AutoFixErrorWithGroupInputSchema = z.object({
   errorMessage: z.string().describe('The error message that occurred.'),
@@ -24,23 +25,23 @@ const AutoFixErrorWithGroupInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Optional: A snippet of code or broader context where the error happened.'
+      'Optional: A snippet of code or broader context where the error happened (e.g., user prompt, relevant code).'
     ),
   userInstructions: z
     .string()
     .optional()
-    .describe('Optional: Any specific guidance from the user for the fix.'),
+    .describe('Optional: Any specific guidance from the user for the fix or additional context about the task being performed when the error occurred.'),
 });
 
 const AutoFixErrorWithGroupOutputSchema = z.object({
   suggestedSolution: z
     .string()
     .describe(
-      "The solution proposed by the 'EquipoDesarrolloSoftware' group."
+      "The solution proposed by the 'EquipoDesarrolloSoftware' group. This should be actionable advice, code suggestions, or steps to resolve the error."
     ),
   diagnosticNotes: z
     .string()
-    .describe("Any diagnostic notes or reasoning from the group's process."),
+    .describe("Any diagnostic notes, reasoning behind the solution, or questions the group might have if the error is ambiguous. This could also include an attempt to categorize the error (e.g., user input, API issue, code bug)."),
   initialGroupLog: z
     .string()
     .describe(
@@ -57,23 +58,45 @@ const AutoFixErrorWithGroupOutputSchema = z.object({
  *
  * @param {AutoFixErrorWithGroupInput} input - The error details and context.
  * @returns {Promise<AutoFixErrorWithGroupOutput>} The proposed solution and diagnostic notes.
- * @throws {Error} If the 'EquipoDesarrolloSoftware' group or its orchestrator cannot be found,
- *                 or if the `chatWithAIGroupFlow` fails.
+ * @throws {AppError} If the 'EquipoDesarrolloSoftware' group or its orchestrator cannot be found,
+ *                 or if the `chatWithAIGroupFlow` (via `callChatWithAIGroup`) fails.
  */
 export async function autoFixErrorWithGroup(
   input: AutoFixErrorWithGroupInput
 ): Promise<AutoFixErrorWithGroupOutput> {
-  return autoFixErrorWithGroupFlow(input);
+  const flowName = 'autoFixErrorWithGroupFlow';
+  console.log(`[Flow: ${flowName}] Iniciado con error: "${input.errorMessage.substring(0, 100)}..."`);
+  try {
+    return await autoFixErrorWithGroupFlow(input);
+  } catch (error: any) {
+    console.error(`[Flow: ${flowName}] Error CRÍTICO ejecutando el flujo principal de auto-corrección:`, error);
+    const originalErrorMessage = error instanceof Error ? error.message : String(error);
+    
+    if (error instanceof AppError) {
+      // Si ya es un AppError (por ejemplo, de callChatWithAIGroup), propágalo
+      // pero podríamos añadir más contexto si es necesario.
+      error.friendlyMessage = `Error en el proceso de auto-corrección: ${error.friendlyMessage}`;
+      throw error;
+    }
+    // Envuelve otros errores en AppError
+    throw new AppError(
+      `Falló el flujo de auto-corrección. Causa: ${originalErrorMessage.substring(0,100)}...`,
+      error,
+      'ai' // Asumimos que un fallo aquí es probablemente un fallo de IA o de comunicación con ella
+    );
+  }
 }
 
 const autoFixErrorWithGroupFlow = ai.defineFlow(
   {
-    name: 'autoFixErrorWithGroupFlow',
+    name: 'autoFixErrorWithGroupFlowInternal', // Internal flow name
     inputSchema: AutoFixErrorWithGroupInputSchema,
     outputSchema: AutoFixErrorWithGroupOutputSchema,
   },
   async (input) => {
+    const flowName = 'autoFixErrorWithGroupFlowInternal';
     const { errorMessage, codeContext, userInstructions } = input;
+    console.log(`[Flow: ${flowName}] Procesando auto-corrección para el error: "${errorMessage.substring(0, 100)}..."`);
 
     const softwareDevelopmentTeam = DEFAULT_GROUPS.find(
       (g) => g.id === 'equipo-desarrollo-software'
@@ -83,56 +106,73 @@ const autoFixErrorWithGroupFlow = ai.defineFlow(
     );
 
     if (!softwareDevelopmentTeam || !orchestratorAgent) {
-      throw new Error(
-        "El grupo 'EquipoDesarrolloSoftware' o su 'OrquestadorFlujoAgentes' no están definidos por defecto."
-      );
+      const criticalErrorMsg = "El grupo 'EquipoDesarrolloSoftware' o su 'OrquestadorFlujoAgentes' no están definidos por defecto. No se puede proceder con la auto-corrección.";
+      console.error(`[Flow: ${flowName}] ${criticalErrorMsg}`);
+      // Devolver un output válido según el schema, pero indicando el error
+      return {
+        suggestedSolution: `Error de configuración: ${criticalErrorMsg}`,
+        diagnosticNotes: "La auto-corrección no pudo iniciarse debido a un problema de configuración interna de los agentes/grupos por defecto.",
+        initialGroupLog: `[${new Date().toISOString()}] [CRITICAL_ERROR] ${criticalErrorMsg}`,
+      };
     }
 
     const participatingAgents = softwareDevelopmentTeam.agentIds
       .map((id) => DEFAULT_AGENTS.find((a) => a.id === id))
-      .filter(Boolean) as Agent[]; // Type assertion after filtering
+      .filter(Boolean) as Agent[];
 
-    const taskForGroup = `Ha ocurrido el siguiente error en la aplicación CodeAlchemist:
+    let taskForGroup = `Ha ocurrido el siguiente error en la aplicación CodeAlchemist:
 --- ERROR MESSAGE START ---
 ${errorMessage}
 --- ERROR MESSAGE END ---
 
-${
-  codeContext
-    ? `Contexto del código donde ocurrió el error (o relevante para el mismo):
+`;
+
+    if (codeContext) {
+      taskForGroup += `Contexto del código o de la operación donde ocurrió el error (o relevante para el mismo):
 --- CODE CONTEXT START ---
-${codeContext}
---- CODE CONTEXT END ---`
-    : 'No se proporcionó contexto de código específico.'
-}
+${codeContext.substring(0, 2000)} ${codeContext.length > 2000 ? '... (truncado)' : ''}
+--- CODE CONTEXT END ---\n\n`;
+    } else {
+      taskForGroup += 'No se proporcionó contexto de código específico.\n\n';
+    }
 
-${
-  userInstructions
-    ? `Instrucciones adicionales del usuario para la corrección:
+    if (userInstructions) {
+      taskForGroup += `Instrucciones o contexto adicional del usuario sobre la tarea que se estaba realizando:
 --- USER INSTRUCTIONS START ---
-${userInstructions}
---- USER INSTRUCTIONS END ---`
-    : 'No se proporcionaron instrucciones adicionales por parte del usuario.'
-}
+${userInstructions.substring(0, 1000)} ${userInstructions.length > 1000 ? '... (truncado)' : ''}
+--- USER INSTRUCTIONS END ---\n\n`;
+    } else {
+      taskForGroup += 'No se proporcionaron instrucciones adicionales por parte del usuario.\n\n';
+    }
 
-Por favor, como "EquipoDesarrolloSoftware", utilizando tus agentes especializados coordinados por el Orquestador:
-1. Analiza este error.
-2. Diagnostica la causa raíz más probable.
-3. Propón una solución detallada en castellano. Esta solución debe ser clara, accionable y, si implica cambios de código, debe incluir los fragmentos de código sugeridos.
-4. Incluye cualquier nota de diagnóstico o razonamiento importante.
+    taskForGroup += `Por favor, como "EquipoDesarrolloSoftware", utilizando tus agentes especializados coordinados por el Orquestador:
+1.  **Analiza** este error exhaustivamente.
+2.  **Diagnostica** la causa raíz más probable. Intenta categorizar el error (ej: problema de input del usuario, error de API externa, bug en el código de CodeAlchemist, limitación del modelo LLM, problema de configuración).
+3.  **Propón una solución** detallada en castellano. Esta solución debe ser clara, accionable y, si implica cambios de código, debe incluir los fragmentos de código sugeridos o una descripción precisa de los cambios.
+4.  Si la solución no es directa, proporciona **pasos de depuración** que el usuario podría seguir o **preguntas clarificadoras** que ayudarían a diagnosticar mejor el problema.
+5.  Incluye cualquier nota de diagnóstico o razonamiento importante.
 
-Tu respuesta (la del Orquestador, resumiendo el trabajo del grupo) debe estar estructurada para que pueda ser presentada al usuario.
-Enfócate en proporcionar una "suggestedSolution" y "diagnosticNotes".`;
+Tu respuesta (la del Orquestador, resumiendo el trabajo del grupo) debe ser estructurada para que pueda ser presentada al usuario.
+Enfócate en proporcionar una "suggestedSolution" (clara y accionable) y "diagnosticNotes" (con el análisis y razonamiento).
+No intentes aplicar la corrección directamente; solo sugiérela.`;
 
-    const initialGroupLog = `[Auto-Fix] Invocando al grupo 'EquipoDesarrolloSoftware' con la tarea de analizar y proponer una solución para el error: "${errorMessage.substring(0, 100)}...".
-Grupo: ${softwareDevelopmentTeam.name}
-Tarea principal del grupo (abreviada): ${softwareDevelopmentTeam.mainTask.substring(0, 150)}...
-Prompt del Orquestador (abreviado): ${orchestratorAgent.systemPrompt.substring(0, 150)}...`;
+    const initialGroupLog = `[${new Date().toISOString()}] [Auto-Fix Invocation]
+Error Original Reportado: "${errorMessage.substring(0, 150)}..."
+Contexto de Código (inicio): "${codeContext?.substring(0, 100) || 'N/A'}..."
+Instrucciones de Usuario (inicio): "${userInstructions?.substring(0, 100) || 'N/A'}..."
+Invocando al grupo: ${softwareDevelopmentTeam.name}
+Tarea principal del grupo (resumen): ${softwareDevelopmentTeam.mainTask.substring(0, 150)}...
+Prompt del Orquestador (resumen): ${orchestratorAgent.systemPrompt.substring(0, 200)}...
+Tarea específica enviada al grupo (inicio): "${taskForGroup.substring(0, 250)}..."`;
+
+    console.log(`[Flow: ${flowName}] Tarea específica enviada al grupo (longitud: ${taskForGroup.length}):\n${taskForGroup.substring(0, 500)}...`);
 
     try {
+      // NOTA: callChatWithAIGroup ya tiene su propio manejo de errores y reintentos.
+      // El AppError que lance será capturado por el catch del exportado autoFixErrorWithGroup.
       const groupResponse = await callChatWithAIGroup({
         userMessage: taskForGroup,
-        groupMainTask: softwareDevelopmentTeam.mainTask, // The overall goal of the team
+        groupMainTask: softwareDevelopmentTeam.mainTask,
         participatingAgents: participatingAgents.map((p) => ({
           id: p.id,
           name: p.name,
@@ -144,54 +184,37 @@ Prompt del Orquestador (abreviado): ${orchestratorAgent.systemPrompt.substring(0
         orchestratorAgentSystemPrompt: orchestratorAgent.systemPrompt,
       });
 
-      // For this iteration, we assume the orchestrator's first comprehensive response
-      // contains the necessary information. A more complex system might involve
-      // multiple turns managed by this flow, but that's beyond a single flow call.
-      // We'll attempt to parse the orchestrator's JSON response if it's structured,
-      // or use its text directly.
+      let suggestedSolution = `Respuesta del grupo 'EquipoDesarrolloSoftware' (a través del Orquestador):\n${groupResponse.orchestratorResponse}`;
+      let diagnosticNotes = "El grupo ha proporcionado una respuesta. Revisa la solución sugerida.";
 
-      let suggestedSolution = `Respuesta del grupo 'EquipoDesarrolloSoftware':\n${groupResponse.orchestratorResponse}`;
-      let diagnosticNotes =
-        'El grupo ha proporcionado una respuesta inicial. Revisa la solución sugerida.';
-
-      try {
-        const parsedOrchestratorResponse = JSON.parse(
-          groupResponse.orchestratorResponse
-        );
-        // If the orchestrator provided a structured response according to its own prompt
-        if (
-          parsedOrchestratorResponse.instruction_for_next_agent ||
-          parsedOrchestratorResponse.reasoning
-        ) {
-          suggestedSolution =
-            parsedOrchestratorResponse.instruction_for_next_agent ||
-            'El grupo está procesando la solicitud.';
-          diagnosticNotes =
-            parsedOrchestratorResponse.reasoning ||
-            'El orquestador ha delegado la tarea.';
-          if (parsedOrchestratorResponse.next_agent_id === 'COMPLETADO') {
-             diagnosticNotes = `El grupo considera la tarea completada con esta solución. ${diagnosticNotes}`;
-          }
-        }
-      } catch (e) {
-        // Not a JSON response, use the raw text as the solution
-        console.warn(
-          '[Auto-Fix Flow] La respuesta del orquestador no era JSON, usando como texto directo.'
-        );
-      }
+      // Intentar parsear la respuesta del orquestador si se espera que sea un JSON estructurado
+      // (basado en el prompt del orquestador) que contenga 'suggestedSolution' y 'diagnosticNotes'.
+      // Por ahora, el prompt del orquestador es genérico, así que tomamos su respuesta textual.
+      // Si el orquestador estuviera instruido para devolver un JSON específico para Auto-Fix, lo parsearíamos aquí.
+      // Ejemplo:
+      // try {
+      //   const parsedOrchestratorResponse = JSON.parse(groupResponse.orchestratorResponse);
+      //   if (parsedOrchestratorResponse.suggestedSolution && parsedOrchestratorResponse.diagnosticNotes) {
+      //     suggestedSolution = parsedOrchestratorResponse.suggestedSolution;
+      //     diagnosticNotes = parsedOrchestratorResponse.diagnosticNotes;
+      //   }
+      // } catch (e) {
+      //   console.warn(`[Flow: ${flowName}] La respuesta del orquestador para Auto-Fix no era JSON o no tenía el formato esperado. Usando respuesta textual.`);
+      // }
 
       return {
         suggestedSolution,
         diagnosticNotes,
         initialGroupLog,
       };
-    } catch (error) {
-      console.error('[Auto-Fix Flow] Error llamando a chatWithAIGroup:', error);
-      throw new Error(
-        `Error al interactuar con el grupo 'EquipoDesarrolloSoftware' para auto-corrección: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+    } catch (error: any) { // Captura errores de callChatWithAIGroup
+      console.error(`[Flow: ${flowName}] Error llamando a callChatWithAIGroup para auto-corrección:`, error);
+      const errorMsg = error instanceof AppError ? error.friendlyMessage : (error instanceof Error ? error.message : String(error));
+      return {
+        suggestedSolution: `Error al intentar obtener una sugerencia de auto-corrección del grupo 'EquipoDesarrolloSoftware': ${errorMsg}`,
+        diagnosticNotes: "El grupo de IA no pudo procesar la solicitud de auto-corrección. Revisa los logs del servidor para más detalles. Error original: " + (error.originalError?.message || errorMsg),
+        initialGroupLog: `${initialGroupLog}\n[${new Date().toISOString()}] [ERROR] Falló la interacción con el grupo: ${errorMsg}`,
+      };
     }
   }
 );
