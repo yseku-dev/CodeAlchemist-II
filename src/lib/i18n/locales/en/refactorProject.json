@@ -36,7 +36,11 @@
       "noSummary": "No project summary was provided."
     },
     "suggestionsTitle": "Refactoring Suggestions:",
-    "noSpecificSuggestions": "No specific refactoring suggestions were generated."
+    "noSpecificSuggestions": "No specific refactoring suggestions were generated.",
+    "saveSnapshotButton": "Save Refactored Snapshot",
+    "snapshotNamePrefix": "Refactoring",
+    "snapshotNameAppliedPrefix": "Refactoring Applied (Conceptual)",
+    "snapshotNameSourcePrefix": "Original Source (Refactoring)"
   },
   "suggestion": {
     "priorityLabel": "Priority:",
@@ -53,7 +57,7 @@
     "noContent": "N/A"
   },
   "logs": {
-    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+    "groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
     "groupLogTitle": "Group Execution Log"
   },
   "toast": {

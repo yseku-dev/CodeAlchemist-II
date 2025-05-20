@@ -1,5 +1,5 @@
 
-// import type { LLM_PROVIDERS } from '@/lib/constants'; // Not needed if LLMProvider is defined below
+// src/types/index.ts
 
 /**
  * @fileOverview Defines all shared TypeScript types and interfaces for the CodeAlchemist application.
@@ -180,21 +180,26 @@ export interface CodeSnapshot {
   /** Descriptive name for the snapshot. */
   name: string;
   /**
-   * The actual code content or JSON stringified application state of the snapshot.
+   * The actual code content or JSON stringified application state/project structure of the snapshot.
    * @example For source code: "function hello() { console.log('World'); }"
    * @example For app state: "{ \"settings\": { ... }, \"agents\": [ ... ] }"
+   * @example For project structure: "{ \"projectName\": \"...\", \"files\": [ ... ] }"
    */
   code: string;
   /** ISO date string representing when the snapshot was created. */
   createdAt: string;
   /**
    * Indicates the source or type of the snapshot.
-   * 'original': The original code before AI analysis (from "Analizar Código").
-   * 'suggested': The code suggested by an AI (from "Analizar Código").
-   * 'codealchemist-app-state': A snapshot of CodeAlchemist's application state (settings, agents, groups). This is downloaded as a .json file.
-   * 'codealchemist-current': Placeholder, consider 'codealchemist-app-state' for saving current state.
+   * 'original': Original code from "Analizar Código".
+   * 'suggested': AI-suggested code from "Analizar Código".
+   * 'codealchemist-app-state': Snapshot of CodeAlchemist's settings, agents, groups.
+   * 'generated-project': Snapshot of a project structure from "Generar Proyecto".
+   * 'project-analysis': Snapshot of an analysis result from "Analizar Proyecto Completo".
+   * 'refactored-project': Snapshot of a (conceptually) refactored project.
+   * 'autoupdate-snapshot': Snapshot from "AutoUpdate" (conceptually applied suggestions).
+   * 'unknown': Default or unknown source.
    */
-  source?: 'original' | 'suggested' | 'codealchemist-app-state' | 'codealchemist-current';
+  source?: 'original' | 'suggested' | 'codealchemist-app-state' | 'generated-project' | 'project-analysis' | 'refactored-project' | 'autoupdate-snapshot' | 'unknown';
 }
 
 
@@ -250,8 +255,23 @@ export interface ProjectGenerationResult {
     * Log from group execution if generation was group-coordinated.
     * This might be a simplified log if the flow itself is a single LLM call
     * but was contextually guided by a group's settings.
+    * Or it could be a detailed multi-turn log if the flow orchestrated a group.
     */
   groupLog?: string;
+}
+
+/**
+ * Input for modifying an existing project structure via AI.
+ */
+export interface ModifyProjectStructureInput {
+  /** The current state of the project, as a `ProjectGenerationResult` object. */
+  currentProject: ProjectGenerationResult;
+  /** The user's request in natural language describing the desired modification. */
+  modificationRequest: string;
+  /** Optional history of previous modification chat messages for context. */
+  chatHistory?: ChatMessage[];
+  /** Optional system prompt of an agent or group's main task to contextualize the modification. */
+  agentSystemPrompt?: string;
 }
 
 
@@ -310,7 +330,6 @@ export interface AnalyzeCodeSnippetInput {
 
 /**
  * Output type for the code snippet analysis Genkit flow.
- * The `explanation` field should describe the original code's purpose and functionality before suggesting changes.
  */
 export interface AnalyzeCodeSnippetOutput {
   /**
@@ -322,6 +341,10 @@ export interface AnalyzeCodeSnippetOutput {
   originalCode: string;
   /** The AI's suggested version of the code, incorporating improvements, corrections, or optimizations. */
   suggestedCode: string;
+  /**
+   * Log from group execution if analysis was group-coordinated.
+   */
+  groupLog?: string;
 }
 
 /**
@@ -345,13 +368,15 @@ export interface AutoUpdateSuggestion {
    */
   suggestedPromptForImplementation?: string;
   /** Current status of the suggestion in the UI (e.g., pending, applied, discarded). */
-  status?: 'pending' | 'applied' | 'discarded';
+  status: 'pending' | 'applied' | 'discarded'; // Made non-optional
   /** Flag to indicate if the suggestion content is currently being edited by the user in the UI. */
   isEditing?: boolean;
   /** The content of the suggestion as edited by the user, if `isEditing` was true and changes were made. */
   userEditedContent?: string;
   /** The original content of the file or snippet related to this suggestion, if available. Used for diffing or reference. */
   originalContent?: string;
+  /** Optional error message if applying the suggestion failed. */
+  errorMessage?: string;
 }
 
 /**
@@ -430,6 +455,10 @@ export interface AgentInfoForGroupSuggestion {
     name: string;
     /** Description of the agent's purpose or specialization. */
     description: string;
+    // Added for chatWithAIGroup flow
+    systemPrompt: string;
+    capabilities: AgentCapabilities;
+    llmConfig: AgentLLMConfiguration;
 }
 /**
  * Input type for the AI-assisted group definition suggestion Genkit flow.
@@ -438,7 +467,7 @@ export interface SuggestGroupDefinitionInput {
   /** A detailed description from the user about the task or objective the AI agent group should achieve. */
   groupTaskDescription: string;
   /** A list of existing AI agents available for inclusion in the group, each with their ID, name, and description. */
-  availableAgents: AgentInfoForGroupSuggestion[];
+  availableAgents: AgentInfoForGroupSuggestion[]; // Re-using AgentInfoForGroupSuggestion
 }
 /**
  * Output type for the AI-assisted group definition suggestion Genkit flow.
@@ -452,38 +481,27 @@ export type SuggestGroupDefinitionOutput = Omit<GroupFormData, 'id'>;
  */
 export interface RefactorProjectWithAIInput {
   /**
-   * The project source, typically represented as a reference string.
-   * This could be a marker for an uploaded file (e.g., "uploaded_file:myproject.zip")
-   * or a Git URL (e.g., "https://github.com/user/repo.git").
-   * The actual file content for uploads might be handled separately or passed as base64 if the flow supports it.
+   * The project source, typically represented as a reference string or the full content.
    */
   projectSource: string;
   /**
    * Specific goals for the refactoring process, as defined by the user.
-   * @example "Improve performance of UI components."
-   * @example "Reduce complexity in the payment module."
    */
   goals?: string;
   /**
    * General priority guiding the refactoring effort.
-   * @example "Priorizar Seguridad"
-   * @example "Priorizar Legibilidad"
    */
-  priority?: string; // Consider making this an enum type for consistency with UI
+  priority?: string;
   /**
-   * Suggested depth for the analysis (e.g., number of directory levels or call stack depth).
-   * A higher number might imply a more thorough but potentially slower analysis.
+   * Suggested depth for the analysis.
    */
   searchDepth?: number;
   /**
-   * Specific functional area, module, or quality attribute (e.g., "performance", "security", "UI rendering logic")
-   * on which the AI should concentrate its analysis.
+   * Specific functional area, module, or quality attribute.
    */
   focusArea?: string;
   /**
    * Optional system prompt of an agent or group's main task.
-   * If the refactoring is being driven or contextualized by a specific AI agent or group,
-   * its system prompt/main task can be provided here to guide the LLM.
    */
   agentSystemPrompt?: string;
 }
@@ -494,18 +512,14 @@ export interface RefactorProjectWithAIInput {
 export interface RefactorProjectWithAIOutput {
   /**
    * A summary of the project's main objectives and functionalities.
-   * This provides context before listing refactoring suggestions.
    */
   projectOverview: string;
   /**
-   * An array of raw `RefactorSuggestion` objects (without `id` or `status`) detailing proposed refactorings.
-   * The UI layer is responsible for adding `id` and `status` for state management.
+   * An array of raw `RefactorSuggestion` objects (without `id` or `status`).
    */
   suggestions: Array<Omit<RefactorSuggestion, 'id' | 'status'>>;
   /**
    * Log from group execution if refactoring was group-coordinated.
-   * This might be a simplified log if the flow itself is a single LLM call
-   * but was contextually guided by a group's settings.
    */
   groupLog?: string;
 }
@@ -517,32 +531,25 @@ export interface AnalyzeCodeInput {
   /** Indicates the source of the code to be analyzed. */
   sourceCodeLocation: 'Local' | 'Git' | 'UploadedString';
   /**
-   * The actual project content, typically as a string.
-   * This might be the content of a single file, a JSON representation of a project structure,
-   * or a reference to content fetched from Git or an upload.
+   * The actual project content.
    */
   projectContent?: string;
   /** The URL of the Git repository if `sourceCodeLocation` is 'Git'. */
   gitRepoUrl?: string;
   /**
-   * Deprecated in favor of `focusArea`. Specific areas or concerns to focus the analysis on.
    * @deprecated Use `focusArea` instead.
    */
   analysisPreferences?: string;
   /**
-   * Suggested depth for the analysis (e.g., number of directory levels or call stack depth).
-   * A higher number might imply a more thorough analysis.
+   * Suggested depth for the analysis.
    */
   searchDepth?: number;
   /**
-   * Specific functional area, module, or quality attribute (e.g., "performance", "security", "UI rendering logic")
-   * on which the AI should concentrate its analysis.
+   * Specific functional area, module, or quality attribute.
    */
   focusArea?: string;
   /**
    * Optional system prompt of an agent or group's main task.
-   * If the analysis is being driven or contextualized by a specific AI agent or group,
-   * its system prompt/main task can be provided here to guide the LLM.
    */
   agentSystemPrompt?: string;
 }
@@ -557,37 +564,22 @@ export interface AnalyzeCodeOutput {
   identifiedAreas: string[];
   /** A list of detailed suggestions for improvement or correction. */
   detailedSuggestions: Array<{
-    /** The specific area (e.g., file path, component name) affected by the suggestion. */
     area: string;
-    /** A detailed description of the suggested improvement. */
     suggestion: string;
-    /** The priority of the suggestion (Alta, Media, Baja). */
     priority: 'Alta' | 'Media' | 'Baja';
-    /**
-     * If the suggestion involves a direct code change for an entire file,
-     * this field contains the complete suggested content of that file.
-     */
     suggestedContent?: string;
-    /**
-     * An AI-generated prompt, in Spanish, that could be given to another AI
-     * (or used as a guide for a developer) to implement this specific suggestion.
-     */
     suggestedPromptForImplementation?: string;
   }>;
   /**
    * An overall assessment of the code quality, potential issues, and main characteristics.
-   * Should start with a summary of the project's objectives and functionalities.
    */
   generalAssessment: string;
   /**
-   * Optional log from group execution if the analysis was coordinated by an AI agent group.
-   * This might be a simplified log if the flow itself is a single LLM call
-   * but was contextually guided by a group's settings.
+   * Optional log from group execution.
    */
   groupLog?: string;
   /**
-   * Optional list of high-level ideas for general project improvement,
-   * often related to the user-specified objectives or focus area.
+   * Optional list of high-level ideas for general project improvement.
    */
   overallImprovementIdeas?: string[];
 }
@@ -603,15 +595,6 @@ export interface NoteType {
   /** Optional ISO date string indicating when the note was created. */
   createdAt?: string;
 }
-
-
-/**
- * Represents a key for a translatable string.
- * This type would ideally be generated from your translation files
- * to ensure all keys are valid. For now, it's a string.
- */
-export type TranslationKey = string;
-
 
 /**
  * Input for the Auto-Fix Error with Group flow.
@@ -635,7 +618,6 @@ export interface AutoFixErrorWithGroupOutput {
   diagnosticNotes: string;
   /**
    * A log indicating how the group was invoked.
-   * This is a simplified log as the flow itself will be a single primary call to chatWithAIGroup.
    */
   initialGroupLog: string;
 }
@@ -648,7 +630,6 @@ export interface GenerateCodeFromDescriptionInput {
   description: string;
   /**
    * Optional system prompt of an agent or group's main task.
-   * If the generation is contextualized by an agent/group, its prompt is passed here.
    */
   agentSystemPrompt?: string;
 }
@@ -663,15 +644,12 @@ export interface GenerateCodeFromDescriptionOutput {
   code: string;
   /**
    * Log from group execution if generation was group-coordinated.
-   * This might be a simplified log if the flow itself is a single LLM call
-   * but was contextually guided by a group's settings.
    */
   groupLog?: string;
 }
 
 /**
  * Represents a file obtained from the application's source for analysis or download.
- * This type is crucial for the AutoUpdate feature when interacting with server-side actions.
  * @see src/app/autoupdate/actions.ts
  */
 export interface AppSourceFile {
@@ -695,4 +673,55 @@ export interface RedefinePromptInput {
 export interface RedefinePromptOutput {
   /** The refined, clearer, or more detailed prompt string generated by the AI. */
   redefinedPrompt: string;
+}
+
+/**
+ * Input for the Genkit flow that handles chat interactions with a specific AI agent or the globally configured LLM.
+ */
+export interface ChatWithAgentOrGlobalInput {
+  /** The message sent by the user. */
+  userMessage: string;
+  /**
+   * Optional system prompt of a specific AI agent.
+   * If provided, the chat interaction will be contextualized by this agent's persona and instructions.
+   * If not provided, a default assistant persona is used.
+   */
+  agentSystemPrompt?: string;
+}
+
+/**
+ * Output for the Genkit flow that handles chat interactions with a specific AI agent or the globally configured LLM.
+ */
+export interface ChatWithAgentOrGlobalOutput {
+  /** The response generated by the AI assistant. */
+  aiResponse: string;
+}
+
+
+/**
+ * Input type for the Genkit flow that handles chat interactions with an AI Agent Group via its Orchestrator.
+ */
+export interface ChatWithAIGroupInput {
+  /** The message from the user to the group. */
+  userMessage: string;
+  /** The main task or objective of the AI agent group. */
+  groupMainTask: string;
+  /**
+   * Information about the agents participating in the group.
+   * This is used by the orchestrator to understand the capabilities of its team members.
+   */
+  participatingAgents: AgentInfoForGroupSuggestion[];
+  /** The system prompt for the orchestrator agent itself, defining its role in managing the group. */
+  orchestratorAgentSystemPrompt: string;
+}
+
+/**
+ * Output type for the Genkit flow that handles chat interactions with an AI Agent Group.
+ */
+export interface ChatWithAIGroupOutput {
+  /**
+   * The response from the orchestrator agent.
+   * This is typically a JSON string detailing its decision (e.g., which agent to call next, or the final result).
+   */
+  orchestratorResponse: string;
 }

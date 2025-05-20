@@ -15,8 +15,6 @@
     "analysisParamsLabel": "Self-Analysis Parameters",
     "analysisPrefsLabel": "Analysis Preferences / Focus Area (optional)",
     "analysisPrefsPlaceholder": "E.g.: Focus on UI optimization. All suggestions in English.",
-    "searchDepthLabel": "Search Depth (optional)",
-    "searchDepthPlaceholder": "E.g.: 3 (levels)",
     "startButton": "Start Self-Analysis",
     "startButtonLoading": "Analyzing..."
   },
@@ -32,7 +30,8 @@
     "overallImprovementIdeasLabel": "General Improvement Ideas Suggested by AI:",
     "detailedSuggestionsLabel": "Detailed Suggestions:",
     "noDetailedSuggestions": "No detailed suggestions.",
-    "unifiedPromptLabel": "Unified Prompt to Implement All Suggestions:"
+    "unifiedPromptLabel": "Unified Prompt to Implement All Suggestions:",
+    "saveSnapshotButton": "Save AutoUpdate Snapshot"
   },
   "suggestionCard": {
     "priorityLabel": "Priority:",
@@ -44,7 +43,7 @@
     "editContentLabel": "Edit Suggested Content:"
   },
   "logs": {
-    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+    "groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
     "analysisStarting": "Starting Self-Analysis...",
     "analysisProcessingComplete": "AutoUpdate analysis processing complete.",
     "localCodeObtained": "Local code obtained from server.",
@@ -68,7 +67,8 @@
     "detailedExecutionLogsTitle": "Detailed Execution Logs (AutoUpdate)",
     "analyzingWithGroup": "Analyzing with group...",
     "waitingForGroup": "Waiting for group results...",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "snapshotNamePrefix": "AutoUpdate Snapshot"
   },
   "analysis": {
     "fileMarker": "File",
@@ -120,12 +120,12 @@
       "description": "Getting code from server..."
     },
     "downloadProjectZipToast": {
-        "title": "Download of Current Code with Suggestions (ZIP)",
-        "description": "Download of a ZIP containing the project's current source code (from server), with 'applied' suggestions conceptually merged, has started. This file ({filename}) contains a JSON file detailing the suggested changes. To apply these improvements, you'll need the base CodeAlchemist source code (Git) and manually apply the changes from the JSON to your local copy."
+        "title": "Download of Project with Suggestions (ZIP containing JSON of changes)",
+        "description": "This ZIP file ({filename}) contains a JSON file detailing which files would be modified by the AI suggestions and their new proposed content. **It is not a ZIP of the full executable project.** To 'run it locally' with these improvements, you will need: 1. The base CodeAlchemist source code (obtained from its Git repository). 2. To manually apply the changes detailed in the downloaded JSON to your local copy of the source code. This download provides you with the 'diffs' or proposed file contents from the AI."
     },
     "downloadCurrentCodeZipToast": {
         "title": "Download of Current Code (ZIP)",
-        "description": "Download of a ZIP that contains the project's current source code, obtained from the server, has started. This process may take a few moments. ({filename})"
+        "description": "Download of a ZIP containing the project's current source code, obtained from the server, has started. This process may take a few moments. ({filename})"
     },
     "zipError": {
       "title": "Error Generating ZIP",
@@ -217,7 +217,7 @@
     }
   },
   "autofix": {
-    "errorContext": "Error to analyze: {error}\n\nContext: Error occurred in CodeAlchemist's AutoUpdate feature.",
-    "focusArea": "Explain the following error and propose a solution or debugging steps: \"{error}\""
+    "errorContext": "Error to analyze: {error}\\n\\nContext: Error occurred in CodeAlchemist's AutoUpdate feature.",
+    "focusArea": "Explain the following error and propose a solution or debugging steps: \\\"{error}\\\""
   }
 }

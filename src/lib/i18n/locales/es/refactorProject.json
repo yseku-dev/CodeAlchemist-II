@@ -36,7 +36,11 @@
       "noSummary": "No se proporcionó un resumen del proyecto."
     },
     "suggestionsTitle": "Sugerencias de Refactorización:",
-    "noSpecificSuggestions": "No se generaron sugerencias específicas de refactorización."
+    "noSpecificSuggestions": "No se generaron sugerencias específicas de refactorización.",
+    "saveSnapshotButton": "Guardar Snapshot Refactorizado",
+    "snapshotNamePrefix": "Refactorización",
+    "snapshotNameAppliedPrefix": "Refactorización Aplicada (Conceptual)",
+    "snapshotNameSourcePrefix": "Fuente Original (Refactorización)"
   },
   "suggestion": {
     "priorityLabel": "Prioridad:",
@@ -53,7 +57,7 @@
     "noContent": "N/A"
   },
   "logs": {
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}\\nInput del Usuario: {userInput}\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
     "groupLogTitle": "Log de Ejecución del Grupo"
   },
   "toast": {

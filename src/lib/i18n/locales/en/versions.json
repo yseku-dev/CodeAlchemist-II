@@ -30,9 +30,8 @@
     "original": "Original (Analysis)",
     "suggested": "Suggested (Analysis)",
     "codealchemist-app-state": "App State",
-    "codealchemist-current": "Current Code (AutoUpdate)",
-    "project-analysis": "Project Analysis",
     "generated-project": "Generated Project",
+    "project-analysis": "Project Analysis",
     "refactored-project": "Refactored Project",
     "autoupdate-snapshot": "AutoUpdate Snapshot",
     "unknown": "Unknown"

@@ -17,24 +17,33 @@
     "modificationInputLabel": "Describe tu modificación:",
     "modificationInputPlaceholder": "Ej: Añade un archivo 'utils.js' en la carpeta 'src'.",
     "sendModificationButton": "Enviar Modificación",
-    "saveSnapshotButton": "Guardar Snapshot del Proyecto"
+    "saveSnapshotButton": "Guardar Snapshot del Proyecto",
+    "snapshotName": "Proyecto Generado - {name} - {time}"
   },
   "logs": {
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}\\nInput del Usuario: {userInput}\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
     "multiTurnLog": {
-      "orchestratorReceiving": "Orquestador (Turno {turn}) Recibiendo Tarea:\n{task}",
-      "orchestratorRawResponse": "Respuesta JSON Cruda del Orquestador (Turno {turn}):\n{response}",
-      "orchestratorDecision": "Decisión del Orquestador (Turno {turn}):\n  Próximo Agente: {nextAgentId}\n  Instrucción: {instruction}\n  Razonamiento: {reasoning}",
-      "callingAgent": "Llamando a Agente {agentName} (Turno {turn}) con Instrucción:\n{instruction}",
-      "agentResponding": "Respuesta de {agentName} (Turno {turn}):\n{response}",
-      "aggregation": "Agregando datos de {source} (Turno {turn}): Nombre Proyecto: {projectName}, Notas (inicio): {aiNotes}, Archivos: {fileCount}",
-      "completed": "Orquestador indica COMPLETADO (Turno {turn}). Resumen Final: {finalSummary}",
-      "maxTurnsReached": "\nSe alcanzó el límite máximo de {maxTurns} turnos en el flujo multi-agente.",
+      "processStart": "Iniciando generación de proyecto con grupo: {groupName}. Tarea: {taskDescription}",
+      "orchestratorTurnStart": "Turno {turn} - Orquestador:",
+      "orchestratorReceiving": "  Recibiendo: {input}",
+      "orchestratorSendingPrompt": "  Enviando prompt al LLM (longitud: {length}):\\n{prompt}",
+      "orchestratorRawResponse": "  Respuesta JSON cruda del LLM (truncada): {response}",
+      "orchestratorParsedDecision": "  Decisión parseada: Próximo Agente: {nextAgentId}, Instrucción (inicio): {instructionStart}..., Razonamiento (inicio): {reasoningStart}...",
+      "orchestratorDataAggregation": "  Agregando datos del payload: Proyecto: {projectName}, Notas (inicio): {aiNotesStart}..., Archivos: {filesCount}",
+      "agentTurnStart": "Turno {turn} - Agente {agentName}:",
+      "agentReceivingInstruction": "  Recibiendo instrucción: {instruction}",
+      "agentSendingPrompt": "  Enviando prompt al LLM (longitud: {length}):\\n{prompt}",
+      "agentRawResponse": "  Respuesta cruda del LLM (truncada): {response}",
+      "processCompleted": "Proceso completado por el orquestador. Resultado final (resumen): {finalSummary}",
+      "maxTurnsReached": "Se alcanzó el límite máximo de {maxTurns} turnos. La generación del proyecto podría estar incompleta.",
       "errorTurn": "[ERROR] Turno {turn} ({actor}): {errorMessage}",
-      "diagnosticMode": "MODO DIAGNÓSTICO: Solo se ejecutará el Turno 1 del Orquestador.",
-      "diagnosticPrompt": "Prompt de Diagnóstico (Turno 1) para Orquestador (Longitud: {length}):\n{prompt}",
-      "diagnosticRawResponse": "Respuesta Cruda de Diagnóstico del Orquestador (Turno 1) (truncada):\n{response}",
-      "diagnosticDecision": "Decisión de Diagnóstico del Orquestador (Turno 1):\n{decision}"
+      "errorParsingOrchestratorResponse": "  [ERROR CRÍTICO] Orquestador no devolvió JSON válido. Respuesta: {response}. Error: {parseError}",
+      "errorOrchestratorMissingFields": "  [ERROR CRÍTICO] Respuesta del Orquestador incompleta. Faltan campos requeridos.",
+      "errorAgentNotFound": "  [ERROR CRÍTICO] Agente con ID '{agentId}' no encontrado.",
+      "errorCallingAgent": "  [ERROR] Falló la llamada al agente {agentName}: {errorMessage}",
+      "errorCallingOrchestrator": "  [ERROR] Falló la llamada al orquestador: {errorMessage}",
+      "finalProjectAssembly": "Ensamblando resultado final del proyecto...",
+      "noValidResponseFromOrchestrator": "No se obtuvo una respuesta válida del orquestador para continuar."
     }
   },
   "confirmDialog": {
@@ -79,15 +88,12 @@
     },
     "modificationSuccess": {
       "title": "Modificación Aplicada",
-      "description": "La IA ha procesado tu solicitud. Revisa los cambios."
+      "description": "La IA ha procesado tu solicitud. Por favor, revisa los cambios.",
+      "defaultAiNote": "Modificación procesada. Revisa la estructura del proyecto y las notas."
     },
     "emptyModificationRequest": {
         "title": "Petición Vacía",
         "description": "Por favor, describe la modificación que deseas realizar."
-    },
-    "snapshotSaved": {
-      "title": "Snapshot Guardado",
-      "description": "El estado actual del proyecto \"{name}\" ha sido guardado en Versiones."
     }
   }
 }

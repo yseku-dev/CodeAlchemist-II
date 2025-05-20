@@ -4,9 +4,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, Send, Wand2, Loader2, MessageSquare, Bot, User } from 'lucide-react';
+import { Download, Send, Wand2, Loader2, MessageSquare, Bot, User, Save } from 'lucide-react';
 import FileTreeDisplay from '@/components/file-tree';
-import LogsDisplay from '@/components/logs-display';
+// LogsDisplay es ahora manejado directamente en la página padre si es necesario
 import type { ProjectGenerationResult, ChatMessage } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,7 @@ interface GenerateProjectResultsDisplayProps {
   result: ProjectGenerationResult | null;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
   onDownloadProject: () => void;
+  onSaveSnapshot: () => void;
   // Props for modification chat
   chatHistory: ChatMessage[];
   currentModificationRequest: string;
@@ -51,6 +52,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
   result,
   t,
   onDownloadProject,
+  onSaveSnapshot,
   chatHistory,
   currentModificationRequest,
   onCurrentModificationRequestChange,
@@ -63,10 +65,6 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
   if (!result) {
     return null;
   }
-
-  const downloadButtonText = t('generateProject.results.downloadButton');
-  const downloadNoteText = t('generateProject.results.downloadNote');
-
 
   return (
     <div className="space-y-6">
@@ -90,21 +88,19 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
           <FileTreeDisplay files={result.files} />
         </div>
       )}
-
-      <Button onClick={onDownloadProject} variant="outline">
-        <Download className="mr-2 h-4 w-4" />
-        {downloadButtonText}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={onDownloadProject} variant="outline">
+          <Download className="mr-2 h-4 w-4" />
+          {t('generateProject.results.downloadButton')}
+        </Button>
+        <Button onClick={onSaveSnapshot} variant="outline">
+          <Save className="mr-2 h-4 w-4" />
+          {t('generateProject.results.saveSnapshotButton')}
+        </Button>
+      </div>
       <p className="text-xs text-muted-foreground mt-1">
-        {downloadNoteText}
+        {t('generateProject.results.downloadNote')}
       </p>
-
-      {result.groupLog && (
-        <LogsDisplay
-          title={t('generateProject.results.groupLogTitle')}
-          logs={result.groupLog}
-        />
-      )}
 
       {/* Interactive Modification Section */}
       <Separator className="my-8" />
@@ -119,7 +115,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
           <ScrollArea className="h-48 border rounded-md p-3 bg-muted/30" ref={scrollAreaRefChat}>
             {chatHistory.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                    {t('chat.inputPlaceholder')} {/* Using a generic placeholder */}
+                    {t('generateProject.results.modificationInputPlaceholder')}
                 </p>
             )}
             <div className="space-y-3">
@@ -141,6 +137,9 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
                   >
                     {msg.role === 'assistant' && (
                       <Bot className="h-5 w-5 self-start flex-shrink-0 text-accent" />
+                    )}
+                     {msg.role === 'system' && ( // System messages (like errors)
+                      <Bot className="h-5 w-5 self-start flex-shrink-0 text-destructive" />
                     )}
                     {msg.role === 'user' && (
                       <User className="h-5 w-5 self-start flex-shrink-0" />

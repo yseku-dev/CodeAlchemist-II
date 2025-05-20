@@ -15,8 +15,6 @@
     "analysisParamsLabel": "Parámetros de Auto-Análisis",
     "analysisPrefsLabel": "Preferencias de Análisis / Campo de Enfoque (opcional)",
     "analysisPrefsPlaceholder": "Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano.",
-    "searchDepthLabel": "Profundidad de Búsqueda (opcional)",
-    "searchDepthPlaceholder": "Ej: 3 (niveles)",
     "startButton": "Iniciar Auto-Análisis",
     "startButtonLoading": "Analizando..."
   },
@@ -32,7 +30,8 @@
     "overallImprovementIdeasLabel": "Ideas Generales de Mejora Sugeridas por IA:",
     "detailedSuggestionsLabel": "Sugerencias Detalladas:",
     "noDetailedSuggestions": "No hay sugerencias detalladas.",
-    "unifiedPromptLabel": "Prompt Unificado para Implementar Todas las Sugerencias:"
+    "unifiedPromptLabel": "Prompt Unificado para Implementar Todas las Sugerencias:",
+    "saveSnapshotButton": "Guardar Snapshot de AutoUpdate"
   },
   "suggestionCard": {
     "priorityLabel": "Prioridad:",
@@ -44,7 +43,7 @@
     "editContentLabel": "Editar Contenido Sugerido:"
   },
   "logs": {
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}\\nInput del Usuario: {userInput}\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
     "analysisStarting": "Iniciando Auto-Análisis...",
     "analysisProcessingComplete": "Procesamiento del análisis de AutoUpdate completado.",
     "localCodeObtained": "Código local obtenido del servidor.",
@@ -54,7 +53,7 @@
     "downloadRequested": "Descarga solicitada: {format}",
     "suggestionsDownloadedJson": "Sugerencias de AutoUpdate descargadas como JSON.",
     "applyingSuggestionToZip": "Aplicando contenido de sugerencia a {fileName} para ZIP.",
-    "projectZipDownloaded": "Sugerencias Descargadas (Formato ZIP Conteniendo JSON). Se ha descargado un archivo .zip. Importante: Este archivo ZIP contiene un único archivo JSON con las sugerencias de código. No es un ZIP del proyecto completo con estructura de carpetas. Para obtener el proyecto completo, necesitarías clonarlo desde su repositorio Git y aplicar manualmente las sugerencias descargadas.",
+    "projectZipDownloaded": "Sugerencias Descargadas (Formato ZIP Conteniendo JSON). Se ha descargado un archivo .zip. Importante: Este archivo ZIP contiene un único archivo JSON con las sugerencias de código. No es un ZIP del proyecto completo con estructura de carpetas. Para obtener el proyecto completo, necesitarías clonarlo desde su repositorio Git y aplicar manually las sugerencias descargadas.",
     "zipGenerationFailed": "Generación de ZIP fallida: {error}",
     "gitUploadFailedConfig": "Subida a Git fallida: Configuración incompleta.",
     "commitMessageMissing": "Subida a Git fallida: Mensaje de commit requerido.",
@@ -68,7 +67,8 @@
     "detailedExecutionLogsTitle": "Logs de Ejecución Detallados (AutoUpdate)",
     "analyzingWithGroup": "Analizando con grupo...",
     "waitingForGroup": "Esperando resultados del grupo...",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "snapshotNamePrefix": "Snapshot AutoUpdate"
   },
   "analysis": {
     "fileMarker": "Archivo",
@@ -120,8 +120,8 @@
       "description": "Obteniendo código del servidor..."
     },
     "downloadProjectZipToast": {
-        "title": "Descarga de Código Actual con Sugerencias (ZIP)",
-        "description": "Descarga de un ZIP conteniendo el código fuente actual del proyecto (del servidor), con sugerencias 'aplicadas' conceptualmente, ha iniciado. Este archivo ({filename}) contiene un archivo JSON detallando los cambios sugeridos. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (Git) y aplicar manually los cambios del JSON a tu copia local."
+        "title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
+        "description": "Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. **No es un ZIP del proyecto ejecutable completo.** Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
     },
     "downloadCurrentCodeZipToast": {
         "title": "Descarga de Código Actual (ZIP)",
@@ -164,7 +164,7 @@
       "description": "El contenido sugerido ha sido actualizado localmente."
     },
     "venvSim": {
-      "title": "Simulación: Prueba en Entorno Virtual",
+      "title": "Simulación: Test en Entorno Virtual",
       "description": "Se simula el inicio de pruebas para {area}."
     },
     "sourceError": {
@@ -194,7 +194,7 @@
       "confirmText": "Sí, Marcar como Aplicada",
       "description": {
         "p1": "Se marcará como aplicada la sugerencia para {area}.",
-        "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually en tu entorno de desarrollo:"
+        "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:"
       }
     },
     "noContentToShow": "Error: No hay contenido para mostrar.",
@@ -217,7 +217,7 @@
     }
   },
   "autofix": {
-    "errorContext": "Error a analizar: {error}\n\nContexto: Error ocurrido en la funcionalidad AutoUpdate (análisis del propio código de CodeAlchemist).",
-    "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \"{error}\""
+    "errorContext": "Error a analizar: {error}\\n\\nContexto: Error ocurrido en la funcionalidad AutoUpdate (análisis del propio código de CodeAlchemist).",
+    "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \\\"{error}\\\""
   }
 }

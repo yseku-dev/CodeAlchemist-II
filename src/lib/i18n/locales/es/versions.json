@@ -30,11 +30,10 @@
     "original": "Original (Análisis)",
     "suggested": "Sugerido (Análisis)",
     "codealchemist-app-state": "Estado App",
-    "codealchemist-current": "Código Actual (AutoUpdate)",
-    "project-analysis": "Análisis de Proyecto",
     "generated-project": "Proyecto Generado",
+    "project-analysis": "Análisis de Proyecto",
     "refactored-project": "Proyecto Refactorizado",
-    "autoupdate-snapshot": "Snapshot de AutoUpdate",
+    "autoupdate-snapshot": "Snapshot AutoUpdate",
     "unknown": "Desconocido"
   },
   "viewModal": {

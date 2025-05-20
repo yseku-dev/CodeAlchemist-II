@@ -17,24 +17,33 @@
     "modificationInputLabel": "Describe your modification:",
     "modificationInputPlaceholder": "E.g.: Add a 'utils.js' file in the 'src' folder.",
     "sendModificationButton": "Send Modification",
-    "saveSnapshotButton": "Save Project Snapshot"
+    "saveSnapshotButton": "Save Project Snapshot",
+    "snapshotName": "Generated Project - {name} - {time}"
   },
   "logs": {
-    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+    "groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
     "multiTurnLog": {
-      "orchestratorReceiving": "Orchestrator (Turn {turn}) Receiving Task:\n{task}",
-      "orchestratorRawResponse": "Raw JSON Response from Orchestrator (Turn {turn}):\n{response}",
-      "orchestratorDecision": "Orchestrator Decision (Turn {turn}):\n  Next Agent: {nextAgentId}\n  Instruction: {instruction}\n  Reasoning: {reasoning}",
-      "callingAgent": "Calling Agent {agentName} (Turn {turn}) with Instruction:\n{instruction}",
-      "agentResponding": "Response from {agentName} (Turn {turn}):\n{response}",
-      "aggregation": "Aggregating data from {source} (Turn {turn}): Project Name: {projectName}, AI Notes (start): {aiNotes}, Files: {fileCount}",
-      "completed": "Orchestrator indicates COMPLETED (Turn {turn}). Final Summary: {finalSummary}",
-      "maxTurnsReached": "\nMaximum of {maxTurns} turns reached in multi-agent flow.",
+      "processStart": "Starting project generation with group: {groupName}. Task: {taskDescription}",
+      "orchestratorTurnStart": "Turn {turn} - Orchestrator:",
+      "orchestratorReceiving": "  Receiving: {input}",
+      "orchestratorSendingPrompt": "  Sending prompt to LLM (length: {length}):\\n{prompt}",
+      "orchestratorRawResponse": "  Raw JSON response from LLM (truncated): {response}",
+      "orchestratorParsedDecision": "  Parsed decision: Next Agent: {nextAgentId}, Instruction (start): {instructionStart}..., Reasoning (start): {reasoningStart}...",
+      "orchestratorDataAggregation": "  Aggregating data from payload: Project: {projectName}, Notes (start): {aiNotesStart}..., Files: {filesCount}",
+      "agentTurnStart": "Turn {turn} - Agent {agentName}:",
+      "agentReceivingInstruction": "  Receiving instruction: {instruction}",
+      "agentSendingPrompt": "  Sending prompt to LLM (length: {length}):\\n{prompt}",
+      "agentRawResponse": "  Raw response from LLM (truncated): {response}",
+      "processCompleted": "Process completed by orchestrator. Final result (summary): {finalSummary}",
+      "maxTurnsReached": "Maximum of {maxTurns} turns reached. Project generation might be incomplete.",
       "errorTurn": "[ERROR] Turn {turn} ({actor}): {errorMessage}",
-      "diagnosticMode": "DIAGNOSTIC MODE: Only Orchestrator Turn 1 will be executed.",
-      "diagnosticPrompt": "Diagnostic Prompt (Turn 1) for Orchestrator (Length: {length}):\n{prompt}",
-      "diagnosticRawResponse": "Raw Diagnostic Response from Orchestrator (Turn 1) (truncated):\n{response}",
-      "diagnosticDecision": "Diagnostic Decision from Orchestrator (Turn 1):\n{decision}"
+      "errorParsingOrchestratorResponse": "  [CRITICAL ERROR] Orchestrator did not return valid JSON. Response: {response}. Parse Error: {parseError}",
+      "errorOrchestratorMissingFields": "  [CRITICAL ERROR] Orchestrator response incomplete. Missing required fields.",
+      "errorAgentNotFound": "  [CRITICAL ERROR] Agent with ID '{agentId}' not found.",
+      "errorCallingAgent": "  [ERROR] Failed to call agent {agentName}: {errorMessage}",
+      "errorCallingOrchestrator": "  [ERROR] Failed to call orchestrator: {errorMessage}",
+      "finalProjectAssembly": "Assembling final project result...",
+      "noValidResponseFromOrchestrator": "No valid response received from orchestrator to continue."
     }
   },
   "confirmDialog": {
@@ -79,15 +88,12 @@
     },
     "modificationSuccess": {
       "title": "Modification Applied",
-      "description": "The AI has processed your request. Please review the changes."
+      "description": "The AI has processed your request. Please review the changes.",
+      "defaultAiNote": "Modification processed. Review project structure and notes."
     },
     "emptyModificationRequest": {
         "title": "Empty Request",
         "description": "Please describe the modification you want to make."
-    },
-    "snapshotSaved": {
-      "title": "Snapshot Saved",
-      "description": "The current state of project \"{name}\" has been saved to Versions."
     }
   }
 }

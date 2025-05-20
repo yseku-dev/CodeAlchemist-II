@@ -1,11 +1,12 @@
 
+// src/components/features/refactorizar-proyecto/RefactorProjectResultsSection.tsx
 "use client";
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, ListChecks, Info, BadgeHelp, BadgeCheck, BadgeX } from 'lucide-react';
+import { Loader2, ListChecks, Info, BadgeHelp, BadgeCheck, BadgeX, Save } from 'lucide-react'; // Added Save
 import ErrorDisplay from '@/components/error-display';
 import ConfirmDialog from '@/components/confirm-dialog';
 import CodeBlock from '@/components/code-block';
@@ -25,11 +26,12 @@ interface RefactorProjectResultsSectionProps {
   onViewDiff: (suggestion: RefactorSuggestion) => void;
   onDiscardSuggestion: (id: string) => void;
   onApplyAll: () => void;
-  setSuggestions: React.Dispatch<React.SetStateAction<RefactorSuggestion[]>>; // To allow reverting state
+  setSuggestions: React.Dispatch<React.SetStateAction<RefactorSuggestion[]>>;
   showDiffModal: boolean;
   onCloseDiffModal: () => void;
   currentDiff: { original?: string; modified?: string } | null;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
+  onSaveSnapshot: () => void; // Nueva prop
 }
 
 const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps> = ({
@@ -47,6 +49,7 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
   onCloseDiffModal,
   currentDiff,
   t,
+  onSaveSnapshot, // Nueva prop
 }) => {
 
   const handleRevertSuggestionState = (id: string) => {
@@ -65,18 +68,29 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
     return <BadgeHelp className="h-5 w-5 text-blue-500" />; // pending
   };
 
+  const headerActions = [];
+  if (analysisResult) {
+    headerActions.push(
+      <Button key="saveSnapshot" variant="outline" size="sm" onClick={onSaveSnapshot}>
+        <Save className="mr-2 h-4 w-4" /> {t('refactorProject.results.saveSnapshotButton')}
+      </Button>
+    );
+    if (suggestions.some(s => s.status === 'pending')) {
+      headerActions.push(
+        <Button key="applyAll" variant="outline" size="sm" onClick={onApplyAll} disabled={isLoading}>
+          {t('refactorProject.results.applyAllButton')}
+        </Button>
+      );
+    }
+  }
+
+
   return (
     <Card className="lg:col-span-2">
       <PageSectionHeader
         icon={ListChecks}
         title={t('refactorProject.results.title')}
-        actions={
-          analysisResult && suggestions.some(s => s.status === 'pending') ? (
-            <Button variant="outline" size="sm" onClick={onApplyAll} disabled={isLoading}>
-              {t('refactorProject.results.applyAllButton')}
-            </Button>
-          ) : null
-        }
+        actions={headerActions.length > 0 ? <div className="flex flex-wrap gap-2">{headerActions}</div> : null}
       />
       <CardContent>
         {error && <ErrorDisplay error={error} onAutoFix={() => { /* Placeholder for auto-fix logic if needed */ }} />}
@@ -92,7 +106,7 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
         )}
 
         {analysisResult && (
-          <ScrollArea className="h-[calc(100vh-12rem)] pr-4"> {/* Adjusted height to match the example */}
+          <ScrollArea className="h-[calc(100vh-12rem)] pr-4"> 
             <div className="space-y-4">
               {analysisResult.projectOverview && (
                 <Card className="mb-4 bg-muted/30">
