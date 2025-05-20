@@ -3,6 +3,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import ConfirmDialog from '@/components/confirm-dialog';
 import CodeBlock from '@/components/code-block';
 import { useAppState } from '@/context/AppStateContext';
@@ -16,11 +17,12 @@ import type { TranslationKey } from '@/lib/i18n/translations';
 import SnapshotsHeader from '@/components/features/versiones-guardadas/SnapshotsHeader';
 import SnapshotsActionsBar from '@/components/features/versiones-guardadas/SnapshotsActionsBar';
 import SnapshotsTable from '@/components/features/versiones-guardadas/SnapshotsTable';
+import { GitCompareArrows, Trash2 } from 'lucide-react';
 
 /**
- * @fileOverview Page component for managing saved code snapshots.
- * Allows users to view, download, compare, and delete snapshots.
- * Also allows saving the current application state as a snapshot.
+ * @fileOverview Page component for managing saved code snapshots ("Versiones Guardadas").
+ * Allows users to view, download, compare, and delete snapshots of code or application state.
+ * The page has been refactored into smaller components: SnapshotsHeader, SnapshotsActionsBar, and SnapshotsTable.
  * All UI texts are internationalized.
  */
 export default function VersionesGuardadasPage() {
@@ -42,6 +44,11 @@ export default function VersionesGuardadasPage() {
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [snapshotToDelete, setSnapshotToDelete] = useState<CodeSnapshot | null>(null);
 
+  /**
+   * Saves the current application state (settings, agents, groups) as a JSON snapshot.
+   * If downloadAsZip is true, it also initiates a download of this state as a .zip file.
+   * @param {boolean} downloadAsZip - Whether to download the saved state as a ZIP file.
+   */
   const handleSaveCurrentAppState = useCallback((downloadAsZip: boolean) => {
     const currentAppState = {
       appName: "CodeAlchemist State",
@@ -72,10 +79,15 @@ export default function VersionesGuardadasPage() {
     addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Application state saved as snapshot: ${newSnapshot.name}. Downloaded as ZIP: ${downloadAsZip}`});
   }, [settings, agents, groups, addSnapshot, toast, t, addLog]);
 
+  /**
+   * Handles the download of a given snapshot.
+   * @param {CodeSnapshot} snapshot - The snapshot to download.
+   * @param {'original' | 'zip'} format - The desired download format.
+   */
   const handleDownloadSnapshot = useCallback((snapshot: CodeSnapshot, format: 'original' | 'zip') => {
     const element = document.createElement("a");
     let fileContent = snapshot.code;
-    let fileName = `${snapshot.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+    let fileName = `${snapshot.name.replace(/[^a-z0-9\\s-]/gi, '_').replace(/\s+/g, '_').toLowerCase()}`;
     let mimeType = 'text/plain;charset=utf-8';
 
     if (format === 'original') {
@@ -88,9 +100,6 @@ export default function VersionesGuardadasPage() {
     } else { // format === 'zip'
       fileName += '.zip';
       mimeType = 'application/zip';
-      // For client-side "zip", we are just changing extension.
-      // True zipping would require JSZip here if snapshot.code wasn't already a single entity.
-      // Since it's single entity, this is fine for user expectation of a .zip extension.
     }
     
     const file = new Blob([fileContent], {type: mimeType});
@@ -101,27 +110,44 @@ export default function VersionesGuardadasPage() {
     document.body.removeChild(element);
     URL.revokeObjectURL(element.href);
     toast({ title: t('versions.toast.snapshotDownloaded.title'), description: t('versions.toast.snapshotDownloaded.description', {name: snapshot.name, filename: fileName})});
-    addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Snapshot "${snapshot.name}" downloaded as ${fileName}.`});
+    addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Snapshot "${snapshot.name}" downloaded as ${fileName}. Format: ${format}`});
   }, [toast, t, addLog]);
 
+  /**
+   * Sets the snapshot to be viewed in a modal and opens the modal.
+   * @param {CodeSnapshot} snapshot - The snapshot to view.
+   */
   const handleViewSnapshot = (snapshot: CodeSnapshot) => {
     setSnapshotToView(snapshot);
     setShowViewModal(true);
   };
 
+  /**
+   * Sets the snapshot to be deleted (opens confirmation dialog).
+   * @param {CodeSnapshot} snapshot - The snapshot to delete.
+   */
   const handleDeleteSnapshot = (snapshot: CodeSnapshot) => {
     setSnapshotToDelete(snapshot);
   };
   
+  /**
+   * Confirms and executes the deletion of the selected snapshot.
+   */
   const confirmDeleteSnapshot = () => {
     if(snapshotToDelete){
       const name = snapshotToDelete.name;
       deleteSnapshot(snapshotToDelete.id);
       toast({ title: t('versions.toast.snapshotDeleted.title'), description: t('versions.toast.snapshotDeleted.description', {name}) });
-      setSnapshotToDelete(null);
+      setSnapshotToDelete(null); // Close dialog
+      addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Snapshot deleted: ${name}`});
     }
   };
 
+  /**
+   * Toggles the selection of a snapshot for comparison (A or B).
+   * @param {string} id - The ID of the snapshot.
+   * @param {'A' | 'B'} type - The comparison slot (A or B).
+   */
   const toggleCompareSelection = (id: string, type: 'A' | 'B') => {
     if (type === 'A') {
       setSelectedForCompareA(prev => prev === id ? null : id);
@@ -130,6 +156,10 @@ export default function VersionesGuardadasPage() {
     }
   };
 
+  /**
+   * Initiates the comparison of two selected snapshots.
+   * Opens a modal to display them side-by-side.
+   */
   const handleCompareVersions = () => {
     if (selectedForCompareA && selectedForCompareB) {
       const snapA = snapshots.find(s => s.id === selectedForCompareA);
@@ -146,25 +176,36 @@ export default function VersionesGuardadasPage() {
     }
   };
 
+  /**
+   * Confirms and executes the deletion of all snapshots.
+   */
   const confirmDeleteAllSnapshots = () => {
     deleteAllSnapshots();
     toast({title: t('versions.toast.allSnapshotsDeleted.title')});
     setShowDeleteAllConfirm(false);
+    addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: 'All snapshots deleted.'});
   };
+
+  const headerActions = (
+    <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
+      <Button onClick={handleCompareVersions} disabled={!selectedForCompareA || !selectedForCompareB} variant="outline">
+        <GitCompareArrows className="mr-2 h-4 w-4" /> {t('versions.compareButton')}
+      </Button>
+      <Button onClick={() => setShowDeleteAllConfirm(true)} variant="destructive" disabled={snapshots.length === 0}>
+        <Trash2 className="mr-2 h-4 w-4" /> {t('versions.deleteAllButton')}
+      </Button>
+    </div>
+  );
 
   return (
     <Card className="max-w-5xl mx-auto">
-      <SnapshotsHeader t={t} />
+      <SnapshotsHeader t={t} actions={headerActions} />
       <CardContent>
         <SnapshotsActionsBar
           t={t}
           onSaveAppState={handleSaveCurrentAppState}
-          onCompareVersions={handleCompareVersions}
-          compareDisabled={!selectedForCompareA || !selectedForCompareB}
-          onDeleteAll={() => setShowDeleteAllConfirm(true)}
-          deleteAllDisabled={snapshots.length === 0}
         />
-        <ScrollArea className="h-[calc(100vh-24rem)] md:h-[calc(100vh-20rem)]">
+        <ScrollArea className="h-[calc(100vh-24rem)] md:h-[calc(100vh-22rem)]">
           <SnapshotsTable
             t={t}
             snapshots={snapshots}
@@ -180,8 +221,8 @@ export default function VersionesGuardadasPage() {
 
       <ConfirmDialog
         isOpen={showViewModal && !!snapshotToView}
-        onClose={() => setShowViewModal(false)}
-        onConfirm={() => setShowViewModal(false)}
+        onClose={() => { setShowViewModal(false); setSnapshotToView(null); }}
+        onConfirm={() => { setShowViewModal(false); setSnapshotToView(null); }}
         title={t('versions.viewModal.title', { name: snapshotToView?.name || '' })}
         confirmText={t('common.close')}
         cancelText=""
@@ -197,8 +238,8 @@ export default function VersionesGuardadasPage() {
 
        <ConfirmDialog
         isOpen={showCompareModal}
-        onClose={() => setShowCompareModal(false)}
-        onConfirm={() => setShowCompareModal(false)}
+        onClose={() => { setShowCompareModal(false); setSnapshotA(null); setSnapshotB(null);}}
+        onConfirm={() => { setShowCompareModal(false); setSnapshotA(null); setSnapshotB(null);}}
         title={t('versions.compareModal.title')}
         confirmText={t('common.close')}
         cancelText=""
@@ -228,6 +269,7 @@ export default function VersionesGuardadasPage() {
         title={t('versions.deleteAllModal.title')}
         description={t('versions.deleteAllModal.description')}
         confirmText={t('versions.deleteAllModal.confirm')}
+        cancelText={t('common.cancel')}
       />
       
       <ConfirmDialog
@@ -237,6 +279,7 @@ export default function VersionesGuardadasPage() {
         title={t('versions.deleteSingleModal.title', { name: snapshotToDelete?.name || '' })}
         description={t('versions.deleteSingleModal.description')}
         confirmText={t('versions.deleteSingleModal.confirm')}
+        cancelText={t('common.cancel')}
       />
     </Card>
   );
