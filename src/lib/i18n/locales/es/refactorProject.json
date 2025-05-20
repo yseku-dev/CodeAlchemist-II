@@ -37,10 +37,7 @@
     },
     "suggestionsTitle": "Sugerencias de Refactorización:",
     "noSpecificSuggestions": "No se generaron sugerencias específicas de refactorización.",
-    "saveSnapshotButton": "Guardar Snapshot Refactorizado",
-    "snapshotNamePrefix": "Refactorización",
-    "snapshotNameAppliedPrefix": "Refactorización Aplicada (Conceptual)",
-    "snapshotNameSourcePrefix": "Fuente Original (Refactorización)"
+    "saveSnapshotButton": "Guardar Snapshot de Refactorización"
   },
   "suggestion": {
     "priorityLabel": "Prioridad:",
@@ -52,8 +49,8 @@
   },
   "diffModal": {
     "title": "Comparación de Código (Diff)",
-    "originalLabel": "Original:",
-    "suggestedLabel": "Sugerido:",
+    "originalLabel": "Original",
+    "suggestedLabel": "Sugerido",
     "noContent": "N/A"
   },
   "logs": {

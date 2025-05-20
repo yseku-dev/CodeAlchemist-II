@@ -4,16 +4,17 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ListChecks, Info, MessageSquare, Bot, User, Loader2, Send, Wand2, Save } from 'lucide-react'; // Added icons
+import { ListChecks, Info, MessageSquare, Bot, User, Loader2, Send, Wand2, Save } from 'lucide-react';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AnalyzeCodeOutput, ChatMessage } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
-import { Label } from '@/components/ui/label'; // Added
-import { Textarea } from '@/components/ui/textarea'; // Added
-import { Button } from '@/components/ui/button'; // Added
-import { Separator } from '@/components/ui/separator'; // Added
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+
 
 interface AnalyzeProjectResultsDisplayProps {
   result: AnalyzeCodeOutput | null;
@@ -122,10 +123,6 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
               </ScrollArea>
             </div>
           )}
-
-          {result.groupLog && (!chatHistory || chatHistory.length === 0) && (
-            <LogsDisplay title={t('analyzeProject.results.groupLogTitle')} logs={result.groupLog} defaultExpanded={true}/>
-          )}
         </CardContent>
       </Card>
 
@@ -159,14 +156,14 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                         ? 'bg-primary text-primary-foreground'
                         : msg.role === 'assistant'
                         ? 'bg-card text-card-foreground border'
-                        : 'bg-destructive/10 text-destructive-foreground border border-destructive/30 items-start' // System/Error
+                        : 'bg-destructive/10 text-destructive-foreground border border-destructive/30 items-start' 
                     }`}
                   >
                     {msg.role === 'assistant' && (
                       <Bot className="h-5 w-5 self-start flex-shrink-0 text-accent" />
                     )}
-                    {msg.role === 'system' && (
-                       <Bot className="h-5 w-5 self-start flex-shrink-0 text-destructive" />
+                     {msg.role === 'system' && ( 
+                      <Bot className="h-5 w-5 self-start flex-shrink-0 text-destructive" />
                     )}
                     {msg.role === 'user' && (
                       <User className="h-5 w-5 self-start flex-shrink-0" />
@@ -187,7 +184,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                 <div className="flex justify-start">
                     <div className="max-w-[85%] p-2.5 rounded-lg bg-card text-card-foreground border flex items-center shadow-sm">
                     <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
-                    <span className="text-sm">{t('chat.thinking')}</span>
+                    <span className="text-sm">{t('chat.thinking' as TranslationKey)}</span>
                     </div>
                 </div>
               )}
@@ -201,10 +198,10 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                     size="sm"
                     onClick={onRedefineModificationRequest}
                     disabled={!currentModificationRequest.trim() || isRedefiningModificationRequest || isModifyingProject}
-                    title={t('common.redefineRequestButton')}
+                    title={t('common.redefineRequestButton' as TranslationKey)}
                 >
                     {isRedefiningModificationRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                    <span className="sr-only">{t('common.redefineRequestButton')}</span>
+                    <span className="sr-only">{t('common.redefineRequestButton' as TranslationKey)}</span>
                 </Button>
             </div>
             <Textarea
@@ -229,6 +226,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
             )}
             {t('analyzeProject.results.sendModificationButton')}
           </Button>
+           {/* Se elimina el LogsDisplay de aquí ya que se manejará en la página principal si es necesario */}
         </CardContent>
       </Card>
     </div>

@@ -3,14 +3,13 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import ConfirmDialog from '@/components/confirm-dialog';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, ProjectGenerationResult, GenerateProjectInput, Agent, RedefinePromptOutput, AIAgentGroup, ChatMessage, ModifyProjectStructureInput, CodeSnapshot } from '@/types';
+import type { LLMConfigSourceOption, ProjectGenerationResult, GenerateProjectInput, Agent, RedefinePromptOutput, AIAgentGroup, ChatMessage, CodeSnapshot } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import LogsDisplay from '@/components/logs-display';
 import { useAppState } from '@/context/AppStateContext';
@@ -32,14 +31,11 @@ import GenerateProjectResultsDisplay from '@/components/features/generar-proyect
 const MAX_GENERATION_TURNS = 7; // Límite de turnos para la generación de proyectos por grupo
 
 /**
- * @fileOverview GenerarProyectoPage component allows users to generate a base project structure.
- * Users describe the project, select an LLM configuration source, and the AI generates
- * a suggested project name, notes, and a list of files with their content.
- * The generated structure can be downloaded as a ZIP (containing a JSON representation).
- * After generation, users can interactively request modifications to the project via a chat interface,
- * which calls an AI flow to attempt real modifications to the project structure.
- * The current state of the project can be saved as a snapshot.
- * All UI texts are internationalized.
+ * @fileOverview Página para generar una estructura base de proyecto usando IA.
+ * Permite al usuario describir un proyecto, seleccionar una fuente de IA (global, agente o grupo),
+ * y generar una estructura de archivos. Incluye una sección de chat para modificar interactivamente
+ * el proyecto generado y la opción de guardar el resultado como un snapshot.
+ * @module GenerarProyectoPage
  */
 export default function GenerarProyectoPage() {
   const { agents, groups, getAgentById, getGroupById, addSnapshot } = useAppState();
@@ -67,6 +63,7 @@ export default function GenerarProyectoPage() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Initialize llmConfigSource on the client side
     setLlmConfigSource({ type: 'Ajustes Globales' });
   }, []);
 
@@ -78,13 +75,15 @@ export default function GenerarProyectoPage() {
 
   const handleDescriptionChange = (value: string) => {
     setDescription(value);
-    setCurrentPromptForDialog(value);
+    setCurrentPromptForDialog(value); // Keep dialog prompt in sync
   };
-
+  
   const getAgentSystemPrompt = useCallback((agentId: string): string => {
-    const agent = DEFAULT_AGENTS.find(a => a.id === agentId);
-    return agent?.systemPrompt || `Eres un asistente IA. Tu tarea actual es: `;
-  }, []);
+    const agent = DEFAULT_AGENTS.find(a => a.id === agentId); // Check default agents
+    if (agent) return agent.systemPrompt;
+    const customAgent = getAgentById(agentId); // Check user-created agents
+    return customAgent?.systemPrompt || `Eres un asistente IA. Tu tarea actual es: `;
+  }, [getAgentById]);
 
 
   const handleProjectGeneration = async (finalPrompt: string) => {
@@ -92,20 +91,27 @@ export default function GenerarProyectoPage() {
     setIsLoading(true);
     setError(null);
     setResult(null);
-    setChatHistory([]);
+    setChatHistory([]); // Reset chat history on new project generation
     addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Iniciando generación de proyecto. Prompt (inicio): ${finalPrompt.substring(0, 100)}...`, data: { config: llmConfigSource } });
 
     let agentSystemPromptForFlow: string | undefined;
-    let isGroupExecution = false;
+    let groupLogForDisplay: string | undefined;
+    let isGroupMode = false;
 
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
       const agent = getAgentById(llmConfigSource.id);
       agentSystemPromptForFlow = agent?.systemPrompt;
+      groupLogForDisplay = t('generateProject.logs.agentContextLog' as TranslationKey, {
+        agentName: agent?.name || llmConfigSource.name || 'N/A',
+        userInput: finalPrompt.substring(0, 100),
+        agentContext: (agentSystemPromptForFlow || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
+        flowName: 'generateProjectStructure (Agente)',
+      });
       addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Usando Agente: ${llmConfigSource.name}. Prompt del agente (inicio): ${agentSystemPromptForFlow?.substring(0, 100)}...` });
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
       const orchestrator = DEFAULT_AGENTS.find(a => a.id === 'orquestador-flujo-agentes');
-      agentSystemPromptForFlow = orchestrator?.systemPrompt;
-      isGroupExecution = true;
+      agentSystemPromptForFlow = orchestrator?.systemPrompt; // The orchestrator's prompt will guide the multi-turn
+      isGroupMode = true;
       addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Usando Grupo: ${llmConfigSource.name}. Prompt del Orquestador (inicio): ${agentSystemPromptForFlow?.substring(0, 100)}...` });
     }
 
@@ -118,23 +124,25 @@ export default function GenerarProyectoPage() {
       const aiResult = await callGenerateProjectStructure(generationInput);
       let finalResult = { ...aiResult };
 
-      if (isGroupExecution && !aiResult.groupLog) {
-        const group = getGroupById(llmConfigSource?.id || '');
-        finalResult.groupLog = t('generateProject.logs.groupContextLog', {
-          groupName: group?.name || llmConfigSource?.name || 'N/A',
-          groupTask: (group?.mainTask || 'N/A').substring(0, 150),
-          userInput: finalPrompt.substring(0, 100),
-          orchestratorContext: (agentSystemPromptForFlow || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
-          flowName: 'generateProjectStructure (Grupo - fallback log)',
-        });
-        addDebugLog({ source: 'GenerarProyectoPage', type: 'WARN', message: "Flujo de grupo no devolvió groupLog, generando log de contexto.", data: finalResult.groupLog });
-      } else if (isGroupExecution && aiResult.groupLog) {
-         addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: "Flujo de grupo devolvió groupLog detallado.", data: {logLength: aiResult.groupLog.length} });
+      if (isGroupMode) {
+        // If the flow returned a detailed multi-turn log, use it.
+        // Otherwise (e.g., if it fell back to single-call or error), generate context log.
+        if (!finalResult.groupLog) {
+          const group = getGroupById(llmConfigSource?.id || '');
+          finalResult.groupLog = t('generateProject.logs.groupContextLog' as TranslationKey, {
+            groupName: group?.name || llmConfigSource?.name || 'N/A',
+            groupTask: (group?.mainTask || 'N/A').substring(0, 150),
+            userInput: finalPrompt.substring(0, 100),
+            orchestratorContext: (agentSystemPromptForFlow || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
+            flowName: 'generateProjectStructure (Grupo - fallback log)',
+          });
+        }
+      } else if (agentSystemPromptForFlow && !finalResult.groupLog) { // Single agent context log
+        finalResult.groupLog = groupLogForDisplay;
       }
-
-
+      
       setResult(finalResult);
-      addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: "Generación de proyecto exitosa (llamada a API).", data: { projectName: finalResult.projectName, numFiles: finalResult.files?.length, notesLength: finalResult.aiNotes?.length, groupLogLength: finalResult.groupLog?.length } });
+      addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: "Generación de proyecto exitosa (llamada a API).", data: { projectName: finalResult.projectName, numFiles: finalResult.files?.length } });
       toast({
         title: t('generateProject.toast.projectGenerated.title'),
         description: t('generateProject.toast.projectGenerated.description', { projectName: finalResult.projectName || "Proyecto Sin Nombre" })
@@ -167,6 +175,22 @@ export default function GenerarProyectoPage() {
     setCurrentPromptForDialog(description);
     setShowConfirmDialog(true);
   };
+  
+  const handleSaveGeneratedProjectSnapshot = useCallback(() => {
+    if (!result) {
+      toast({ variant: "destructive", title: t('versions.toast.compareError.title'), description: t('generateProject.toast.noProjectToSave' as TranslationKey)});
+      return;
+    }
+    const snapshotName = t('generateProject.results.snapshotName', { name: result.projectName || "Sin Nombre", time: new Date().toLocaleTimeString() });
+    addSnapshot({
+      name: snapshotName,
+      code: JSON.stringify(result, null, 2), // Save the full ProjectGenerationResult
+      source: 'generated-project'
+    });
+    // Toast for saving is handled by addSnapshot
+    addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Snapshot de proyecto generado guardado: ${snapshotName}`});
+  }, [result, addSnapshot, t, toast]);
+
 
   const handleDownloadProject = async () => {
     if (!result || !result.files || result.files.length === 0) {
@@ -178,6 +202,10 @@ export default function GenerarProyectoPage() {
       return;
     }
     addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Preparando descarga ZIP para proyecto: ${result.projectName}.` });
+    
+    // Guardar snapshot antes de la descarga
+    handleSaveGeneratedProjectSnapshot();
+
     const zip = new JSZip();
     result.files.forEach(file => {
       if (file.isFolder || file.path.endsWith('/')) {
@@ -201,7 +229,7 @@ export default function GenerarProyectoPage() {
         title: t('generateProject.toast.zipDownloadSuccess.title'),
         description: t('generateProject.toast.zipDownloadSuccess.description', { filename, projectName: result.projectName || "Proyecto Sin Nombre" })
       });
-      addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: `Proyecto "${result.projectName}" descargado como ${filename}.` });
+      addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: `Proyecto "${result.projectName}" descargado como ${filename}. Snapshot JSON también guardado.` });
     } catch (e: any) {
       const errorMsg = e.message || t('generateProject.toast.zipDownloadError.description', { error: "desconocido" });
       toast({ variant: "destructive", title: t('generateProject.toast.zipDownloadError.title'), description: errorMsg });
@@ -212,7 +240,6 @@ export default function GenerarProyectoPage() {
   const handleAutoFixError = async (errorMsg: string) => {
     toast({ title: t('common.processing'), description: t('errorDisplay.toast.autofixAttempt.description') });
     addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Intentando Auto-Fix para error: ${errorMsg}` });
-    // La lógica real de Auto-Fix se maneja en ErrorDisplay y llama a callAutoFixErrorWithGroup
   };
 
   const handleRedefineRequest = useCallback(async () => {
@@ -298,14 +325,14 @@ export default function GenerarProyectoPage() {
     
     try {
       const modificationInput: ModifyProjectStructureInput = {
-        currentProject: result, // El ProjectGenerationResult actual
+        currentProject: result,
         modificationRequest: tempCurrentModificationRequest,
         chatHistory: chatHistory,
         agentSystemPrompt: agentSystemPromptForModification,
       };
       const modifiedProjectResult = await callModifyProjectStructure(modificationInput);
       
-      setResult(modifiedProjectResult); // <--- ACTUALIZAR EL ESTADO DEL PROYECTO
+      setResult(modifiedProjectResult); 
 
       const assistantResponseMessage = modifiedProjectResult.aiNotes || t('generateProject.toast.modificationSuccess.defaultAiNote');
       const aiMessage: ChatMessage = { id: uuidv4(), role: 'assistant', content: assistantResponseMessage, timestamp: new Date().toISOString() };
@@ -326,44 +353,6 @@ export default function GenerarProyectoPage() {
     }
   };
 
-  const handleRedefineModificationRequest = async () => {
-    if (!currentModificationRequest.trim()) {
-      toast({ variant: 'destructive', title: t('common.toast.redefineEmpty.title'), description: t('common.toast.redefineEmpty.description') });
-      return;
-    }
-    setIsRedefiningModificationRequest(true);
-    addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Redefiniendo petición de modificación. Original (inicio): ${currentModificationRequest.substring(0, 100)}...` });
-    toast({ title: t('common.toast.redefining.title'), description: t('common.toast.redefining.description') });
-    try {
-      const redefined = await callRedefinePrompt({ originalPrompt: currentModificationRequest });
-      setCurrentModificationRequest(redefined.redefinedPrompt);
-      toast({ title: t('common.toast.redefinedSuccess.title'), description: t('common.toast.redefinedSuccess.description') });
-      addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: "Petición de modificación redefinida."});
-    } catch (e: any) {
-      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: `Fallo al redefinir petición de modificación.`, errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage });
-      const errorMsg = e instanceof AppError ? e.friendlyMessage : (e.message || t('common.toast.redefineError.description'));
-      toast({ variant: 'destructive', title: t('common.toast.redefineError.title'), description: errorMsg });
-      if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
-    } finally {
-      setIsRedefiningModificationRequest(false);
-    }
-  };
-
-  const handleSaveGeneratedProjectSnapshot = () => {
-    if (!result) {
-      toast({ variant: "destructive", title: t('versions.toast.compareError.title'), description: "No hay proyecto generado para guardar."}); // Reutilizar un toast de error
-      return;
-    }
-    const snapshotName = t('generateProject.results.snapshotName', { name: result.projectName || "Proyecto Sin Nombre", time: new Date().toLocaleTimeString() });
-    addSnapshot({
-      name: snapshotName,
-      code: JSON.stringify(result, null, 2),
-      source: 'generated-project'
-    });
-    toast({ title: t('versions.toast.snapshotSaved.title'), description: t('versions.toast.snapshotSaved.description', {name: snapshotName})});
-    addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Snapshot de proyecto generado guardado: ${snapshotName}`});
-  };
-
   return (
     <Card className="max-w-4xl mx-auto">
       <GenerateProjectHeader />
@@ -380,7 +369,7 @@ export default function GenerarProyectoPage() {
             t={t}
         />
 
-        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || t('common.unknownError'))} />}
+        {error && <ErrorDisplay error={error} onAutoFix={() => handleAutoFixError(error || t('common.unknownError' as TranslationKey))} />}
         
         {isLoading && !result && <div className="flex items-center justify-center py-6"><Loader2 className="h-6 w-6 animate-spin mr-2"/>{t('common.processing')}</div>}
 
@@ -398,10 +387,10 @@ export default function GenerarProyectoPage() {
                 isRedefiningModificationRequest={isRedefiningModificationRequest}
                 onRedefineModificationRequest={handleRedefineModificationRequest}
                 scrollAreaRefChat={scrollAreaRefChat}
-                onSaveSnapshot={handleSaveGeneratedProjectSnapshot} // Nueva prop
+                onSaveSnapshot={handleSaveGeneratedProjectSnapshot}
             />
-             {result.groupLog && (!chatHistory || chatHistory.length === 0) && ( 
-              <LogsDisplay title={t('generateProject.results.groupLogTitle')} logs={result.groupLog} defaultExpanded={true}/>
+             {result.groupLog && ( 
+              <LogsDisplay title={t('generateProject.results.groupLogTitle' as TranslationKey)} logs={result.groupLog} defaultExpanded={true}/>
             )}
           </div>
         )}
@@ -454,5 +443,3 @@ export default function GenerarProyectoPage() {
     </Card>
   );
 }
-
-    

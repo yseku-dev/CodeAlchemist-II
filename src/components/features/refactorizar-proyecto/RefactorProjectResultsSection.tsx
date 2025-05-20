@@ -6,7 +6,7 @@ import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, ListChecks, Info, BadgeHelp, BadgeCheck, BadgeX, Save } from 'lucide-react'; // Added Save
+import { Loader2, ListChecks, Info, BadgeHelp, BadgeCheck, BadgeX, Save } from 'lucide-react';
 import ErrorDisplay from '@/components/error-display';
 import ConfirmDialog from '@/components/confirm-dialog';
 import CodeBlock from '@/components/code-block';
@@ -31,9 +31,16 @@ interface RefactorProjectResultsSectionProps {
   onCloseDiffModal: () => void;
   currentDiff: { original?: string; modified?: string } | null;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
-  onSaveSnapshot: () => void; // Nueva prop
+  onSaveSnapshot: () => void; 
 }
 
+/**
+ * @fileOverview Component for displaying the results section of the "Refactor Project" page.
+ * Shows the project overview, a list of refactoring suggestions, and handles diff viewing.
+ * Includes a button to save a snapshot of the refactoring analysis.
+ * All texts are internationalized.
+ * @module RefactorProjectResultsSection
+ */
 const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps> = ({
   analysisResult,
   suggestions,
@@ -49,7 +56,7 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
   onCloseDiffModal,
   currentDiff,
   t,
-  onSaveSnapshot, // Nueva prop
+  onSaveSnapshot,
 }) => {
 
   const handleRevertSuggestionState = (id: string) => {
@@ -97,7 +104,7 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
         {isLoading && (
           <div className="flex justify-center items-center py-10">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-2">{loadingMessage || t('common.processing')}</p>
+            <p className="ml-2">{loadingMessage || t('common.processing' as TranslationKey)}</p>
           </div>
         )}
 
@@ -149,13 +156,13 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
                               <p className="text-xs font-semibold mb-1">{t('refactorProject.suggestion.snippetLabel')}</p>
                               {s.snippetSuggested.original && (
                                 <p className="text-xs text-muted-foreground break-all">
-                                  <strong>{t('refactorProject.diffModal.originalLabel')}</strong>{' '}
+                                  <strong>{t('refactorProject.diffModal.originalLabel')}:</strong>{' '}
                                   {s.snippetSuggested.original.substring(0, 100)}{s.snippetSuggested.original.length > 100 ? '...' : ''}
                                 </p>
                               )}
                               {s.snippetSuggested.modified && (
                                 <p className="text-xs text-muted-foreground break-all">
-                                  <strong>{t('refactorProject.diffModal.suggestedLabel')}</strong>{' '}
+                                  <strong>{t('refactorProject.diffModal.suggestedLabel')}:</strong>{' '}
                                   {s.snippetSuggested.modified.substring(0, 100)}{s.snippetSuggested.modified.length > 100 ? '...' : ''}
                                 </p>
                               )}
@@ -188,10 +195,8 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
                   ))}
                 </ul>
               )}
+              {/* Se elimina LogsDisplay de aquí, se manejará en la página principal si es necesario */}
             </div>
-            {analysisResult.groupLog && (
-              <LogsDisplay title={t('refactorProject.logs.groupLogTitle')} logs={analysisResult.groupLog} />
-            )}
           </ScrollArea>
         )}
       </CardContent>
@@ -199,10 +204,10 @@ const RefactorProjectResultsSection: React.FC<RefactorProjectResultsSectionProps
       <ConfirmDialog
         isOpen={showDiffModal}
         onClose={onCloseDiffModal}
-        onConfirm={onCloseDiffModal} // Confirm action is just to close
+        onConfirm={onCloseDiffModal} 
         title={t('refactorProject.diffModal.title')}
-        confirmText={t('common.close')}
-        cancelText="" // No cancel button for this specific dialog use case
+        confirmText={t('common.close' as TranslationKey)}
+        cancelText="" 
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
           <div>

@@ -37,10 +37,7 @@
     },
     "suggestionsTitle": "Refactoring Suggestions:",
     "noSpecificSuggestions": "No specific refactoring suggestions were generated.",
-    "saveSnapshotButton": "Save Refactored Snapshot",
-    "snapshotNamePrefix": "Refactoring",
-    "snapshotNameAppliedPrefix": "Refactoring Applied (Conceptual)",
-    "snapshotNameSourcePrefix": "Original Source (Refactoring)"
+    "saveSnapshotButton": "Save Refactoring Snapshot"
   },
   "suggestion": {
     "priorityLabel": "Priority:",
@@ -52,8 +49,8 @@
   },
   "diffModal": {
     "title": "Code Comparison (Diff)",
-    "originalLabel": "Original:",
-    "suggestedLabel": "Suggested:",
+    "originalLabel": "Original",
+    "suggestedLabel": "Suggested",
     "noContent": "N/A"
   },
   "logs": {
