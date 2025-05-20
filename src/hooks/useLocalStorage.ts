@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast'; // Ajusta la ruta si es necesario
 
 /**
  * @fileOverview Custom React hook `useLocalStorage`.
@@ -9,6 +10,7 @@ import { useState, useEffect, useCallback } from 'react';
  * and keep it synchronized across browser tabs/windows.
  * It handles server-side rendering (SSR) gracefully by initially returning
  * the `defaultValue` and then hydrating with the `localStorage` value on the client.
+ * Includes error handling for QuotaExceededError when saving to localStorage.
  */
 
 /**
@@ -29,6 +31,7 @@ function getStorageValue<T>(key: string, defaultValue: T): T {
         return JSON.parse(saved) as T;
       } catch (error) {
         console.error(`Error al parsear la clave de localStorage "${key}":`, error);
+        // No mostrar toast aquí, se manejará en useLocalStorage si es crítico
         return defaultValue;
       }
     }
@@ -40,6 +43,7 @@ function getStorageValue<T>(key: string, defaultValue: T): T {
  * A custom React hook to manage state that persists in `localStorage`.
  * It synchronizes state with `localStorage` and across multiple browser tabs/windows
  * that share the same origin.
+ * Includes error handling for QuotaExceededError when saving to localStorage.
  *
  * For Server-Side Rendering (SSR), it initializes with `defaultValue` to prevent
  * hydration mismatches, and then updates to the `localStorage` value on the client-side
@@ -54,50 +58,65 @@ function getStorageValue<T>(key: string, defaultValue: T): T {
  *
  * @example
  * const [name, setName] = useLocalStorage<string>('userName', 'Invitado');
- * // `name` will be 'Invitado' on initial SSR/client render, then hydrate from localStorage.
- * // Calling `setName('Nuevo Nombre')` updates the state and localStorage.
  */
 export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T | ((val: T) => T)) => void] {
-  // Initialize state with defaultValue for SSR and initial client render.
+  const { toast } = useToast();
   const [value, setValue] = useState<T>(defaultValue);
 
-  // Effect to load from localStorage on client mount.
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedValue = getStorageValue(key, defaultValue);
       setValue(storedValue);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]); // Only re-run if key changes (should be rare for localStorage keys)
+  }, [key]); // defaultValue is intentionally omitted from deps
 
-
-  // Effect to save to localStorage whenever the value changes.
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Only save to localStorage if the current value is different from the initial defaultValue
-      // to avoid writing defaultValue to localStorage on first load if nothing was stored.
-      // Or, more simply, always save, which is typical.
-      localStorage.setItem(key, JSON.stringify(value));
-    }
-  }, [key, value]);
-
-  // Effect to listen for storage changes from other tabs/windows.
-  useEffect(() => {
-    /**
-     * Handles the 'storage' event fired by the browser.
-     * Updates the component's state if the relevant localStorage key has changed.
-     * @param {StorageEvent} event - The storage event.
-     */
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === key && event.newValue !== null) {
-         try {
-          setValue(JSON.parse(event.newValue) as T);
-        } catch (error) {
-          console.error(`Error al parsear la clave de localStorage "${key}" en el evento de storage:`, error);
+  const setStoredValue = useCallback(
+    (newValue: T | ((val: T) => T)) => {
+      try {
+        const valueToStore = newValue instanceof Function ? newValue(value) : newValue;
+        setValue(valueToStore);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(key, JSON.stringify(valueToStore));
         }
-      } else if (event.key === key && event.newValue === null) {
-        // Key was removed or set to null in another tab, revert to default.
-        setValue(defaultValue);
+      } catch (error: any) {
+        console.error(`Error guardando en localStorage (clave: "${key}"):`, error);
+        if (error.name === 'QuotaExceededError' || (error.message && error.message.toLowerCase().includes('quota'))) {
+          toast({
+            variant: 'destructive',
+            title: 'Error de Almacenamiento Local', // TODO: i18n this
+            description: `No se pudo guardar la información (clave: ${key}). El almacenamiento local está lleno. Considera exportar datos o limpiar snapshots/versiones guardadas.`, // TODO: i18n this
+            duration: 7000,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Error de Almacenamiento', // TODO: i18n this
+            description: `Ocurrió un error al intentar guardar en localStorage para la clave ${key}.`, // TODO: i18n this
+            duration: 5000,
+          });
+        }
+        // No relanzar el error aquí para no romper la app, el toast es la notificación.
+      }
+    },
+    [key, value, toast, defaultValue] // defaultValue added here as if an error occurs, we might revert to it.
+  );
+  
+  // Sincronización entre pestañas
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === key && event.storageArea === localStorage) {
+        if (event.newValue !== null) {
+          try {
+            setValue(JSON.parse(event.newValue) as T);
+          } catch (error) {
+            console.error(`Error al parsear clave de localStorage "${key}" en evento de storage:`, error);
+            setValue(defaultValue); // Revertir al valor por defecto si el parseo falla
+          }
+        } else {
+          // La clave fue eliminada o establecida a null en otra pestaña
+          setValue(defaultValue);
+        }
       }
     };
 
@@ -107,8 +126,8 @@ export function useLocalStorage<T>(key: string, defaultValue: T): [T, (value: T 
         window.removeEventListener('storage', handleStorageChange);
       };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, defaultValue]); // Include defaultValue in dependencies
+  }, [key, defaultValue]);
 
-  return [value, setValue];
+  return [value, setStoredValue];
 }
+
