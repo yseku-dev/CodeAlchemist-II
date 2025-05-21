@@ -3,10 +3,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import ErrorDisplay from '@/components/error-display';
-import { useDebug } from '@/context/DebugContext';
-import { useToast } from '@/hooks/use-toast';
+import { useAppState } from '@/context/AppStateContext';
 import type {
   LLMConfigSourceOption,
   AnalyzeCodeOutput,
@@ -18,8 +15,7 @@ import type {
   CodeSnapshot,
 } from '@/types';
 import { callAnalyzeSelfCode, callRedefinePrompt, callChatWithAgentOrGlobal } from '@/utils/apiClient';
-import { useAppState } from '@/context/AppStateContext';
-import PageSectionHeader from '@/components/layout/PageSectionHeader'; // This import was likely missing before or a typo
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
 import { AppError } from '@/utils/AppError';
 import { useI18n } from '@/context/I18nContext';
@@ -32,6 +28,7 @@ import JSZip from 'jszip';
 import { v4 as uuidv4 } from 'uuid';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Loader2 } from 'lucide-react';
+import ErrorDisplay from '@/components/error-display'; // Added ErrorDisplay import
 
 type ProjectSourceType = "upload" | "git";
 
@@ -130,8 +127,8 @@ export default function AnalizarProyectoPage() {
          finalResult.groupLog = t('analyzeProject.results.groupContextLog', {
             groupName: llmConfigSource.name,
             groupTask: (group?.mainTask || 'N/A').substring(0,150),
-            userInput: (analysisInput.focusArea || t('autoupdate.analysis.general')),
-            orchestratorContext: (orchestrator?.systemPrompt || t('autoupdate.logs.notAvailable')).substring(0, 200),
+            userInput: (analysisInput.focusArea || t('autoupdate.analysis.general' as TranslationKey)),
+            orchestratorContext: (orchestrator?.systemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
             flowName: 'analyzeSelfCode (AnalyzeProject)'
         });
       }
@@ -179,7 +176,7 @@ export default function AnalizarProyectoPage() {
     }
 
     let analysisInputBase: AnalyzeCodeInput = {
-        sourceCodeLocation: 'UploadedString', // Default, will be overridden
+        sourceCodeLocation: 'UploadedString', 
         focusArea: focusArea || undefined,
         searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
         agentSystemPrompt: agentSystemPrompt
@@ -208,7 +205,7 @@ export default function AnalizarProyectoPage() {
             ) {
               fileProcessingPromises.push(
                 fileEntry.async("string").then(content => {
-                  projectContentString += `// --- ${t('autoupdate.analysis.fileMarker')}: ${relativePath} ---\n${content}\n\n`;
+                  projectContentString += `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${relativePath} ---\n${content}\n\n`;
                 }).catch(err => {
                   addDebugLog({source: 'AnalizarProyectoPage', type: 'WARN', message: `Could not read file ${relativePath} from ZIP: ${(err as Error).message}`, flowName: 'handleAnalyze'});
                 })
@@ -268,7 +265,7 @@ export default function AnalizarProyectoPage() {
       try {
         const gitResult = await fetchRemoteGitRepository(gitUrl);
         if (gitResult.success && gitResult.files) {
-          const projectContentString = gitResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
+          const projectContentString = gitResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${f.fileName} ---\n${f.content}`).join('\n\n');
           setOriginalProjectFiles(gitResult.files); 
           const analysisInput: AnalyzeCodeInput = {
             ...analysisInputBase,
@@ -305,7 +302,6 @@ export default function AnalizarProyectoPage() {
       title: t('common.processing'),
       description: t('error.errorDisplay.toast.autofixAttempt.description') 
     });
-    // La lógica real de llamada a callAutoFixErrorWithGroup reside en el componente ErrorDisplay
   };
   
   const handleRedefineFocusAreaProject = async () => {
@@ -332,7 +328,7 @@ export default function AnalizarProyectoPage() {
   };
 
   const handleSendModificationRequestAnalyze = async () => {
-    if (!currentModificationRequestAnalyze.trim() || !result) {
+    if ((!currentModificationRequestAnalyze || !currentModificationRequestAnalyze.trim()) || !result) {
       toast({ variant: "destructive", title: t('analyzeProject.toast.modificationError.title'), description: t('analyzeProject.toast.emptyModificationRequest') });
       return;
     }
@@ -354,7 +350,12 @@ export default function AnalizarProyectoPage() {
         agentSystemPromptForChat = orchestrator?.systemPrompt || group?.mainTask;
     }
 
-    const chatContextForAI = `${t('analyzeProject.results.modificationContextPrefix')}\nTítulo del Análisis: ${result.analysisTitle}\nEvaluación General: ${result.generalAssessment}\nÁreas Identificadas: ${result.identifiedAreas.join(', ')}\nSugerencias Detalladas: ${result.detailedSuggestions.map(s => `- ${s.area}: ${s.suggestion}`).join('\n')}\n\nEl usuario ahora pregunta o solicita lo siguiente sobre este análisis:`;
+    const chatContextForAI = t('analyzeProject.results.modificationContextPrefix') + 
+      `\nTítulo del Análisis: ${result.analysisTitle}` +
+      `\nEvaluación General: ${result.generalAssessment}` +
+      `\nÁreas Identificadas: ${result.identifiedAreas.join(', ')}` +
+      `\nSugerencias Detalladas: ${result.detailedSuggestions.map(s => `- ${s.area}: ${s.suggestion}`).join('\n')}` +
+      `\n\nEl usuario ahora pregunta o solicita lo siguiente sobre este análisis:`;
 
     try {
         const aiResponse = await callChatWithAgentOrGlobal({
@@ -364,15 +365,14 @@ export default function AnalizarProyectoPage() {
         
         const assistantMessage: ChatMessage = { id: uuidv4(), role: 'assistant', content: aiResponse.aiResponse, timestamp: new Date().toISOString() };
         setChatHistoryAnalyze(prev => [...prev, assistantMessage]);
-        // Potentially update 'result.aiNotes' or specific parts of 'result' if AI's response implies a change to the analysis itself
-        setResult(prevResult => prevResult ? ({ ...prevResult, aiNotes: prevResult.aiNotes + `\n\nRespuesta a consulta: ${aiResponse.aiResponse}` }) : null);
+        setResult(prevResult => prevResult ? ({ ...prevResult, aiNotes: (prevResult.aiNotes || '') + `\n\nRespuesta a consulta: ${aiResponse.aiResponse}` }) : null);
         toast({ title: t('analyzeProject.toast.modificationSuccess.title') });
         addDebugLog({ source: 'AnalizarProyectoPage', type: 'SUCCESS', message: 'AI response received for analysis modification/query.'});
 
     } catch (e: any) {
       addDebugLog({ source: 'AnalizarProyectoPage', type: 'ERROR', message: "Failed analysis modification/query (UI).", errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage });
       const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('analyzeProject.toast.modificationError.description'));
-      const systemErrorMessage: ChatMessage = { id: uuidv4(), role: 'system', content: t('chat.systemMessage.errorPrefix') + errorMsg, timestamp: new Date().toISOString() };
+      const systemErrorMessage: ChatMessage = { id: uuidv4(), role: 'system', content: t('chat.systemMessage.errorPrefix' as TranslationKey) + errorMsg, timestamp: new Date().toISOString() };
       setChatHistoryAnalyze(prev => [...prev, systemErrorMessage]);
       toast({ variant: "destructive", title: t('analyzeProject.toast.modificationError.title'), description: errorMsg });
       if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
@@ -382,7 +382,7 @@ export default function AnalizarProyectoPage() {
   };
   
   const handleRedefineModificationRequestAnalyze = async () => {
-    if (!currentModificationRequestAnalyze.trim()) {
+    if (!currentModificationRequestAnalyze || !currentModificationRequestAnalyze.trim()) {
       toast({ variant: 'destructive', title: t('common.toast.redefineEmpty.title'), description: t('common.toast.redefineEmpty.description') });
       return;
     }
@@ -406,15 +406,13 @@ export default function AnalizarProyectoPage() {
 
   const handleSaveAnalysisSnapshot = useCallback(() => {
     if (!result) {
-      toast({ variant: "destructive", title: t('versions.toast.snapshotSaveError.title'), description: t('versions.toast.snapshotSaveError.noContent', {section: t('sidebar.analyzeProject')})});
+      toast({ variant: "destructive", title: t('versions.toast.snapshotSaveError.title'), description: t('versions.toast.snapshotSaveError.noContent', {section: t('sidebar.analyzeProject' as TranslationKey)})});
       return;
     }
     const snapshotName = t('analyzeProject.results.snapshotName', { name: result.analysisTitle.substring(0,30) || "Sin Titulo", time: new Date().toLocaleTimeString() });
     const snapshotDataToSave: Partial<AnalyzeCodeOutput> & { uiSelectedSuggestions?: DetailedSuggestionForUI[], uiChatHistory?: ChatMessage[] } = {
       ...result,
-      // Remove projectContent from snapshot if it's too large potentially
-      // projectContent: result.projectContent && result.projectContent.length > 10000 ? result.projectContent.substring(0,10000) + '... (truncado para snapshot)' : result.projectContent,
-      detailedSuggestions: suggestionsForUI.map(s => ({ ...s, isSelected: !!s.isSelected })), // Save selection state
+      detailedSuggestions: suggestionsForUI.map(s => ({ ...s, isSelected: !!s.isSelected })), 
       uiChatHistory: chatHistoryAnalyze,
     };
     addSnapshot({
@@ -518,8 +516,8 @@ export default function AnalizarProyectoPage() {
 
         {error && <ErrorDisplay 
                     error={error} 
-                    onAutoFix={() => handleAutoFixError(error || t('common.unknownError'))}
-                    context={`${t('errorDisplay.autofixContextPrefix')} Enfoque='${focusArea}', Fuente='${projectSourceType === 'git' ? gitUrl : uploadedFileName || 'archivo subido'}' ${currentModificationRequestAnalyze ? `Última petición de modificación: "${currentModificationRequestAnalyze}"` : '' }`}
+                    onAutoFix={() => handleAutoFixError(error || t('common.unknownError' as TranslationKey))}
+                    context={`${t('errorDisplay.autofixContextPrefix' as TranslationKey)} Enfoque='${focusArea}', Fuente='${projectSourceType === 'git' ? gitUrl : uploadedFileName || 'archivo subido'}' ${currentModificationRequestAnalyze ? `Última petición de modificación: "${currentModificationRequestAnalyze}"` : '' }`}
                   />}
 
         {isLoading && !result && !error && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{loadingMessage || t('analyzeProject.results.analyzing')}</p></div>}
@@ -531,7 +529,7 @@ export default function AnalizarProyectoPage() {
               suggestionsForUI={suggestionsForUI}
               onToggleSuggestionSelection={handleToggleSuggestionSelection}
               onApplySelectedAndDownloadZip={handleApplySelectedAndDownloadZip}
-              canApplyAndDownload={!!originalProjectFiles}
+              canApplyAndDownload={!!originalProjectFiles} 
               chatHistory={chatHistoryAnalyze}
               currentModificationRequest={currentModificationRequestAnalyze}
               onCurrentModificationRequestChange={setCurrentModificationRequestAnalyze}
@@ -547,3 +545,4 @@ export default function AnalizarProyectoPage() {
     </Card>
   );
 }
+

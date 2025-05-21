@@ -35,7 +35,8 @@
     "applyAndDownloadButton": "Apply Selected & Download Project (ZIP)",
     "selectSuggestionCheckboxAria": "Select suggestion for area {area}",
     "applyInfoText": "Select suggestions you wish to conceptually apply. This option is available if the project source was a Git URL. The ZIP download will contain the original files with the selected modifications.",
-    "modificationContextPrefix": "Context of the current analysis being queried/modified:"
+    "modificationContextPrefix": "Context of the current analysis being queried/modified:",
+    "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English."
   },
   "toast": {
     "invalidFile": {

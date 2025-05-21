@@ -35,7 +35,8 @@
     "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
     "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área {area}",
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar conceptualmente. Esta opción está disponible si la fuente del proyecto fue una URL de Git. La descarga ZIP contendrá los archivos originales con las modificaciones seleccionadas.",
-    "modificationContextPrefix": "Contexto del análisis actual sobre el que se realiza la consulta/modificación:"
+    "modificationContextPrefix": "Contexto del análisis actual sobre el que se realiza la consulta/modificación:",
+    "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano."
   },
   "toast": {
     "invalidFile": {
