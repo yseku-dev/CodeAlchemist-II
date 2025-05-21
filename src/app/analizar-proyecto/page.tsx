@@ -32,6 +32,7 @@ import { Loader2 } from 'lucide-react';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast'; // Importación añadida
 
 type ProjectSourceType = "upload" | "git";
 
@@ -195,18 +196,16 @@ export default function AnalizarProyectoPage() {
         agentSystemPrompt = agent?.systemPrompt;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
         const group = getGroupById(llmConfigSource.id || '');
-        // For analyzeSelfCode, the group's mainTask is often better context than orchestrator's generic prompt.
         agentSystemPrompt = group?.mainTask;
     }
 
     let analysisInputBase: AnalyzeCodeInput = {
-        sourceCodeLocation: "UploadedString", // Default, will be overridden if Git
+        sourceCodeLocation: "UploadedString",
         focusArea: focusArea || undefined,
         analysisPreferences: focusArea || undefined,
         searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
         agentSystemPrompt: agentSystemPrompt
     };
-
 
     if (projectSourceType === "upload" && uploadedFile) {
       setLoadingMessage(t('analyzeProject.toast.processingFile' as TranslationKey));
@@ -335,13 +334,12 @@ export default function AnalizarProyectoPage() {
    */
   const handleAutoFixError = async (errorToFix: string) => {
     const autoFixFlowName = 'callAutoFixErrorWithGroup (AnalizarProyecto)';
-    const contextForAI = `${t('error.errorDisplay.autofixContextPrefix' as TranslationKey)} Enfoque='${focusArea}', Fuente='${projectSourceType === 'git' ? gitUrl : uploadedFileName || 'archivo subido'}' ${currentModificationRequestAnalyze ? `Última petición de modificación: "${currentModificationRequestAnalyze}"` : '' }`;
+    const contextForAI = `${t('error.errorDisplay.autofixContextPrefix' as TranslationKey)} Enfoque='${focusArea}', Fuente='${projectSourceType === 'git' ? gitUrl : uploadedFileName || t('analyzeProject.results.uploadedFileFallback' as TranslationKey)}' ${currentModificationRequestAnalyze ? `${t('analyzeProject.results.lastModificationRequestLabel' as TranslationKey)}: "${currentModificationRequestAnalyze}"` : '' }`;
     addDebugLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Intentando Auto-Fix para error: ${errorToFix}`, data: { contextForAI }, flowName: autoFixFlowName});
     toast({
       title: t('common.processing' as TranslationKey),
       description: t('error.errorDisplay.toast.autofixAttempt.description' as TranslationKey)
     });
-    // Actual auto-fix logic is handled by ErrorDisplay's internal call to callAutoFixErrorWithGroup
   };
 
   /**
@@ -372,7 +370,6 @@ export default function AnalizarProyectoPage() {
 
   /**
    * Sends a modification request to the AI for the current project analysis.
-   * This currently simulates the AI response by updating notes.
    */
   const handleSendModificationRequestAnalyze = async () => {
     if ((!currentModificationRequestAnalyze || !currentModificationRequestAnalyze.trim()) || !result) {
@@ -412,8 +409,15 @@ export default function AnalizarProyectoPage() {
 
         const assistantMessage: ChatMessage = { id: uuidv4(), role: 'assistant', content: aiResponse.aiResponse, timestamp: new Date().toISOString() };
         setChatHistoryAnalyze(prev => [...prev, assistantMessage]);
-        // Update analysis notes with the interaction summary
-        setResult(prevResult => prevResult ? ({ ...prevResult, aiNotes: (prevResult.aiNotes || '') + `\n\nConsulta del Usuario (${new Date(userMessage.timestamp).toLocaleTimeString()}): "${userMessage.content}"\nRespuesta IA: ${aiResponse.aiResponse}` }) : null);
+        
+        setResult(prevResult => {
+          if (!prevResult) return null;
+          const newAiNotes = (prevResult.aiNotes || '') + 
+                             `\n\n[${t('analyzeProject.results.chatInteractionLogPrefix' as TranslationKey)} ${new Date(userMessage.timestamp).toLocaleTimeString()}]` +
+                             `\n  ${t('common.userLabel')}: "${userMessage.content}"` +
+                             `\n  ${t('common.assistantLabel')}: "${aiResponse.aiResponse}"`;
+          return { ...prevResult, aiNotes: newAiNotes };
+        });
         toast({ title: t('analyzeProject.toast.modificationSuccess.title' as TranslationKey) });
         addDebugLog({ source: 'AnalizarProyectoPage', type: 'SUCCESS', message: 'AI response received for analysis modification/query.'});
 
@@ -464,7 +468,7 @@ export default function AnalizarProyectoPage() {
       return;
     }
     const snapshotNameKey = 'analyzeProject.results.snapshotName' as TranslationKey;
-    const snapshotName = t(snapshotNameKey, { name: result.analysisTitle.substring(0,30) || "Sin Titulo", time: new Date().toLocaleTimeString() });
+    const snapshotName = t(snapshotNameKey, { name: (result.analysisTitle || "Sin Titulo").substring(0,30), time: new Date().toLocaleTimeString() });
 
     const snapshotDataToSave: Partial<AnalyzeCodeOutput> & { uiSelectedSuggestions?: DetailedSuggestionForUI[], uiChatHistory?: ChatMessage[] } = {
       ...result,
@@ -475,7 +479,7 @@ export default function AnalizarProyectoPage() {
           suggestedContent: s.suggestedContent,
           suggestedPromptForImplementation: s.suggestedPromptForImplementation,
       })),
-      uiChatHistory: chatHistoryAnalyze, // Include chat history in the snapshot
+      uiChatHistory: chatHistoryAnalyze,
     };
     const snapshotJsonString = JSON.stringify(snapshotDataToSave, null, 2);
     addSnapshot({
@@ -562,7 +566,6 @@ export default function AnalizarProyectoPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [originalProjectFiles, suggestionsForUI, result, toast, addDebugLog, t, setIsLoading, setLoadingMessage]);
 
-
   return (
     <Card className="max-w-4xl mx-auto">
       <AnalyzeProjectHeader />
@@ -573,7 +576,7 @@ export default function AnalizarProyectoPage() {
           projectSourceType={projectSourceType}
           onProjectSourceTypeChange={(value) => { setProjectSourceType(value); setOriginalProjectFiles(null); setUploadedFile(null); setUploadedFileName(null);}}
           uploadedFile={uploadedFile}
-          uploadedFileName={uploadedFileName}
+          uploadedFileName={uploadedFileName || undefined}
           onFileChange={handleFileChange}
           fileInputRef={fileInputRef}
           gitUrl={gitUrl}
@@ -593,7 +596,7 @@ export default function AnalizarProyectoPage() {
         {error && <ErrorDisplay
                     error={error}
                     onAutoFix={() => handleAutoFixError(error || t('common.unknownError' as TranslationKey))}
-                    context={`${t('error.errorDisplay.autofixContextPrefix' as TranslationKey)} Enfoque='${focusArea}', Fuente='${projectSourceType === 'git' ? gitUrl : uploadedFileName || 'archivo subido'}' ${currentModificationRequestAnalyze ? `Última petición de modificación: "${currentModificationRequestAnalyze}"` : '' }`}
+                    context={`${t('error.errorDisplay.autofixContextPrefix' as TranslationKey)} Enfoque='${focusArea}', Fuente='${projectSourceType === 'git' ? gitUrl : uploadedFileName || t('analyzeProject.results.uploadedFileFallback' as TranslationKey)}' ${currentModificationRequestAnalyze ? `${t('analyzeProject.results.lastModificationRequestLabel' as TranslationKey)}: "${currentModificationRequestAnalyze}"` : '' }`}
                   />}
 
         {isLoading && !result && !error && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{loadingMessage || t('analyzeProject.results.analyzing' as TranslationKey)}</p></div>}
