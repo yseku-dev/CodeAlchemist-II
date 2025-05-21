@@ -5,14 +5,23 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, AnalyzeCodeInput, AnalyzeCodeOutput, Agent, AIAgentGroup, DetailedSuggestionForUI, AppSourceFile, ChatMessage, CodeSnapshot } from '@/types';
-import { callAnalyzeSelfCode, callRedefinePrompt, callChatWithAgentOrGlobal } from '@/utils/apiClient'; // Asegúrate que callChatWithAgentOrGlobal esté aquí si se usa
+import type {
+  LLMConfigSourceOption,
+  AnalyzeCodeInput,
+  AnalyzeCodeOutput,
+  Agent,
+  AIAgentGroup,
+  DetailedSuggestionForUI,
+  AppSourceFile,
+  ChatMessage,
+  CodeSnapshot,
+} from '@/types';
+import { callAnalyzeSelfCode, callRedefinePrompt, callChatWithAgentOrGlobal } from '@/utils/apiClient';
 import { useAppState } from '@/context/AppStateContext';
-import PageSectionHeader from '@/components/layout/PageSectionHeader'; // Corregido según error anterior
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import { useRouter } from 'next/navigation';
 import { AppError } from '@/utils/AppError';
 import { useI18n } from '@/context/I18nContext';
@@ -23,7 +32,7 @@ import AnalyzeProjectResultsDisplay from '@/components/features/analizar-proyect
 import { fetchRemoteGitRepository } from '@/app/autoupdate/actions';
 import JSZip from 'jszip';
 import { v4 as uuidv4 } from 'uuid';
-
+import { useLocalStorage } from '@/hooks/useLocalStorage'; // Added import
 
 type ProjectSourceType = "upload" | "git";
 
@@ -43,7 +52,7 @@ export default function AnalizarProyectoPage() {
 
   const [llmConfigSource, setLlmConfigSource] = useLocalStorage<LLMConfigSourceOption | undefined>('codealchemist-ap-llmConfigSource', { type: 'Ajustes Globales' });
   const [projectSourceType, setProjectSourceType] = useLocalStorage<ProjectSourceType>("codealchemist-ap-projectSourceType", "upload");
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null); // File object cannot be directly stringified for localStorage
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedFileName, setUploadedFileName] = useLocalStorage<string | null>('codealchemist-ap-uploadedFileName', null);
 
   const [gitUrl, setGitUrl] = useLocalStorage<string>('codealchemist-ap-gitUrl', '');
@@ -86,7 +95,7 @@ export default function AnalizarProyectoPage() {
 
       if ((isZip || isJson) && isValidSize) {
         setUploadedFile(file);
-        setUploadedFileName(file.name); // Persist file name
+        setUploadedFileName(file.name); 
         setError(null);
         addDebugLog({
           source: 'AnalizarProyectoPage',
@@ -95,8 +104,8 @@ export default function AnalizarProyectoPage() {
           flowName: 'handleFileChange'
         });
       } else {
-        const errorMsg = t('error.analyzeProject.toast.invalidFile.description' as TranslationKey);
-        toast({ variant: "destructive", title: t('error.analyzeProject.toast.invalidFile.title' as TranslationKey), description: errorMsg });
+        const errorMsg = t('analyzeProject.toast.invalidFile.description' as TranslationKey);
+        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title' as TranslationKey), description: errorMsg });
         setError(errorMsg);
         setUploadedFile(null);
         setUploadedFileName(null);
@@ -120,7 +129,7 @@ export default function AnalizarProyectoPage() {
       let finalResult: AnalyzeCodeOutput = { ...aiResult, groupLog: undefined, overallImprovementIdeas: aiResult.overallImprovementIdeas || [] };
       
       if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
-         const group = getGroupById(llmConfigSource.id || ''); // Ensure group is fetched correctly
+         const group = getGroupById(llmConfigSource.id || ''); 
          const orchestrator = getAgentById('orquestador-flujo-agentes');
          finalResult.groupLog = t('analyzeProject.results.groupContextLog' as TranslationKey, {
             groupName: llmConfigSource.name,
@@ -192,13 +201,16 @@ export default function AnalizarProyectoPage() {
           const zip = await jszip.loadAsync(uploadedFile);
           let projectContentString = "";
           const fileProcessingPromises: Promise<void>[] = [];
-          const textFileExtensions = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.go', '.php', '.rb', '.md', '.txt', '.xml', '.yaml', '.yml', '.env', '.ini', '.cfg', '.sh', '.bat', '.sql', '.graphql', '.tf', '.hcl'];
-          const ignorePatternsSimple = ['node_modules/', '.git/', '.next/', 'dist/', 'build/', '__pycache__/'];
+          const textFileExtensions = ['.js', '.jsx', '.ts', '.tsx', '.json', '.html', '.css', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.go', '.php', '.rb', '.md', '.txt', '.xml', '.yaml', '.yml', '.env', '.ini', '.cfg', '.sh', '.bat', '.sql', '.graphql', '.tf', '.hcl', '.text', '.properties', '.log'];
+          const ignorePatternsSimple = ['node_modules/', '.git/', '.next/', 'dist/', 'build/', '__pycache__/', '.DS_Store', 'package-lock.json', 'yarn.lock'];
+          const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.ico', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.woff', '.woff2', '.ttf', '.otf', '.eot', '.svg', '.mp3', '.mp4', '.mov', '.avi', '.webm', '.webp'];
 
           zip.forEach((relativePath, fileEntry) => {
             if (!fileEntry.dir && 
-                textFileExtensions.some(ext => relativePath.toLowerCase().endsWith(ext)) &&
-                !ignorePatternsSimple.some(pattern => relativePath.startsWith(pattern))) {
+                !ignorePatternsSimple.some(pattern => relativePath.startsWith(pattern)) &&
+                !binaryExtensions.some(ext => relativePath.toLowerCase().endsWith(ext)) &&
+                (textFileExtensions.some(ext => relativePath.toLowerCase().endsWith(ext)) || !relativePath.includes('.')) // Include files without extensions
+            ) {
               fileProcessingPromises.push(
                 fileEntry.async("string").then(content => {
                   projectContentString += `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${relativePath} ---\n${content}\n\n`;
@@ -206,6 +218,8 @@ export default function AnalizarProyectoPage() {
                   addDebugLog({source: 'AnalizarProyectoPage', type: 'WARN', message: `Could not read file ${relativePath} from ZIP as text: ${(err as Error).message}`, flowName: 'handleAnalyze'});
                 })
               );
+            } else if (!fileEntry.dir) {
+                addDebugLog({source: 'AnalizarProyectoPage', type: 'DEBUG', message: `Skipping file in ZIP: ${relativePath} (binary or ignored)`, flowName: 'handleAnalyze'});
             }
           });
 
@@ -266,7 +280,7 @@ export default function AnalizarProyectoPage() {
         const gitResult = await fetchRemoteGitRepository(gitUrl);
         if (gitResult.success && gitResult.files) {
           const projectContentString = gitResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${f.fileName} ---\n${f.content}`).join('\n\n');
-          setOriginalProjectFiles(gitResult.files); // Save original files for ZIP download
+          setOriginalProjectFiles(gitResult.files); 
           const analysisInput: AnalyzeCodeInput = {
             ...analysisInputBase,
             gitRepoUrl: gitUrl,
@@ -297,14 +311,14 @@ export default function AnalizarProyectoPage() {
     }
   };
 
-  const handleAutoFixError = async (errorToFix: string, errorContext?: string) => {
+  const handleAutoFixError = async (errorToFix: string) => { // Removed errorContext to use state values
     const autoFixFlowName = 'callAutoFixErrorWithGroup (AnalizarProyecto)';
-    addDebugLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Intentando Auto-Fix para error: ${errorToFix}`, data: { errorContext }, flowName: autoFixFlowName});
+    const contextForAI = `Contexto del análisis: Enfoque='${focusArea}', Fuente='${projectSourceType === 'git' ? gitUrl : uploadedFileName || 'archivo subido'}' ${currentModificationRequestAnalyze ? `Última petición de modificación: "${currentModificationRequestAnalyze}"` : ''}`;
+    addDebugLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Intentando Auto-Fix para error: ${errorToFix}`, data: { contextForAI }, flowName: autoFixFlowName});
     toast({
       title: t('common.processing' as TranslationKey),
       description: t('error.errorDisplay.toast.autofixAttempt.description' as TranslationKey) 
     });
-    // La lógica para llamar a callAutoFixErrorWithGroup y mostrar el modal está en ErrorDisplay
   };
   
   const handleRedefineFocusAreaProject = async () => {
@@ -343,28 +357,22 @@ export default function AnalizarProyectoPage() {
     const tempCurrentModificationRequest = currentModificationRequestAnalyze;
     setCurrentModificationRequestAnalyze('');
 
-    let agentSystemPrompt: string | undefined;
+    let agentSystemPromptForChat: string | undefined;
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
         const agent = getAgentById(llmConfigSource.id);
-        agentSystemPrompt = agent?.systemPrompt;
+        agentSystemPromptForChat = agent?.systemPrompt;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
         const group = getGroupById(llmConfigSource.id || '');
         const orchestrator = getAgentById('orquestador-flujo-agentes');
-        agentSystemPrompt = orchestrator?.systemPrompt || group?.mainTask;
+        agentSystemPromptForChat = orchestrator?.systemPrompt || group?.mainTask;
     }
 
-    const chatContextForAI = `El siguiente es un análisis de proyecto que se ha realizado previamente:
-Título del Análisis: ${result.analysisTitle}
-Evaluación General: ${result.generalAssessment}
-Áreas Identificadas: ${result.identifiedAreas.join(', ')}
-Sugerencias Detalladas: ${result.detailedSuggestions.map(s => `- ${s.area}: ${s.suggestion}`).join('\\n')}
-
-El usuario ahora pregunta o solicita lo siguiente sobre este análisis:`;
+    const chatContextForAI = `El siguiente es un análisis de proyecto que se ha realizado previamente:\nTítulo del Análisis: ${result.analysisTitle}\nEvaluación General: ${result.generalAssessment}\nÁreas Identificadas: ${result.identifiedAreas.join(', ')}\nSugerencias Detalladas: ${result.detailedSuggestions.map(s => `- ${s.area}: ${s.suggestion}`).join('\\n')}\n\nEl usuario ahora pregunta o solicita lo siguiente sobre este análisis:`;
 
     try {
         const aiResponse = await callChatWithAgentOrGlobal({
             userMessage: `${chatContextForAI}\n"${tempCurrentModificationRequest}"`,
-            agentSystemPrompt: agentSystemPrompt || "Eres un asistente experto en análisis de código y software. Responde a las preguntas del usuario sobre el análisis proporcionado."
+            agentSystemPrompt: agentSystemPromptForChat || "Eres un asistente experto en análisis de código y software. Responde a las preguntas del usuario sobre el análisis proporcionado."
         });
         
         const assistantMessage: ChatMessage = { id: uuidv4(), role: 'assistant', content: aiResponse.aiResponse, timestamp: new Date().toISOString() };
@@ -421,10 +429,11 @@ El usuario ahora pregunta o solicita lo siguiente sobre este análisis:`;
     addSnapshot({
       name: snapshotName,
       code: JSON.stringify(snapshotDataToSave, null, 2),
-      source: 'project-analysis'
+      source: 'project-analysis',
+      size: JSON.stringify(snapshotDataToSave).length,
     });
     addDebugLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Snapshot de análisis de proyecto guardado: ${snapshotName}`});
-  }, [result, suggestionsForUI, chatHistoryAnalyze, addSnapshot, t, toast]);
+  }, [result, suggestionsForUI, chatHistoryAnalyze, addSnapshot, t, toast, addDebugLog]);
 
   const handleToggleSuggestionSelection = useCallback((suggestionId: string) => {
     setSuggestionsForUI(prev => 
@@ -443,7 +452,7 @@ El usuario ahora pregunta o solicita lo siguiente sobre este análisis:`;
       return;
     }
 
-    setIsLoading(true); // Re-use isLoading for this operation
+    setIsLoading(true); 
     setLoadingMessage(t('analyzeProject.toast.applyingAndZipping' as TranslationKey));
     toast({ title: t('analyzeProject.toast.applyingAndZipping' as TranslationKey) });
 
@@ -518,8 +527,8 @@ El usuario ahora pregunta o solicita lo siguiente sobre este análisis:`;
 
         {error && <ErrorDisplay 
                     error={error} 
-                    onAutoFix={() => handleAutoFixError(error || t('common.unknownError' as TranslationKey), `Contexto del análisis: Enfoque='${focusArea}', Fuente='${projectSourceType === 'git' ? gitUrl : uploadedFileName || 'archivo subido'}'`)}
-                    context={`Análisis de proyecto - Enfoque: ${focusArea}, Fuente: ${projectSourceType === 'git' ? gitUrl : uploadedFileName || 'archivo subido'}`}
+                    onAutoFix={() => handleAutoFixError(error || t('common.unknownError' as TranslationKey))}
+                    context={`Análisis de proyecto - Enfoque: ${focusArea}, Fuente: ${projectSourceType === 'git' ? gitUrl : uploadedFileName || 'archivo subido'} ${currentModificationRequestAnalyze ? `Última petición de modificación: "${currentModificationRequestAnalyze}"` : '' }`}
                   />}
 
         {isLoading && !result && !error && <div className="flex justify-center items-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">{loadingMessage || t('analyzeProject.results.analyzing' as TranslationKey)}</p></div>}
@@ -547,5 +556,7 @@ El usuario ahora pregunta o solicita lo siguiente sobre este análisis:`;
     </Card>
   );
 }
+
+    
 
     
