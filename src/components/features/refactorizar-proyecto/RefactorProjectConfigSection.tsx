@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card'; // Card is not used directly here, only CardContent
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,13 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, GitPullRequestDraft, Wand2 } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
-import { GENERAL_PRIORITIES, type GeneralPriority } from '@/lib/constants';
+import { GENERAL_PRIORITIES, type GeneralPriority, NINGUNA_PRIORITY_VALUE } from '@/lib/constants'; // Import NINGUNA_PRIORITY_VALUE
 import { Separator } from "@/components/ui/separator";
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import type { TranslationKey } from '@/lib/i18n/translations';
 
 type ProjectSourceType = "upload" | "git";
-const NINGUNA_PRIORITY_VALUE = "__none__";
+// const NINGUNA_PRIORITY_VALUE = "__none__"; // Removed local definition
 
 interface RefactorProjectConfigSectionProps {
   llmConfigSource: LLMConfigSourceOption | undefined;
@@ -56,7 +56,8 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
   isRedefiningGoals, onRedefineGoals, isRedefiningFocusArea, onRedefineFocusArea,
 }) => {
   return (
-    <Card className="lg:col-span-1">
+    // The parent Card is in page.tsx, this component only renders its content structure
+    <> 
       <PageSectionHeader
         icon={GitPullRequestDraft}
         title={t('refactorProject.title')}
@@ -141,7 +142,14 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
               {t('common.redefineRequestButton')}
             </Button>
           </div>
-          <Input id="focus-area" value={focusArea} onChange={(e) => onFocusAreaChange(e.target.value)} placeholder={t('refactorProject.focusPlaceholder')} disabled={isLoading || isRedefiningFocusArea} />
+          <Textarea 
+            id="focus-area" 
+            value={focusArea} 
+            onChange={(e) => onFocusAreaChange(e.target.value)} 
+            placeholder={t('refactorProject.focusPlaceholder')} 
+            disabled={isLoading || isRedefiningFocusArea}
+            rows={2} // Slightly larger for focus area
+          />
         </div>
 
         <Button onClick={onAnalyze} disabled={isLoading || isRedefiningGoals || isRedefiningFocusArea || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
@@ -149,7 +157,7 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
           {isLoading && loadingMessage ? loadingMessage : t('refactorProject.analyzeButton')}
         </Button>
       </CardContent>
-    </Card>
+    </>
   );
 };
 

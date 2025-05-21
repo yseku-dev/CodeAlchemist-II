@@ -3,13 +3,14 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Card } from '@/components/ui/card'; // Import Card
 import { Loader2 } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import ErrorDisplay from '@/components/error-display';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
 import type { LLMConfigSourceOption, RefactorSuggestion, RefactorProjectWithAIInput, RefactorProjectWithAIOutput as AIResult, Agent, AIAgentGroup, CodeSnapshot } from '@/types';
-import { GENERAL_PRIORITIES, type GeneralPriority, NINGUNA_PRIORITY_VALUE } from '@/lib/constants';
+import { GENERAL_PRIORITIES, type GeneralPriority, NINGUNA_PRIORITY_VALUE } from '@/lib/constants'; // Import NINGUNA_PRIORITY_VALUE
 import { callRefactorProjectWithAI, callRedefinePrompt } from '@/utils/apiClient';
 import { useAppState } from '@/context/AppStateContext';
 import { useRouter } from 'next/navigation';
@@ -298,7 +299,6 @@ export default function RefactorizarProyectoPage() {
     if (analysisResult) {
       contentToSave.analysis = {
         projectOverview: analysisResult.projectOverview,
-        // Solo guardamos la descripción de las sugerencias, no el contenido de código completo si es muy grande
         suggestionsSummary: suggestions.map(s => ({ area: s.area, description: s.description, priority: s.priority, status: s.status })),
       };
       if (suggestions.some(s => s.status === 'applied')) {
@@ -309,8 +309,6 @@ export default function RefactorizarProyectoPage() {
       contentToSave.originalSourceHint = projectSourceType === 'git' 
         ? `Git: ${gitUrl}` 
         : `Subido: ${uploadedFile?.name || t('common.unknownFile' as TranslationKey) }`;
-      // No guardamos el projectSourceString completo si es muy grande, solo una referencia.
-      // Para guardar el código con sugerencias aplicadas, necesitaríamos un proceso más complejo.
     }
     
     const snapshotName = `${snapshotNamePrefix} - ${new Date().toLocaleTimeString()}`;
@@ -320,37 +318,39 @@ export default function RefactorizarProyectoPage() {
       source: 'refactored-project'
     });
     addLog({source: 'RefactorizarProyectoPage', type: 'INFO', message: `Snapshot de proyecto refactorizado guardado: ${snapshotName}`});
-  }, [analysisResult, projectSourceString, suggestions, projectSourceType, gitUrl, uploadedFile, addSnapshot, t, toast]);
+  }, [analysisResult, projectSourceString, suggestions, projectSourceType, gitUrl, uploadedFile, addSnapshot, t, toast, addLog]); // Dependencies updated
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-      <RefactorProjectConfigSection
-        llmConfigSource={llmConfigSource}
-        onLlmConfigSourceChange={setLlmConfigSource}
-        projectSourceType={projectSourceType}
-        onProjectSourceTypeChange={setProjectSourceType}
-        uploadedFile={uploadedFile}
-        onFileChange={handleFileChange}
-        fileInputRef={fileInputRef}
-        gitUrl={gitUrl}
-        onGitUrlChange={setGitUrl}
-        refactorGoals={refactorGoals}
-        onRefactorGoalsChange={setRefactorGoals}
-        generalPriority={generalPriority}
-        onGeneralPriorityChange={setGeneralPriority}
-        searchDepth={searchDepth}
-        onSearchDepthChange={setSearchDepth}
-        focusArea={focusArea}
-        onFocusAreaChange={setFocusArea}
-        onAnalyze={handleAnalyze}
-        isLoading={isLoading}
-        loadingMessage={loadingMessage}
-        t={t}
-        isRedefiningGoals={isRedefiningGoals}
-        onRedefineGoals={handleRedefineGoals}
-        isRedefiningFocusArea={isRedefiningFocusArea}
-        onRedefineFocusArea={handleRedefineFocusArea}
-      />
+      <Card className="lg:col-span-1"> {/* Card wrapper for config section */}
+        <RefactorProjectConfigSection
+          llmConfigSource={llmConfigSource}
+          onLlmConfigSourceChange={setLlmConfigSource}
+          projectSourceType={projectSourceType}
+          onProjectSourceTypeChange={setProjectSourceType}
+          uploadedFile={uploadedFile}
+          onFileChange={handleFileChange}
+          fileInputRef={fileInputRef}
+          gitUrl={gitUrl}
+          onGitUrlChange={setGitUrl}
+          refactorGoals={refactorGoals}
+          onRefactorGoalsChange={setRefactorGoals}
+          generalPriority={generalPriority}
+          onGeneralPriorityChange={setGeneralPriority}
+          searchDepth={searchDepth}
+          onSearchDepthChange={setSearchDepth}
+          focusArea={focusArea}
+          onFocusAreaChange={setFocusArea}
+          onAnalyze={handleAnalyze}
+          isLoading={isLoading}
+          loadingMessage={loadingMessage}
+          t={t}
+          isRedefiningGoals={isRedefiningGoals}
+          onRedefineGoals={handleRedefineGoals}
+          isRedefiningFocusArea={isRedefiningFocusArea}
+          onRedefineFocusArea={handleRedefineFocusArea}
+        />
+      </Card>
       <div className="lg:col-span-2 space-y-6">
         <RefactorProjectResultsSection
           analysisResult={analysisResult}
@@ -362,7 +362,7 @@ export default function RefactorizarProyectoPage() {
           onViewDiff={handleViewDiff}
           onDiscardSuggestion={handleDiscardSuggestion}
           onApplyAll={handleApplyAll}
-          setSuggestions={setSuggestions}
+          setSuggestions={setSuggestions} // Pass setSuggestions for revertState
           showDiffModal={showDiffModal}
           onCloseDiffModal={() => setShowDiffModal(false)}
           currentDiff={currentDiff}
@@ -376,3 +376,4 @@ export default function RefactorizarProyectoPage() {
     </div>
   );
 }
+
