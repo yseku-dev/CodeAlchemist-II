@@ -23,7 +23,7 @@ interface AnalyzeProjectResultsDisplayProps {
   suggestionsForUI: DetailedSuggestionForUI[];
   onToggleSuggestionSelection: (suggestionId: string) => void;
   onApplySelectedAndDownloadZip: () => Promise<void>;
-  canApplyAndDownload: boolean;
+  canApplyAndDownload: boolean; // True si la fuente original fue Git y se tienen los archivos base
   chatHistory: ChatMessage[];
   currentModificationRequest: string;
   onCurrentModificationRequestChange: (value: string) => void;
@@ -64,20 +64,28 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
     return null;
   }
 
+  const hasApplicableSuggestionsSelected = suggestionsForUI.some(s => s.isSelected && s.suggestedContent);
+
   return (
     <div className="space-y-6">
       <Card className="mt-6 bg-background">
         <PageSectionHeader
           icon={ListChecks}
-          title={result.analysisTitle || t('analyzeProject.results.noResults' as TranslationKey)}
+          title={result.analysisTitle || t('analyzeProject.results.noResults')}
           actions={
             <div className="flex flex-wrap gap-2">
                 <Button onClick={onSaveSnapshot} variant="outline" size="sm">
                     <Save className="mr-2 h-4 w-4" />
                     {t('analyzeProject.results.saveSnapshotButton')}
                 </Button>
-                 {canApplyAndDownload && (
-                    <Button onClick={onApplySelectedAndDownloadZip} variant="outline" size="sm" disabled={!suggestionsForUI.some(s => s.isSelected && s.suggestedContent)}>
+                 {canApplyAndDownload && ( // Solo mostrar si la fuente fue Git
+                    <Button 
+                      onClick={onApplySelectedAndDownloadZip} 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={!hasApplicableSuggestionsSelected}
+                      title={!hasApplicableSuggestionsSelected ? t('analyzeProject.toast.downloadError.selectSuggestions') : t('analyzeProject.results.applyAndDownloadButton')}
+                    >
                         <Download className="mr-2 h-4 w-4" />
                         {t('analyzeProject.results.applyAndDownloadButton')}
                     </Button>
@@ -115,7 +123,9 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 
           {suggestionsForUI && suggestionsForUI.length > 0 && (
             <div>
-              <h3 className="font-semibold text-lg mb-2">{t('analyzeProject.results.specificSuggestionsLabel')}</h3>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-semibold text-lg">{t('analyzeProject.results.specificSuggestionsLabel')}</h3>
+              </div>
               {canApplyAndDownload && (
                 <div className="p-3 my-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-md flex items-start gap-2">
                     <Info className="h-5 w-5 text-blue-700 dark:text-blue-300 shrink-0 mt-0.5" />
@@ -132,7 +142,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                         {suggestion.suggestedContent && canApplyAndDownload && (
                             <Checkbox
                                 id={`suggestion-cb-${suggestion.id}`}
-                                checked={suggestion.isSelected}
+                                checked={!!suggestion.isSelected}
                                 onCheckedChange={() => onToggleSuggestionSelection(suggestion.id)}
                                 className="mt-1"
                                 aria-label={t('analyzeProject.results.selectSuggestionCheckboxAria', { area: suggestion.area })}
@@ -142,11 +152,11 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                             <p className="font-medium text-foreground">{suggestion.area}</p>
                             <p className="text-muted-foreground my-1 whitespace-pre-wrap">{suggestion.suggestion}</p>
                             <p className="text-xs">
-                                <strong>{t('analyzeProject.results.suggestionPriorityLabel' as TranslationKey)}</strong> {suggestion.priority}
+                                <strong>{t('analyzeProject.results.suggestionPriorityLabel')}</strong> {suggestion.priority}
                             </p>
                             {suggestion.suggestedPromptForImplementation && (
                                 <div className="text-xs mt-1">
-                                <strong>{t('analyzeProject.results.suggestedPromptLabel' as TranslationKey)}</strong>
+                                <strong>{t('analyzeProject.results.suggestedPromptLabel')}</strong>
                                 <pre className="mt-1 p-1.5 bg-background rounded-sm text-xs whitespace-pre-wrap border">
                                     {suggestion.suggestedPromptForImplementation}
                                 </pre>
@@ -161,7 +171,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
             </div>
           )}
           {result.groupLog && (
-            <LogsDisplay title={t('analyzeProject.results.groupLogTitle' as TranslationKey)} logs={result.groupLog} />
+            <LogsDisplay title={t('analyzeProject.results.groupLogTitle')} logs={result.groupLog} />
           )}
         </CardContent>
       </Card>
@@ -224,7 +234,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                 <div className="flex justify-start">
                     <div className="max-w-[85%] p-2.5 rounded-lg bg-card text-card-foreground border flex items-center shadow-sm">
                     <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
-                    <span className="text-sm">{t('chat.thinking' as TranslationKey)}</span>
+                    <span className="text-sm">{t('chat.thinking')}</span>
                     </div>
                 </div>
               )}
@@ -273,3 +283,5 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 };
 
 export default AnalyzeProjectResultsDisplay;
+
+    
