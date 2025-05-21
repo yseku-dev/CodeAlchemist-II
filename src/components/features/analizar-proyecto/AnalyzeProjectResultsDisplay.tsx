@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 interface AnalyzeProjectResultsDisplayProps {
   result: AnalyzeCodeOutput | null;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
-  chatHistory?: ChatMessage[]; // Hacerla opcional para permitir valor por defecto
+  chatHistory?: ChatMessage[];
   currentModificationRequest: string;
   onCurrentModificationRequestChange: (value: string) => void;
   onSendModificationRequest: () => Promise<void>;
@@ -41,7 +41,7 @@ interface AnalyzeProjectResultsDisplayProps {
 const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> = ({
   result,
   t,
-  chatHistory = [], // Valor por defecto asignado aquí
+  chatHistory = [],
   currentModificationRequest,
   onCurrentModificationRequestChange,
   onSendModificationRequest,
@@ -155,13 +155,13 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                         ? 'bg-primary text-primary-foreground'
                         : msg.role === 'assistant'
                         ? 'bg-card text-card-foreground border'
-                        : 'bg-destructive/10 text-destructive-foreground border border-destructive/30 items-start' 
+                        : 'bg-destructive/10 text-destructive-foreground border border-destructive/30 items-start'
                     }`}
                   >
                     {msg.role === 'assistant' && (
                       <Bot className="h-5 w-5 self-start flex-shrink-0 text-accent" />
                     )}
-                     {msg.role === 'system' && ( 
+                     {msg.role === 'system' && (
                       <Bot className="h-5 w-5 self-start flex-shrink-0 text-destructive" />
                     )}
                     {msg.role === 'user' && (
@@ -196,7 +196,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                     variant="outline"
                     size="sm"
                     onClick={onRedefineModificationRequest}
-                    disabled={!currentModificationRequest.trim() || isRedefiningModificationRequest || isModifyingProject}
+                    disabled={(!currentModificationRequest || !currentModificationRequest.trim()) || isRedefiningModificationRequest || isModifyingProject}
                     title={t('common.redefineRequestButton')}
                 >
                     {isRedefiningModificationRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
@@ -215,7 +215,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
           </div>
           <Button
             onClick={onSendModificationRequest}
-            disabled={isModifyingProject || isRedefiningModificationRequest || !currentModificationRequest.trim()}
+            disabled={isModifyingProject || isRedefiningModificationRequest || (!currentModificationRequest || !currentModificationRequest.trim())}
             className="w-full"
           >
             {isModifyingProject ? (
@@ -232,5 +232,3 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 };
 
 export default AnalyzeProjectResultsDisplay;
-
-    
