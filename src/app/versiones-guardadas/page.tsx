@@ -4,20 +4,20 @@
 
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import SnapshotsHeader from '@/components/features/versiones-guardadas/SnapshotsHeader';
-import SnapshotsActionsBar from '@/components/features/versiones-guardadas/SnapshotsActionsBar';
-import SnapshotsTable from '@/components/features/versiones-guardadas/SnapshotsTable';
 import ConfirmDialog from '@/components/confirm-dialog';
 import CodeBlock from '@/components/code-block';
 import { useAppState } from '@/context/AppStateContext';
 import { useToast } from '@/hooks/use-toast';
 import { useDebug } from '@/context/DebugContext';
-import type { CodeSnapshot, AppSourceFile, AppSettings } from '@/types'; // Added AppSourceFile
+import type { CodeSnapshot, AppSourceFile, AppSettings, Agent, AIAgentGroup } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
-import { getApplicationSourceBundle } from '@/app/autoupdate/actions'; // For saving project source
-import JSZip from 'jszip'; // For creating ZIP files
+import { getApplicationSourceBundle } from '@/app/autoupdate/actions';
+import JSZip from 'jszip';
+import SnapshotsHeader from '@/components/features/versiones-guardadas/SnapshotsHeader';
+import SnapshotsActionsBar from '@/components/features/versiones-guardadas/SnapshotsActionsBar';
+import SnapshotsTable from '@/components/features/versiones-guardadas/SnapshotsTable';
 
 /**
  * @fileOverview Page component for managing saved code snapshots ("Versiones Guardadas").
@@ -46,32 +46,36 @@ export default function VersionesGuardadasPage() {
 
   const [isSavingProjectSource, setIsSavingProjectSource] = useState(false);
 
-  const handleSaveSnapshotOfCurrentState = useCallback(async (type: 'config' | 'projectSource', downloadAsZip: boolean = false) => {
+  const handleSaveSnapshotOfCurrentState = useCallback(async (type: 'config' | 'projectSource') => {
     let newSnapshotData: Omit<CodeSnapshot, 'id' | 'createdAt'>;
     let toastTitleKey: TranslationKey = 'versions.toast.snapshotSaved.title';
     let toastDescriptionKey: TranslationKey = 'versions.toast.snapshotSaved.description';
     let snapshotBaseName = "";
 
     if (type === 'config') {
-      setIsSavingProjectSource(false); // Ensure this is false if saving config
-      const currentAppState: Partial<AppSettings> & { agents: Agent[], groups: AIAgentGroup[] } = {
-        appName: t('app.title' as TranslationKey), // Use translated app title
+      setIsSavingProjectSource(false);
+      const currentAppState: Partial<Omit<AppSettings, 'language'>> & { agents: Agent[], groups: AIAgentGroup[], appName: string, timestamp: string, language: string } = {
+        appName: t('layout.app.title' as TranslationKey),
         timestamp: new Date().toISOString(),
-        settings,
+        settings: { 
+            llmConfig: settings.llmConfig,
+            gitConfig: settings.gitConfig,
+            debugMode: settings.debugMode,
+        },
+        language: settings.language,
         agents,
         groups,
       };
       snapshotBaseName = t('versions.toast.appStateSaved.name', { time: new Date().toLocaleString() });
+      const jsonDataString = JSON.stringify(currentAppState, null, 2);
       newSnapshotData = {
         name: snapshotBaseName,
-        code: JSON.stringify(currentAppState, null, 2),
+        code: jsonDataString,
         source: 'codealchemist-app-state',
-        size: JSON.stringify(currentAppState, null, 2).length,
-        fileCount: undefined, // Not applicable for config state
+        size: jsonDataString.length,
       };
       toastTitleKey = 'versions.toast.appStateSaved.title';
       toastDescriptionKey = 'versions.toast.appStateSaved.description';
-
     } else if (type === 'projectSource') {
       setIsSavingProjectSource(true);
       toast({ title: t('versions.toast.savingProjectSource.title'), description: t('versions.toast.savingProjectSource.description') });
@@ -111,25 +115,9 @@ export default function VersionesGuardadasPage() {
     }
 
     const newSnapshot = addSnapshot(newSnapshotData);
-    
-    if (downloadAsZip && newSnapshot) {
-      // For project source, 'project_zip' format will trigger actual zipping
-      // For config, 'zip' will just change extension of the JSON content
-      const formatToDownload = type === 'projectSource' ? 'project_zip' : 'zip';
-      handleDownloadSnapshot(newSnapshot, formatToDownload);
-      toast({ 
-        title: t(toastTitleKey), 
-        description: t('versions.toast.snapshotSavedAndDownloaded.description', { 
-          name: newSnapshot.name, 
-          filename: `${newSnapshot.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${formatToDownload === 'project_zip' ? 'zip' : 'json.zip'}` // Adjust extension if needed
-        }) 
-      });
-    } else {
-      toast({ title: t(toastTitleKey), description: t(toastDescriptionKey, { name: newSnapshot.name }) });
-    }
-    addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Snapshot guardado: ${newSnapshot.name}. Tipo: ${type}. Descargado como ZIP: ${downloadAsZip}`});
+    toast({ title: t(toastTitleKey), description: t(toastDescriptionKey, { name: newSnapshot.name }) });
+    addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Snapshot guardado: ${newSnapshot.name}. Tipo: ${type}.`});
   }, [settings, agents, groups, addSnapshot, toast, t, addLog]);
-
 
   const handleDownloadSnapshot = useCallback(async (snapshot: CodeSnapshot, format: 'original' | 'zip' | 'project_zip') => {
     addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Iniciando descarga para snapshot: ${snapshot.name}, Formato: ${format}`});
@@ -140,45 +128,75 @@ export default function VersionesGuardadasPage() {
 
     try {
       if (format === 'project_zip' && snapshot.source === 'codealchemist-project-source') {
-        addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Procesando 'project_zip' para: ${snapshot.name}`});
-        const projectData = JSON.parse(snapshot.code);
-        if (projectData && projectData.sourceFiles && Array.isArray(projectData.sourceFiles)) {
-          addLog({source: 'VersionesGuardadasPage', type: 'DEBUG', message: `Encontrados ${projectData.sourceFiles.length} archivos fuente en el snapshot.`});
-          if (projectData.sourceFiles.length === 0) {
-            addLog({source: 'VersionesGuardadasPage', type: 'WARN', message: 'No hay archivos fuente en el snapshot para zipear.'});
-            toast({ variant: "destructive", title: t('versions.toast.zipError.title'), description: t('versions.toast.zipError.noFiles') });
-            return;
-          }
-          const zip = new JSZip();
-          projectData.sourceFiles.forEach((file: AppSourceFile) => {
-            if (file.fileName && typeof file.fileName === 'string' && file.fileName.trim() !== "") {
-              const cleanFileName = file.fileName.startsWith('./') ? file.fileName.substring(2) : file.fileName;
-              const contentString = typeof file.content === 'string' ? file.content : '';
-              try {
-                zip.file(cleanFileName, contentString);
-                addLog({source: 'VersionesGuardadasPage', type: 'DEBUG', message: `Añadiendo a project_zip: ${cleanFileName}, longitud: ${contentString.length}`});
-              } catch (zipFileError: any) {
-                addLog({source: 'VersionesGuardadasPage', type: 'ERROR', message: `Error al añadir archivo '${cleanFileName}' al ZIP: ${zipFileError.message}`, errorDetails: zipFileError});
-              }
-            } else {
-              addLog({source: 'VersionesGuardadasPage', type: 'WARN', message: `Omitiendo archivo en project_zip debido a nombre de archivo inválido o ausente: ${JSON.stringify(file)}`});
-            }
-          });
-          fileContent = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
-          fileName += '_project_source.zip';
-          mimeType = 'application/zip';
-          addLog({source: 'VersionesGuardadasPage', type: 'SUCCESS', message: `Blob ZIP para '${snapshot.name}' generado. Tamaño: ${fileContent.size} bytes.`});
-        } else {
-          addLog({source: 'VersionesGuardadasPage', type: 'ERROR', message: `Datos de 'sourceFiles' inválidos o ausentes para 'project_zip' en snapshot: ${snapshot.name}. Contenido: ${snapshot.code.substring(0,100)}...`});
+        addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Procesando 'project_zip' para: ${snapshot.name}. Contenido del snapshot (primeros 200 chars): ${snapshot.code.substring(0,200)}`});
+        let projectData: { sourceFiles: AppSourceFile[] };
+        try {
+          projectData = JSON.parse(snapshot.code);
+        } catch (parseErr: any) {
+          addLog({source: 'VersionesGuardadasPage', type: 'ERROR', message: `Snapshot '${snapshot.name}' (project_zip): Contenido JSON inválido. Error: ${parseErr.message}`, data: snapshot.code.substring(0,500) + "..."});
+          toast({ variant: "destructive", title: t('versions.toast.zipError.title'), description: t('versions.toast.zipError.invalidJsonContent') });
+          return;
+        }
+
+        if (!projectData || !projectData.sourceFiles || !Array.isArray(projectData.sourceFiles)) {
+          addLog({source: 'VersionesGuardadasPage', type: 'ERROR', message: `Snapshot '${snapshot.name}' (project_zip): 'sourceFiles' es inválido o no es un array. Datos recibidos:`, data: projectData});
           toast({ variant: "destructive", title: t('versions.toast.zipError.title'), description: t('versions.toast.zipError.invalidData')});
           return;
         }
+        
+        addLog({source: 'VersionesGuardadasPage', type: 'DEBUG', message: `Snapshot '${snapshot.name}' (project_zip): ${projectData.sourceFiles.length} archivos fuente encontrados para zipear.`});
+        if (projectData.sourceFiles.length === 0) {
+          addLog({source: 'VersionesGuardadasPage', type: 'WARN', message: `Snapshot '${snapshot.name}' (project_zip): No hay archivos fuente para zipear.`});
+          toast({ variant: "destructive", title: t('versions.toast.zipError.title'), description: t('versions.toast.zipError.noFiles') });
+          return;
+        }
+
+        const zip = new JSZip();
+        let filesAddedToZip = 0;
+        projectData.sourceFiles.forEach((file: AppSourceFile) => {
+          const cleanFileName = file.fileName && typeof file.fileName === 'string' ? 
+                                (file.fileName.startsWith('./') ? file.fileName.substring(2) : file.fileName.startsWith('/') ? file.fileName.substring(1) : file.fileName) 
+                                : '';
+          
+          if (!cleanFileName || cleanFileName.trim() === "") {
+            addLog({source: 'VersionesGuardadasPage', type: 'WARN', message: `Omitiendo archivo en project_zip (nombre de archivo inválido o ausente): ${JSON.stringify(file)}`});
+            return; 
+          }
+          const contentString = typeof file.content === 'string' ? file.content : '';
+          
+          addLog({source: 'VersionesGuardadasPage', type: 'DEBUG', message: `Añadiendo a project_zip: '${cleanFileName}', longitud contenido: ${contentString.length}, contenido (inicio): '${contentString.substring(0,50)}...'`});
+          try {
+            zip.file(cleanFileName, contentString);
+            filesAddedToZip++;
+          } catch (zipFileError: any) {
+            addLog({source: 'VersionesGuardadasPage', type: 'ERROR', message: `Error al añadir archivo '${cleanFileName}' al ZIP: ${zipFileError.message}`, errorDetails: zipFileError});
+            toast({ variant: "destructive", title: t('versions.toast.zipError.title'), description: t('versions.toast.zipError.fileAddError', { fileName: cleanFileName, error: zipFileError.message }) });
+          }
+        });
+
+        if (filesAddedToZip === 0 && projectData.sourceFiles.length > 0) {
+             addLog({source: 'VersionesGuardadasPage', type: 'ERROR', message: `Snapshot '${snapshot.name}' (project_zip): Ningún archivo pudo ser añadido al ZIP aunque existían sourceFiles.`});
+             toast({ variant: "destructive", title: t('versions.toast.zipError.title'), description: t('versions.toast.zipError.noFilesAdded') });
+             return;
+        }
+        
+        fileContent = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+        fileName += '_project_source.zip';
+        mimeType = 'application/zip';
+        addLog({source: 'VersionesGuardadasPage', type: 'SUCCESS', message: `Blob ZIP para '${snapshot.name}' (project_zip) generado. Tamaño: ${fileContent.size} bytes. Archivos añadidos: ${filesAddedToZip}`});
+
       } else if (format === 'zip') {
-        fileName += '.zip'; // Para el JSON del estado de la app, o texto simple.
-        mimeType = 'application/zip'; // El contenido seguirá siendo el string original.
+        fileName += '.zip';
+        mimeType = 'application/zip';
         addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Preparando descarga ZIP simple para: ${snapshot.name}`});
-      } else { // format === 'original'
-        if (snapshot.source === 'codealchemist-app-state' || snapshot.source === 'generated-project' || snapshot.source === 'project-analysis' || snapshot.source === 'refactored-project' || snapshot.source === 'autoupdate-snapshot') {
+      } else {
+        const isJsonSource = snapshot.source === 'codealchemist-app-state' || 
+                             snapshot.source === 'generated-project' ||
+                             snapshot.source === 'codealchemist-project-source' ||
+                             snapshot.source === 'project-analysis' ||
+                             snapshot.source === 'refactored-project' ||
+                             snapshot.source === 'autoupdate-snapshot';
+        if (isJsonSource) {
           fileName += '.json';
           mimeType = 'application/json;charset=utf-8';
         } else {
@@ -187,7 +205,7 @@ export default function VersionesGuardadasPage() {
         addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: `Preparando descarga original (${fileName}) para: ${snapshot.name}`});
       }
       
-      const fileToDownload = (fileContent instanceof Blob) ? fileContent : new Blob([fileContent], {type: mimeType});
+      const fileToDownload = (fileContent instanceof Blob) ? fileContent : new Blob([fileContent as string], {type: mimeType});
       element.href = URL.createObjectURL(fileToDownload);
       element.download = fileName;
       document.body.appendChild(element);
@@ -253,23 +271,19 @@ export default function VersionesGuardadasPage() {
     addLog({source: 'VersionesGuardadasPage', type: 'INFO', message: 'Todos los snapshots eliminados.'});
   };
 
-  const headerActions = (
-    <SnapshotsActionsBar
-      t={t}
-      onSaveSnapshotOfCurrentState={handleSaveSnapshotOfCurrentState}
-      onCompareVersions={handleCompareVersions}
-      onDeleteAllSnapshots={() => setShowDeleteAllConfirm(true)}
-      isCompareDisabled={!selectedForCompareA || !selectedForCompareB}
-      isDeleteAllDisabled={snapshots.length === 0}
-      isSavingProjectSource={isSavingProjectSource}
-    />
-  );
-
   return (
     <Card className="max-w-5xl mx-auto">
       <SnapshotsHeader t={t} />
       <CardContent>
-        {headerActions} {/* Render the actions bar here */}
+        <SnapshotsActionsBar
+            t={t}
+            onSaveSnapshotOfCurrentState={handleSaveSnapshotOfCurrentState}
+            onCompareVersions={handleCompareVersions}
+            onDeleteAllSnapshots={() => setShowDeleteAllConfirm(true)}
+            isCompareDisabled={!selectedForCompareA || !selectedForCompareB}
+            isDeleteAllDisabled={snapshots.length === 0}
+            isSavingProjectSource={isSavingProjectSource}
+        />
         <ScrollArea className="h-[calc(100vh-26rem)] md:h-[calc(100vh-24rem)]">
           <SnapshotsTable
             t={t}
@@ -367,4 +381,4 @@ export default function VersionesGuardadasPage() {
   );
 }
 
-    
+  

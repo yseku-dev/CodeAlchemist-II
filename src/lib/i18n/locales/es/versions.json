@@ -4,9 +4,9 @@
   "description": "Gestiona instantáneas de código o del estado de la aplicación.",
   "saveConfigStateButton": "Guardar Estado de Configuración (JSON)",
   "saveConfigStateDescription": "Guarda ajustes actuales, agentes y grupos como un snapshot JSON.",
-  "saveProjectSourceButton": "Guardar Código Fuente del Proyecto (ZIP)",
-  "saveProjectSourceDescription": "Obtiene el código fuente actual del servidor y lo guarda como un snapshot (JSON dentro de ZIP).",
-  "savingProjectSourceButtonLoading": "Obteniendo Código del Servidor...",
+  "saveProjectSourceButton": "Guardar Código Fuente del Proyecto",
+  "saveProjectSourceDescription": "Obtiene el código fuente actual del servidor y lo guarda como un snapshot (JSON representando los archivos).",
+  "savingProjectSourceButtonLoading": "Obteniendo Código...",
   "compareButton": "Comparar A y B",
   "deleteAllButton": "Eliminar Todas",
   "table": {
@@ -22,8 +22,8 @@
   },
   "action": {
     "view": "Ver",
-    "downloadOriginal": "Descargar como {format}",
-    "downloadZip": "Descargar Contenido como ZIP",
+    "downloadOriginal": "Descargar Original ({format})",
+    "downloadZip": "Descargar Contenido (ZIP)",
     "downloadProjectSourceZip": "Descargar Proyecto Fuente (ZIP)",
     "delete": "Eliminar",
     "selectA": "Seleccionar para A",
@@ -32,8 +32,8 @@
   "source": {
     "original": "Original (Análisis Código)",
     "suggested": "Sugerido (Análisis Código)",
-    "codealchemist-app-state": "Estado de Configuración App",
-    "codealchemist-project-source": "Código Fuente del Proyecto",
+    "codealchemist-app-state": "Estado Configuración App",
+    "codealchemist-project-source": "Código Fuente Proyecto",
     "generated-project": "Proyecto Generado",
     "project-analysis": "Análisis de Proyecto",
     "refactored-project": "Proyecto Refactorizado (Conceptual)",
@@ -70,7 +70,7 @@
       "description": "Snapshot del código fuente del proyecto \"{name}\" guardado.",
       "name": "Código Fuente Proyecto - {time}"
     },
-    "snapshotSavedAndDownloaded": {
+     "snapshotSavedAndDownloaded": {
         "title": "Snapshot Guardado y Descargado",
         "description": "Snapshot \"{name}\" guardado y descarga iniciada como {filename}."
     },
@@ -87,7 +87,10 @@
         "title": "Error al Crear ZIP",
         "noFiles": "No hay archivos fuente en este snapshot para crear un ZIP de proyecto.",
         "invalidData": "Los datos del snapshot no tienen el formato esperado para crear un ZIP de proyecto.",
-        "unknown": "Ocurrió un error al generar el archivo ZIP del proyecto."
+        "unknown": "Ocurrió un error al generar el archivo ZIP del proyecto.",
+        "fileAddError": "Error al añadir '{fileName}' al ZIP: {error}",
+        "noFilesAdded": "Ningún archivo pudo ser añadido al ZIP aunque existían archivos fuente.",
+        "invalidJsonContent": "El contenido JSON del snapshot es inválido para zipear."
     },
     "snapshotSaved": {
       "title": "Snapshot Guardado",
@@ -113,8 +116,13 @@
     "downloadError": {
         "title": "Error de Descarga",
         "unknown": "Error desconocido durante la descarga."
+    },
+    "snapshotSaveError": {
+        "title": "Error al Guardar Snapshot",
+        "noContent": "No hay contenido en {section} para guardar.",
+        "tooLarge": "El snapshot es demasiado grande ({size}MB) para el almacenamiento local."
     }
   }
 }
 
-    
+  

@@ -9,7 +9,6 @@ import type { TranslationKey } from '@/lib/i18n/translations';
 
 interface SnapshotsHeaderProps {
   t: (key: TranslationKey) => string;
-  // Actions are now handled by SnapshotsActionsBar
 }
 
 const SnapshotsHeader: React.FC<SnapshotsHeaderProps> = ({ t }) => {
@@ -18,10 +17,11 @@ const SnapshotsHeader: React.FC<SnapshotsHeaderProps> = ({ t }) => {
       icon={GitCompareArrows}
       title={t('versions.title')}
       description={t('versions.description')}
+      // La prop 'actions' se elimina de aquí, ya que SnapshotsActionsBar se renderiza en CardContent
     />
   );
 };
 
 export default SnapshotsHeader;
 
-    
+  

@@ -4,8 +4,8 @@
   "description": "Manage generated code snapshots or application state.",
   "saveConfigStateButton": "Save Config State (JSON)",
   "saveConfigStateDescription": "Saves current settings, agents, and groups as a JSON snapshot.",
-  "saveProjectSourceButton": "Save Project Source Code (ZIP)",
-  "saveProjectSourceDescription": "Fetches current source code from the server and saves it as a snapshot (JSON within ZIP).",
+  "saveProjectSourceButton": "Save Project Source Code",
+  "saveProjectSourceDescription": "Fetches current source code from the server and saves it as a snapshot (JSON representing files, downloadable as ZIP).",
   "savingProjectSourceButtonLoading": "Fetching Server Code...",
   "compareButton": "Compare A & B",
   "deleteAllButton": "Delete All",
@@ -87,7 +87,10 @@
         "title": "ZIP Creation Error",
         "noFiles": "No source files in this snapshot to create a project ZIP.",
         "invalidData": "Snapshot data is not in the expected format to create a project ZIP.",
-        "unknown": "An error occurred while generating the project ZIP file."
+        "unknown": "An error occurred while generating the project ZIP file.",
+        "fileAddError": "Error adding '{fileName}' to ZIP: {error}",
+        "noFilesAdded": "No files could be added to the ZIP even though source files existed.",
+        "invalidJsonContent": "The snapshot's JSON content is invalid for zipping."
     },
     "snapshotSaved": {
       "title": "Snapshot Saved",
@@ -110,11 +113,16 @@
       "title": "All Snapshots Deleted",
       "description": "All saved versions have been deleted."
     },
-     "downloadError": {
+    "downloadError": {
         "title": "Download Error",
         "unknown": "Unknown error during download."
+    },
+     "snapshotSaveError": {
+        "title": "Snapshot Save Error",
+        "noContent": "No content in {section} to save.",
+        "tooLarge": "Snapshot is too large ({size}MB) for local storage."
     }
   }
 }
 
-    
+  
