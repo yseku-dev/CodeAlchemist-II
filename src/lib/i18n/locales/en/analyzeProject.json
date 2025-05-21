@@ -25,7 +25,13 @@
     "suggestionPriorityLabel": "Priority:",
     "suggestedPromptLabel": "Suggested Prompt:",
     "groupLogTitle": "Detailed Analysis Log",
-    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process."
+    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+    "modifyAnalysisSectionTitle": "Modify Analysis with AI",
+    "modificationInputLabel": "Describe your modification or question about the analysis:",
+    "modificationInputPlaceholder": "E.g.: Can you detail more about suggestion X? or What are the implications of area Y?",
+    "sendModificationButton": "Send Request",
+    "saveSnapshotButton": "Save Analysis Snapshot",
+    "snapshotName": "Project Analysis - {name} - {time}"
   },
   "toast": {
     "invalidFile": {
@@ -37,8 +43,8 @@
       "description": "Could not read the file."
     },
     "zipReadError": {
-        "title": "ZIP Read Error",
-        "description": "Could not read the ZIP file: {error}"
+      "title": "ZIP Read Error",
+      "description": "Could not read the ZIP file: {error}"
     },
     "unsupportedFileType": {
       "title": "Unsupported File Type",
@@ -59,8 +65,16 @@
     "processingFile": "Processing file...",
     "fetchingGit": "Fetching Git repository content...",
     "gitFetchError": {
-        "title": "Error Fetching from Git",
-        "unknown": "Unknown error fetching repository."
+      "title": "Error Fetching from Git",
+      "unknown": "Unknown error fetching repository."
+    },
+    "modificationError": {
+        "title": "Analysis Modification Error",
+        "description": "Could not process your request about the analysis."
+    },
+    "modificationSuccess": {
+        "title": "Analysis Interaction Processed",
+        "description": "The AI has processed your request. Check the updated notes."
     }
   }
 }

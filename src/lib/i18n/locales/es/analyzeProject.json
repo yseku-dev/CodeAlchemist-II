@@ -25,7 +25,13 @@
     "suggestionPriorityLabel": "Prioridad:",
     "suggestedPromptLabel": "Prompt Sugerido:",
     "groupLogTitle": "Log Detallado del Análisis",
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA."
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "modifyAnalysisSectionTitle": "Modificar Análisis con IA",
+    "modificationInputLabel": "Describe tu modificación o pregunta sobre el análisis:",
+    "modificationInputPlaceholder": "Ej: ¿Puedes detallar más sobre la sugerencia X? o ¿Qué implicaciones tiene el área Y?",
+    "sendModificationButton": "Enviar Petición",
+    "saveSnapshotButton": "Guardar Snapshot del Análisis",
+    "snapshotName": "Análisis de Proyecto - {name} - {time}"
   },
   "toast": {
     "invalidFile": {
@@ -37,8 +43,8 @@
       "description": "No se pudo leer el archivo."
     },
     "zipReadError": {
-        "title": "Error al Leer ZIP",
-        "description": "No se pudo leer el archivo ZIP: {error}"
+      "title": "Error al Leer ZIP",
+      "description": "No se pudo leer el archivo ZIP: {error}"
     },
     "unsupportedFileType": {
       "title": "Tipo de Archivo no Soportado",
@@ -59,8 +65,16 @@
     "processingFile": "Procesando archivo...",
     "fetchingGit": "Obteniendo contenido del repositorio Git...",
     "gitFetchError": {
-        "title": "Error al Obtener de Git",
-        "unknown": "Error desconocido al obtener el repositorio."
+      "title": "Error al Obtener de Git",
+      "unknown": "Error desconocido al obtener el repositorio."
+    },
+    "modificationError": {
+        "title": "Error en Modificación del Análisis",
+        "description": "No se pudo procesar tu petición sobre el análisis."
+    },
+    "modificationSuccess": {
+        "title": "Interacción con Análisis Procesada",
+        "description": "La IA ha procesado tu petición. Revisa las notas actualizadas."
     }
   }
 }
