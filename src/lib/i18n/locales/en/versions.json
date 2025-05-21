@@ -2,37 +2,41 @@
 {
   "title": "Saved Versions (Snapshots)",
   "description": "Manage generated code snapshots or application state.",
-  "saveAppStateButton": "Save App State (JSON)",
-  "saveAppStateDescription": "Saves current settings, agents, and groups as a JSON snapshot.",
-  "saveAndDownloadStateButton": "Save State & Download as ZIP",
-  "saveAndDownloadStateDescription": "Saves the current application state and downloads it as a .zip file (containing the state JSON).",
+  "saveConfigStateButton": "Save Config State (JSON)",
+  "saveConfigStateDescription": "Saves current settings, agents, and groups as a JSON snapshot.",
+  "saveProjectSourceButton": "Save Project Source Code (ZIP)",
+  "saveProjectSourceDescription": "Fetches current source code from the server and saves it as a snapshot (JSON within ZIP).",
+  "savingProjectSourceButtonLoading": "Fetching Server Code...",
   "compareButton": "Compare A & B",
-  "compareButtonDisabledTooltip": "Select two versions (A and B) to compare.",
   "deleteAllButton": "Delete All",
   "table": {
     "colA": "A",
     "colB": "B",
-    "colName": "Name",
+    "colName": "Name / Type",
     "colCreatedAt": "Creation Date",
     "colSource": "Source",
     "colActions": "Actions",
+    "colSize": "Size",
+    "colFileCount": "# Files",
     "noVersions": "No saved versions."
   },
   "action": {
     "view": "View",
     "downloadOriginal": "Download as {format}",
-    "downloadZip": "Download as ZIP",
+    "downloadZip": "Download Content as ZIP",
+    "downloadProjectSourceZip": "Download Project Source (ZIP)",
     "delete": "Delete",
     "selectA": "Select for A",
     "selectB": "Select for B"
   },
   "source": {
-    "original": "Original (Analysis)",
-    "suggested": "Suggested (Analysis)",
-    "codealchemist-app-state": "App State",
+    "original": "Original (Code Analysis)",
+    "suggested": "Suggested (Code Analysis)",
+    "codealchemist-app-state": "App Config State",
+    "codealchemist-project-source": "Project Source Code",
     "generated-project": "Generated Project",
     "project-analysis": "Project Analysis",
-    "refactored-project": "Refactored Project",
+    "refactored-project": "Refactored Project (Conceptual)",
     "autoupdate-snapshot": "AutoUpdate Snapshot",
     "unknown": "Unknown"
   },
@@ -43,8 +47,7 @@
   "compareModal": {
     "title": "Compare Versions (A vs B)",
     "versionA": "Version A: {name}",
-    "versionB": "Version B: {name}",
-    "noDiffLib": "Detailed visual comparison (diff) is not implemented. Contents are shown side-by-side."
+    "versionB": "Version B: {name}"
   },
   "deleteAllModal": {
     "title": "Confirm Total Deletion",
@@ -58,13 +61,33 @@
   },
   "toast": {
     "appStateSaved": {
-      "title": "Application State Saved",
-      "description": "Current application state \"{name}\" has been saved.",
-      "name": "App State - {time}"
+      "title": "Application Config Saved",
+      "description": "Current config state \"{name}\" has been saved.",
+      "name": "App Config State - {time}"
     },
-    "appStateSavedAndDownloaded": {
-      "title": "Application State Saved & Downloaded",
-      "description": "Current state \"{name}\" has been saved and downloaded as {filename}."
+    "projectSourceSaved": {
+      "title": "Project Source Snapshot Saved",
+      "description": "Snapshot of project source code \"{name}\" saved.",
+      "name": "Project Source Code - {time}"
+    },
+     "snapshotSavedAndDownloaded": {
+        "title": "Snapshot Saved & Downloaded",
+        "description": "Snapshot \"{name}\" saved and download initiated as {filename}."
+    },
+    "savingProjectSource": {
+      "title": "Saving Project Source...",
+      "description": "Fetching project source code from the server. This may take a moment."
+    },
+    "getSourceError": {
+      "title": "Error Getting Source Code",
+      "description": "Could not retrieve source code from the server.",
+      "unknown": "Unknown error fetching source code from server."
+    },
+    "zipError": {
+        "title": "ZIP Creation Error",
+        "noFiles": "No source files in this snapshot to create a project ZIP.",
+        "invalidData": "Snapshot data is not in the expected format to create a project ZIP.",
+        "unknown": "An error occurred while generating the project ZIP file."
     },
     "snapshotSaved": {
       "title": "Snapshot Saved",
@@ -86,6 +109,12 @@
     "allSnapshotsDeleted": {
       "title": "All Snapshots Deleted",
       "description": "All saved versions have been deleted."
+    },
+     "downloadError": {
+        "title": "Download Error",
+        "unknown": "Unknown error during download."
     }
   }
 }
+
+    

@@ -1,39 +1,43 @@
 
 {
   "title": "Versiones Guardadas (Snapshots)",
-  "description": "Gestiona instantáneas de código generadas o del estado de la aplicación.",
-  "saveAppStateButton": "Guardar Estado de App (JSON)",
-  "saveAppStateDescription": "Guarda la configuración actual, agentes y grupos como un snapshot JSON.",
-  "saveAndDownloadStateButton": "Guardar Estado y Descargar como ZIP",
-  "saveAndDownloadStateDescription": "Guarda el estado actual de la aplicación y lo descarga como un archivo .zip (conteniendo el JSON del estado).",
+  "description": "Gestiona instantáneas de código o del estado de la aplicación.",
+  "saveConfigStateButton": "Guardar Estado de Configuración (JSON)",
+  "saveConfigStateDescription": "Guarda ajustes actuales, agentes y grupos como un snapshot JSON.",
+  "saveProjectSourceButton": "Guardar Código Fuente del Proyecto (ZIP)",
+  "saveProjectSourceDescription": "Obtiene el código fuente actual del servidor y lo guarda como un snapshot (JSON dentro de ZIP).",
+  "savingProjectSourceButtonLoading": "Obteniendo Código del Servidor...",
   "compareButton": "Comparar A y B",
-  "compareButtonDisabledTooltip": "Selecciona dos versiones (A y B) para comparar.",
   "deleteAllButton": "Eliminar Todas",
   "table": {
     "colA": "A",
     "colB": "B",
-    "colName": "Nombre",
+    "colName": "Nombre / Tipo",
     "colCreatedAt": "Fecha de Creación",
     "colSource": "Origen",
     "colActions": "Acciones",
+    "colSize": "Tamaño",
+    "colFileCount": "Nº Archivos",
     "noVersions": "No hay versiones guardadas."
   },
   "action": {
     "view": "Ver",
     "downloadOriginal": "Descargar como {format}",
-    "downloadZip": "Descargar como ZIP",
+    "downloadZip": "Descargar Contenido como ZIP",
+    "downloadProjectSourceZip": "Descargar Proyecto Fuente (ZIP)",
     "delete": "Eliminar",
     "selectA": "Seleccionar para A",
     "selectB": "Seleccionar para B"
   },
   "source": {
-    "original": "Original (Análisis)",
-    "suggested": "Sugerido (Análisis)",
-    "codealchemist-app-state": "Estado App",
+    "original": "Original (Análisis Código)",
+    "suggested": "Sugerido (Análisis Código)",
+    "codealchemist-app-state": "Estado de Configuración App",
+    "codealchemist-project-source": "Código Fuente del Proyecto",
     "generated-project": "Proyecto Generado",
     "project-analysis": "Análisis de Proyecto",
-    "refactored-project": "Proyecto Refactorizado",
-    "autoupdate-snapshot": "Snapshot AutoUpdate",
+    "refactored-project": "Proyecto Refactorizado (Conceptual)",
+    "autoupdate-snapshot": "Snapshot de AutoUpdate",
     "unknown": "Desconocido"
   },
   "viewModal": {
@@ -43,8 +47,7 @@
   "compareModal": {
     "title": "Comparar Versiones (A vs B)",
     "versionA": "Versión A: {name}",
-    "versionB": "Versión B: {name}",
-    "noDiffLib": "La comparación visual detallada (diff) no está implementada. Se muestran los contenidos lado a lado."
+    "versionB": "Versión B: {name}"
   },
   "deleteAllModal": {
     "title": "Confirmar Eliminación Total",
@@ -58,13 +61,33 @@
   },
   "toast": {
     "appStateSaved": {
-      "title": "Estado de Aplicación Guardado",
-      "description": "El estado actual de la aplicación \"{name}\" ha sido guardado.",
-      "name": "Estado App - {time}"
+      "title": "Estado de Configuración Guardado",
+      "description": "El estado de configuración \"{name}\" ha sido guardado.",
+      "name": "Estado Configuración App - {time}"
     },
-    "appStateSavedAndDownloaded": {
-      "title": "Estado de Aplicación Guardado y Descargado",
-      "description": "El estado actual \"{name}\" ha sido guardado y descargado como {filename}."
+    "projectSourceSaved": {
+      "title": "Snapshot de Código Fuente Guardado",
+      "description": "Snapshot del código fuente del proyecto \"{name}\" guardado.",
+      "name": "Código Fuente Proyecto - {time}"
+    },
+    "snapshotSavedAndDownloaded": {
+        "title": "Snapshot Guardado y Descargado",
+        "description": "Snapshot \"{name}\" guardado y descarga iniciada como {filename}."
+    },
+    "savingProjectSource": {
+      "title": "Guardando Código Fuente...",
+      "description": "Obteniendo el código fuente del proyecto desde el servidor. Esto puede tardar un momento."
+    },
+    "getSourceError": {
+      "title": "Error al Obtener Código Fuente",
+      "description": "No se pudo obtener el código fuente del servidor.",
+      "unknown": "Error desconocido al obtener el código fuente del servidor."
+    },
+    "zipError": {
+        "title": "Error al Crear ZIP",
+        "noFiles": "No hay archivos fuente en este snapshot para crear un ZIP de proyecto.",
+        "invalidData": "Los datos del snapshot no tienen el formato esperado para crear un ZIP de proyecto.",
+        "unknown": "Ocurrió un error al generar el archivo ZIP del proyecto."
     },
     "snapshotSaved": {
       "title": "Snapshot Guardado",
@@ -86,6 +109,12 @@
     "allSnapshotsDeleted": {
       "title": "Todos los Snapshots Eliminados",
       "description": "Todas las versiones guardadas han sido eliminadas."
+    },
+    "downloadError": {
+        "title": "Error de Descarga",
+        "unknown": "Error desconocido durante la descarga."
     }
   }
 }
+
+    
