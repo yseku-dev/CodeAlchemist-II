@@ -26,12 +26,15 @@
     "suggestedPromptLabel": "Suggested Prompt:",
     "groupLogTitle": "Detailed Analysis Log",
     "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
-    "modifyAnalysisSectionTitle": "Modify Analysis with AI",
-    "modificationInputLabel": "Describe your modification or question about the analysis:",
+    "modifyAnalysisSectionTitle": "Discuss/Modify Analysis with AI",
+    "modificationInputLabel": "Describe your question or modification about the analysis:",
     "modificationInputPlaceholder": "E.g.: Can you detail more about suggestion X? or What are the implications of area Y?",
     "sendModificationButton": "Send Request",
     "saveSnapshotButton": "Save Analysis Snapshot",
-    "snapshotName": "Project Analysis - {name} - {time}"
+    "snapshotName": "Project Analysis - {name} - {time}",
+    "applyAndDownloadButton": "Apply Selected & Download Project (ZIP)",
+    "selectSuggestionCheckboxAria": "Select suggestion for area {area}",
+    "applyInfoText": "Select suggestions you wish to conceptually apply. This option is available if the project source was a Git URL. The ZIP download will contain the original files with the selected modifications."
   },
   "toast": {
     "invalidFile": {
@@ -44,7 +47,8 @@
     },
     "zipReadError": {
       "title": "ZIP Read Error",
-      "description": "Could not read the ZIP file: {error}"
+      "description": "Could not read the ZIP file: {error}",
+      "noValidFiles": "The uploaded ZIP file '{fileName}' does not contain readable text files or is empty."
     },
     "unsupportedFileType": {
       "title": "Unsupported File Type",
@@ -69,12 +73,25 @@
       "unknown": "Unknown error fetching repository."
     },
     "modificationError": {
-        "title": "Analysis Modification Error",
-        "description": "Could not process your request about the analysis."
+        "title": "Analysis Query Error",
+        "description": "Could not process your query about the analysis.",
+        "emptyModificationRequest": "Please type your question or modification."
     },
     "modificationSuccess": {
-        "title": "Analysis Interaction Processed",
-        "description": "The AI has processed your request. Check the updated notes."
+        "title": "Response Received",
+        "description": "The AI has processed your query. Check the chat."
+    },
+    "downloadError": {
+      "title": "Download Error",
+      "noGitSource": "Downloading the modified project is only available if the original source was a Git URL.",
+      "noSuggestionsSelected": "No Suggestions Selected",
+      "selectSuggestions": "Please select at least one suggestion with applicable content to download.",
+      "unknown": "Unknown error generating ZIP of modified project."
+    },
+    "applyingAndZipping": "Applying suggestions and generating ZIP...",
+    "zipDownloadSuccess": {
+      "title": "Modified Project Download (ZIP) Started",
+      "description": "The file {filename} is downloading."
     }
   }
 }

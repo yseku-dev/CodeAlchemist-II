@@ -4,22 +4,27 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ListChecks, Info, MessageSquare, Bot, User, Loader2, Send, Wand2, Save } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ListChecks, Info, MessageSquare, Bot, User, Loader2, Send, Wand2, Save, Download, ShieldAlert } from 'lucide-react';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { AnalyzeCodeOutput, ChatMessage } from '@/types';
+import type { AnalyzeCodeOutput, ChatMessage, DetailedSuggestionForUI } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 
 interface AnalyzeProjectResultsDisplayProps {
   result: AnalyzeCodeOutput | null;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
-  chatHistory?: ChatMessage[];
+  suggestionsForUI: DetailedSuggestionForUI[];
+  onToggleSuggestionSelection: (suggestionId: string) => void;
+  onApplySelectedAndDownloadZip: () => Promise<void>;
+  canApplyAndDownload: boolean;
+  chatHistory: ChatMessage[];
   currentModificationRequest: string;
   onCurrentModificationRequestChange: (value: string) => void;
   onSendModificationRequest: () => Promise<void>;
@@ -32,15 +37,19 @@ interface AnalyzeProjectResultsDisplayProps {
 
 /**
  * @fileOverview Component for displaying the results of a full project analysis.
- * Shows the AI's overall assessment, identified areas, specific suggestions,
+ * Shows the AI's overall assessment, identified areas, specific suggestions (with selection for application),
  * general improvement ideas, and a chat interface for further interaction.
- * Also displays group logs if applicable and allows saving a snapshot.
+ * Also displays group logs if applicable and allows saving a snapshot and downloading a modified ZIP (if source was Git).
  * All texts are internationalized.
  * @module AnalyzeProjectResultsDisplay
  */
 const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> = ({
   result,
   t,
+  suggestionsForUI,
+  onToggleSuggestionSelection,
+  onApplySelectedAndDownloadZip,
+  canApplyAndDownload,
   chatHistory = [],
   currentModificationRequest,
   onCurrentModificationRequestChange,
@@ -60,12 +69,20 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
       <Card className="mt-6 bg-background">
         <PageSectionHeader
           icon={ListChecks}
-          title={result.analysisTitle || t('analyzeProject.results.noResults')}
+          title={result.analysisTitle || t('analyzeProject.results.noResults' as TranslationKey)}
           actions={
-            <Button onClick={onSaveSnapshot} variant="outline" size="sm">
-              <Save className="mr-2 h-4 w-4" />
-              {t('analyzeProject.results.saveSnapshotButton')}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+                <Button onClick={onSaveSnapshot} variant="outline" size="sm">
+                    <Save className="mr-2 h-4 w-4" />
+                    {t('analyzeProject.results.saveSnapshotButton')}
+                </Button>
+                 {canApplyAndDownload && (
+                    <Button onClick={onApplySelectedAndDownloadZip} variant="outline" size="sm" disabled={!suggestionsForUI.some(s => s.isSelected && s.suggestedContent)}>
+                        <Download className="mr-2 h-4 w-4" />
+                        {t('analyzeProject.results.applyAndDownloadButton')}
+                    </Button>
+                )}
+            </div>
           }
         />
         <CardContent className="space-y-4">
@@ -96,31 +113,55 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
             </div>
           )}
 
-          {result.detailedSuggestions && result.detailedSuggestions.length > 0 && (
+          {suggestionsForUI && suggestionsForUI.length > 0 && (
             <div>
               <h3 className="font-semibold text-lg mb-2">{t('analyzeProject.results.specificSuggestionsLabel')}</h3>
+              {canApplyAndDownload && (
+                <div className="p-3 my-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-md flex items-start gap-2">
+                    <Info className="h-5 w-5 text-blue-700 dark:text-blue-300 shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-800 dark:text-blue-200">
+                        {t('analyzeProject.results.applyInfoText')}
+                    </p>
+                </div>
+              )}
               <ScrollArea className="h-60 border rounded-md p-2 bg-muted/30">
                 <ul className="space-y-3 text-sm">
-                  {result.detailedSuggestions.map((suggestion, index) => (
-                    <li key={`suggestion-${index}`} className="p-2 border-b last:border-b-0">
-                      <p className="font-medium text-foreground">{suggestion.area}</p>
-                      <p className="text-muted-foreground my-1 whitespace-pre-wrap">{suggestion.suggestion}</p>
-                      <p className="text-xs">
-                        <strong>{t('analyzeProject.results.suggestionPriorityLabel')}</strong> {suggestion.priority}
-                      </p>
-                      {suggestion.suggestedPromptForImplementation && (
-                        <div className="text-xs mt-1">
-                          <strong>{t('analyzeProject.results.suggestedPromptLabel')}</strong>
-                          <pre className="mt-1 p-1.5 bg-background rounded-sm text-xs whitespace-pre-wrap border">
-                              {suggestion.suggestedPromptForImplementation}
-                          </pre>
+                  {suggestionsForUI.map((suggestion) => (
+                    <li key={suggestion.id} className="p-2 border-b last:border-b-0">
+                      <div className="flex items-start gap-2">
+                        {suggestion.suggestedContent && canApplyAndDownload && (
+                            <Checkbox
+                                id={`suggestion-cb-${suggestion.id}`}
+                                checked={suggestion.isSelected}
+                                onCheckedChange={() => onToggleSuggestionSelection(suggestion.id)}
+                                className="mt-1"
+                                aria-label={t('analyzeProject.results.selectSuggestionCheckboxAria', { area: suggestion.area })}
+                            />
+                        )}
+                         <div className="flex-grow">
+                            <p className="font-medium text-foreground">{suggestion.area}</p>
+                            <p className="text-muted-foreground my-1 whitespace-pre-wrap">{suggestion.suggestion}</p>
+                            <p className="text-xs">
+                                <strong>{t('analyzeProject.results.suggestionPriorityLabel' as TranslationKey)}</strong> {suggestion.priority}
+                            </p>
+                            {suggestion.suggestedPromptForImplementation && (
+                                <div className="text-xs mt-1">
+                                <strong>{t('analyzeProject.results.suggestedPromptLabel' as TranslationKey)}</strong>
+                                <pre className="mt-1 p-1.5 bg-background rounded-sm text-xs whitespace-pre-wrap border">
+                                    {suggestion.suggestedPromptForImplementation}
+                                </pre>
+                                </div>
+                            )}
                         </div>
-                      )}
+                      </div>
                     </li>
                   ))}
                 </ul>
               </ScrollArea>
             </div>
+          )}
+          {result.groupLog && (
+            <LogsDisplay title={t('analyzeProject.results.groupLogTitle' as TranslationKey)} logs={result.groupLog} />
           )}
         </CardContent>
       </Card>
@@ -183,7 +224,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                 <div className="flex justify-start">
                     <div className="max-w-[85%] p-2.5 rounded-lg bg-card text-card-foreground border flex items-center shadow-sm">
                     <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
-                    <span className="text-sm">{t('chat.thinking')}</span>
+                    <span className="text-sm">{t('chat.thinking' as TranslationKey)}</span>
                     </div>
                 </div>
               )}

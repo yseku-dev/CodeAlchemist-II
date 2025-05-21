@@ -26,12 +26,15 @@
     "suggestedPromptLabel": "Prompt Sugerido:",
     "groupLogTitle": "Log Detallado del Análisis",
     "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
-    "modifyAnalysisSectionTitle": "Modificar Análisis con IA",
-    "modificationInputLabel": "Describe tu modificación o pregunta sobre el análisis:",
+    "modifyAnalysisSectionTitle": "Discutir/Modificar Análisis con IA",
+    "modificationInputLabel": "Describe tu pregunta o modificación sobre el análisis:",
     "modificationInputPlaceholder": "Ej: ¿Puedes detallar más sobre la sugerencia X? o ¿Qué implicaciones tiene el área Y?",
     "sendModificationButton": "Enviar Petición",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
-    "snapshotName": "Análisis de Proyecto - {name} - {time}"
+    "snapshotName": "Análisis de Proyecto - {name} - {time}",
+    "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
+    "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área {area}",
+    "applyInfoText": "Selecciona las sugerencias que deseas aplicar conceptualmente. Esta opción está disponible si la fuente del proyecto fue una URL de Git. La descarga ZIP contendrá los archivos originales con las modificaciones seleccionadas."
   },
   "toast": {
     "invalidFile": {
@@ -44,7 +47,8 @@
     },
     "zipReadError": {
       "title": "Error al Leer ZIP",
-      "description": "No se pudo leer el archivo ZIP: {error}"
+      "description": "No se pudo leer el archivo ZIP: {error}",
+      "noValidFiles": "El archivo ZIP subido '{fileName}' no contiene archivos de texto legibles o está vacío."
     },
     "unsupportedFileType": {
       "title": "Tipo de Archivo no Soportado",
@@ -69,12 +73,25 @@
       "unknown": "Error desconocido al obtener el repositorio."
     },
     "modificationError": {
-        "title": "Error en Modificación del Análisis",
-        "description": "No se pudo procesar tu petición sobre el análisis."
+        "title": "Error en Consulta sobre Análisis",
+        "description": "No se pudo procesar tu petición sobre el análisis.",
+        "emptyModificationRequest": "Por favor, escribe tu pregunta o modificación."
     },
     "modificationSuccess": {
-        "title": "Interacción con Análisis Procesada",
-        "description": "La IA ha procesado tu petición. Revisa las notas actualizadas."
+        "title": "Respuesta Recibida",
+        "description": "La IA ha procesado tu petición. Revisa el chat."
+    },
+    "downloadError": {
+      "title": "Error de Descarga",
+      "noGitSource": "La descarga del proyecto modificado solo está disponible si la fuente original fue una URL de Git.",
+      "noSuggestionsSelected": "Sin Sugerencias Seleccionadas",
+      "selectSuggestions": "Por favor, selecciona al menos una sugerencia con contenido aplicable para descargar.",
+      "unknown": "Error desconocido al generar el ZIP del proyecto modificado."
+    },
+    "applyingAndZipping": "Aplicando sugerencias y generando ZIP...",
+    "zipDownloadSuccess": {
+      "title": "Descarga de Proyecto Modificado (ZIP) Iniciada",
+      "description": "El archivo {filename} se está descargando."
     }
   }
 }
