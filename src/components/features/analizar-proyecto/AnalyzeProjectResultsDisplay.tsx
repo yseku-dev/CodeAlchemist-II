@@ -19,8 +19,7 @@ import { Separator } from '@/components/ui/separator';
 interface AnalyzeProjectResultsDisplayProps {
   result: AnalyzeCodeOutput | null;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
-  // Props for modification chat
-  chatHistory: ChatMessage[];
+  chatHistory?: ChatMessage[]; // Hacerla opcional para permitir valor por defecto
   currentModificationRequest: string;
   onCurrentModificationRequestChange: (value: string) => void;
   onSendModificationRequest: () => Promise<void>;
@@ -42,7 +41,7 @@ interface AnalyzeProjectResultsDisplayProps {
 const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> = ({
   result,
   t,
-  chatHistory,
+  chatHistory = [], // Valor por defecto asignado aquí
   currentModificationRequest,
   onCurrentModificationRequestChange,
   onSendModificationRequest,
@@ -184,7 +183,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                 <div className="flex justify-start">
                     <div className="max-w-[85%] p-2.5 rounded-lg bg-card text-card-foreground border flex items-center shadow-sm">
                     <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
-                    <span className="text-sm">{t('chat.thinking' as TranslationKey)}</span>
+                    <span className="text-sm">{t('chat.thinking')}</span>
                     </div>
                 </div>
               )}
@@ -198,10 +197,10 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                     size="sm"
                     onClick={onRedefineModificationRequest}
                     disabled={!currentModificationRequest.trim() || isRedefiningModificationRequest || isModifyingProject}
-                    title={t('common.redefineRequestButton' as TranslationKey)}
+                    title={t('common.redefineRequestButton')}
                 >
                     {isRedefiningModificationRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                    <span className="sr-only">{t('common.redefineRequestButton' as TranslationKey)}</span>
+                    <span className="sr-only">{t('common.redefineRequestButton')}</span>
                 </Button>
             </div>
             <Textarea
@@ -226,7 +225,6 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
             )}
             {t('analyzeProject.results.sendModificationButton')}
           </Button>
-           {/* Se elimina el LogsDisplay de aquí ya que se manejará en la página principal si es necesario */}
         </CardContent>
       </Card>
     </div>
@@ -234,3 +232,5 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 };
 
 export default AnalyzeProjectResultsDisplay;
+
+    
