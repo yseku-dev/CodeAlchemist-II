@@ -60,24 +60,44 @@ const redefinePromptFlow = ai.defineFlow(
       const output = llmResponse.output;
 
       if (!output || !output.redefinedPrompt) {
-        console.error(`[Flow: ${flowName}] No output or empty redefinedPrompt from LLM.`);
+        const errorDetail = "No output or empty redefinedPrompt from LLM.";
+        console.error(`[Flow: ${flowName}] ${errorDetail}`);
         throw new AppError(
           "La IA no pudo redefinir la petición.",
-          { originalError: "No output or empty redefinedPrompt from LLM" },
+          { originalError: errorDetail },
           'ai'
         );
       }
       return output;
     } catch (error: any) {
-      console.error(`[Flow: ${flowName}] Error executing flow:`, error);
+      console.error(`[Flow: ${flowName}] Error ORIGINAL capturado antes de lanzar AppError:`, error);
+      if (error.stack) {
+        console.error(`[Flow: ${flowName}] Stack del error original:`, error.stack);
+      }
+      if (error.details) {
+        console.error(`[Flow: ${flowName}] Detalles del error original:`, error.details);
+      }
+      if (error.cause) {
+         console.error(`[Flow: ${flowName}] Causa del error original:`, error.cause);
+      }
+
+      const originalErrorMessage = error instanceof Error ? error.message : String(error);
+      const detailsForUser = originalErrorMessage.substring(0, 150) + (originalErrorMessage.length > 150 ? '...' : '');
+
+
       if (error instanceof AppError) {
+        // Si ya es un AppError, podríamos querer añadir más contexto o simplemente relanzarlo.
+        // Por ahora, lo relanzamos, pero podríamos querer que su mensaje incluya 'detailsForUser'
+        // error.friendlyMessage = `FALLO_EN_FLUJO_REDEFINE_PROMPT: ${detailsForUser}`;
         throw error;
       }
+
       throw new AppError(
-        "Ocurrió un error en el flujo de redefinición de petición.",
+        `Ocurrió un error en el flujo de redefinición de petición. Causa: ${detailsForUser}`,
         error,
         'ai'
       );
     }
   }
 );
+
