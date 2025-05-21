@@ -23,7 +23,7 @@ interface AnalyzeProjectResultsDisplayProps {
   suggestionsForUI: DetailedSuggestionForUI[];
   onToggleSuggestionSelection: (suggestionId: string) => void;
   onApplySelectedAndDownloadZip: () => Promise<void>;
-  canApplyAndDownload: boolean; // True si la fuente original fue Git y se tienen los archivos base
+  canApplyAndDownload: boolean; 
   chatHistory: ChatMessage[];
   currentModificationRequest: string;
   onCurrentModificationRequestChange: (value: string) => void;
@@ -66,32 +66,34 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 
   const hasApplicableSuggestionsSelected = suggestionsForUI.some(s => s.isSelected && s.suggestedContent);
 
+  const headerActions = (
+    <div className="flex flex-wrap gap-2">
+      <Button onClick={onSaveSnapshot} variant="outline" size="sm">
+        <Save className="mr-2 h-4 w-4" />
+        {t('analyzeProject.results.saveSnapshotButton')}
+      </Button>
+      {canApplyAndDownload && ( 
+        <Button 
+          onClick={onApplySelectedAndDownloadZip} 
+          variant="outline" 
+          size="sm" 
+          disabled={!hasApplicableSuggestionsSelected}
+          title={!hasApplicableSuggestionsSelected ? t('analyzeProject.toast.downloadError.selectSuggestions') : t('analyzeProject.results.applyAndDownloadButton')}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          {t('analyzeProject.results.applyAndDownloadButton')}
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <Card className="mt-6 bg-background">
         <PageSectionHeader
           icon={ListChecks}
           title={result.analysisTitle || t('analyzeProject.results.noResults')}
-          actions={
-            <div className="flex flex-wrap gap-2">
-                <Button onClick={onSaveSnapshot} variant="outline" size="sm">
-                    <Save className="mr-2 h-4 w-4" />
-                    {t('analyzeProject.results.saveSnapshotButton')}
-                </Button>
-                 {canApplyAndDownload && ( // Solo mostrar si la fuente fue Git
-                    <Button 
-                      onClick={onApplySelectedAndDownloadZip} 
-                      variant="outline" 
-                      size="sm" 
-                      disabled={!hasApplicableSuggestionsSelected}
-                      title={!hasApplicableSuggestionsSelected ? t('analyzeProject.toast.downloadError.selectSuggestions') : t('analyzeProject.results.applyAndDownloadButton')}
-                    >
-                        <Download className="mr-2 h-4 w-4" />
-                        {t('analyzeProject.results.applyAndDownloadButton')}
-                    </Button>
-                )}
-            </div>
-          }
+          actions={headerActions}
         />
         <CardContent className="space-y-4">
           <div>
@@ -178,10 +180,10 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 
       {/* Interactive Modification Section */}
       <Separator className="my-8" />
-      <Card className="border-accent/50 shadow-md">
+      <Card className="border-primary/50 shadow-md"> {/* Changed accent to primary for the border */}
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-accent"/>
+            <MessageSquare className="h-6 w-6 text-primary"/> {/* Changed accent to primary */}
             {t('analyzeProject.results.modifyAnalysisSectionTitle')}
           </CardTitle>
         </CardHeader>
@@ -210,7 +212,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                     }`}
                   >
                     {msg.role === 'assistant' && (
-                      <Bot className="h-5 w-5 self-start flex-shrink-0 text-accent" />
+                      <Bot className="h-5 w-5 self-start flex-shrink-0 text-primary" /> /* Changed accent to primary */
                     )}
                      {msg.role === 'system' && (
                       <Bot className="h-5 w-5 self-start flex-shrink-0 text-destructive" />
@@ -233,7 +235,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
               {isModifyingProject && (
                 <div className="flex justify-start">
                     <div className="max-w-[85%] p-2.5 rounded-lg bg-card text-card-foreground border flex items-center shadow-sm">
-                    <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
+                    <Loader2 className="h-5 w-5 animate-spin mr-2 text-primary" /> {/* Changed accent to primary */}
                     <span className="text-sm">{t('chat.thinking')}</span>
                     </div>
                 </div>
@@ -284,4 +286,3 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 
 export default AnalyzeProjectResultsDisplay;
 
-    
