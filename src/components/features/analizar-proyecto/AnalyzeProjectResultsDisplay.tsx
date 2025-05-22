@@ -15,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AnalyzeCodeOutput, ChatMessage, DetailedSuggestionForUI } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 interface AnalyzeProjectResultsDisplayProps {
@@ -22,24 +23,24 @@ interface AnalyzeProjectResultsDisplayProps {
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
   suggestionsForUI: DetailedSuggestionForUI[];
   onToggleSuggestionSelection: (suggestionId: string) => void;
-  onApplySelectedAndDownloadZip: () => Promise<void>;
-  canApplyAndDownload: boolean; 
-  chatHistory: ChatMessage[];
-  currentModificationRequest: string;
-  onCurrentModificationRequestChange: (value: string) => void;
-  onSendModificationRequest: () => Promise<void>;
-  isModifyingProject: boolean;
-  isRedefiningModificationRequest: boolean;
+  onDownloadProjectZip: () => Promise<void>;
+  canApplyAndDownload: boolean;
+  modificationPrompt: string;
+  onModificationPromptChange: (value: string) => void;
+  onProcessModification: () => Promise<void>;
+  isProcessingModification: boolean;
+  isRedefiningModificationPrompt: boolean;
   onRedefineModificationRequest: () => Promise<void>;
-  scrollAreaRefChat: React.RefObject<HTMLDivElement>;
   onSaveSnapshot: () => void;
+  onApplySelectedCheckboxSuggestions: () => void;
+  scrollAreaRefChat: React.RefObject<HTMLDivElement>;
 }
 
 /**
  * @fileOverview Component for displaying the results of a full project analysis.
  * Shows the AI's overall assessment, identified areas, specific suggestions (with selection for application),
- * general improvement ideas, and a chat interface for further interaction.
- * Also displays group logs if applicable and allows saving a snapshot and downloading a modified ZIP (if source was Git).
+ * general improvement ideas, and a section for suggesting further modifications.
+ * Also displays group logs if applicable and allows saving a snapshot and downloading a modified ZIP.
  * All texts are internationalized.
  * @module AnalyzeProjectResultsDisplay
  */
@@ -48,17 +49,17 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
   t,
   suggestionsForUI,
   onToggleSuggestionSelection,
-  onApplySelectedAndDownloadZip,
+  onDownloadProjectZip,
   canApplyAndDownload,
-  chatHistory = [],
-  currentModificationRequest,
-  onCurrentModificationRequestChange,
-  onSendModificationRequest,
-  isModifyingProject,
-  isRedefiningModificationRequest,
+  modificationPrompt,
+  onModificationPromptChange,
+  onProcessModification,
+  isProcessingModification,
+  isRedefiningModificationPrompt,
   onRedefineModificationRequest,
-  scrollAreaRefChat,
   onSaveSnapshot,
+  onApplySelectedCheckboxSuggestions,
+  scrollAreaRefChat,
 }) => {
   if (!result) {
     return null;
@@ -72,18 +73,29 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
         <Save className="mr-2 h-4 w-4" />
         {t('analyzeProject.results.saveSnapshotButton')}
       </Button>
-      {canApplyAndDownload && ( 
-        <Button 
-          onClick={onApplySelectedAndDownloadZip} 
-          variant="outline" 
-          size="sm" 
-          disabled={!hasApplicableSuggestionsSelected}
-          title={!hasApplicableSuggestionsSelected ? t('analyzeProject.toast.downloadError.selectSuggestions') : t('analyzeProject.results.applyAndDownloadButton')}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          {t('analyzeProject.results.applyAndDownloadButton')}
-        </Button>
-      )}
+      <TooltipProvider>
+        <Tooltip open={!canApplyAndDownload ? undefined : false}>
+          <TooltipTrigger asChild>
+            <span tabIndex={0}>
+              <Button
+                onClick={onDownloadProjectZip}
+                variant="outline"
+                size="sm"
+                disabled={!canApplyAndDownload}
+                className="w-full sm:w-auto"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {t('analyzeProject.results.applyAndDownloadButton')}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          {!canApplyAndDownload && (
+            <TooltipContent>
+              <p>{t('analyzeProject.results.downloadProjectZipTooltipDisabled')}</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 
@@ -170,6 +182,15 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                   ))}
                 </ul>
               </ScrollArea>
+              {canApplyAndDownload && (
+                <Button 
+                  onClick={onApplySelectedCheckboxSuggestions} 
+                  disabled={!hasApplicableSuggestionsSelected}
+                  className="mt-4 w-full sm:w-auto"
+                >
+                  {t('analyzeProject.results.applySelectedSuggestionsButton')}
+                </Button>
+              )}
             </div>
           )}
           {result.groupLog && (
@@ -178,105 +199,50 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
         </CardContent>
       </Card>
 
-      {/* Interactive Modification Section */}
       <Separator className="my-8" />
-      <Card className="border-primary/50 shadow-md"> {/* Changed accent to primary for the border */}
+      <Card className="border-primary/50 shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-primary"/> {/* Changed accent to primary */}
+            <MessageSquare className="h-6 w-6 text-primary"/>
             {t('analyzeProject.results.modifyAnalysisSectionTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <ScrollArea className="h-48 border rounded-md p-3 bg-muted/30" ref={scrollAreaRefChat}>
-             {chatHistory.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                    {t('analyzeProject.results.modificationInputPlaceholder')}
-                </p>
-            )}
-            <div className="space-y-3">
-              {chatHistory.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${
-                    msg.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  <div
-                    className={`max-w-[85%] p-2.5 rounded-lg text-sm shadow-sm flex gap-2 ${
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : msg.role === 'assistant'
-                        ? 'bg-card text-card-foreground border'
-                        : 'bg-destructive/10 text-destructive-foreground border border-destructive/30 items-start'
-                    }`}
-                  >
-                    {msg.role === 'assistant' && (
-                      <Bot className="h-5 w-5 self-start flex-shrink-0 text-primary" /> /* Changed accent to primary */
-                    )}
-                     {msg.role === 'system' && (
-                      <Bot className="h-5 w-5 self-start flex-shrink-0 text-destructive" />
-                    )}
-                    {msg.role === 'user' && (
-                      <User className="h-5 w-5 self-start flex-shrink-0" />
-                    )}
-                     <div className="flex-grow">
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                        <p className="text-xs opacity-70 mt-1.5 text-right">
-                        {new Date(msg.timestamp).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                        })}
-                        </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {isModifyingProject && (
-                <div className="flex justify-start">
-                    <div className="max-w-[85%] p-2.5 rounded-lg bg-card text-card-foreground border flex items-center shadow-sm">
-                    <Loader2 className="h-5 w-5 animate-spin mr-2 text-primary" /> {/* Changed accent to primary */}
-                    <span className="text-sm">{t('chat.thinking')}</span>
-                    </div>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-          <div className="space-y-1">
+           <div className="space-y-1">
              <div className="flex justify-between items-center mb-1">
                 <Label htmlFor="project-analysis-modification-input">{t('analyzeProject.results.modificationInputLabel')}</Label>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={onRedefineModificationRequest}
-                    disabled={(!currentModificationRequest || !currentModificationRequest.trim()) || isRedefiningModificationRequest || isModifyingProject}
+                    disabled={(!modificationPrompt || !modificationPrompt.trim()) || isRedefiningModificationPrompt || isProcessingModification}
                     title={t('common.redefineRequestButton')}
                 >
-                    {isRedefiningModificationRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    {isRedefiningModificationPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
                     <span className="sr-only">{t('common.redefineRequestButton')}</span>
                 </Button>
             </div>
             <Textarea
               id="project-analysis-modification-input"
-              value={currentModificationRequest}
-              onChange={(e) => onCurrentModificationRequestChange(e.target.value)}
+              value={modificationPrompt}
+              onChange={(e) => onModificationPromptChange(e.target.value)}
               placeholder={t('analyzeProject.results.modificationInputPlaceholder')}
               rows={3}
-              disabled={isModifyingProject || isRedefiningModificationRequest}
-              onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSendModificationRequest(); }}}
+              disabled={isProcessingModification || isRedefiningModificationPrompt || !canApplyAndDownload}
             />
+             {!canApplyAndDownload && <p className="text-xs text-muted-foreground mt-1">{t('analyzeProject.toast.modificationError.noBaseFiles')}</p>}
           </div>
           <Button
-            onClick={onSendModificationRequest}
-            disabled={isModifyingProject || isRedefiningModificationRequest || (!currentModificationRequest || !currentModificationRequest.trim())}
+            onClick={onProcessModification}
+            disabled={isProcessingModification || isRedefiningModificationPrompt || (!modificationPrompt || !modificationPrompt.trim()) || !canApplyAndDownload}
             className="w-full"
           >
-            {isModifyingProject ? (
+            {isProcessingModification ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Send className="mr-2 h-4 w-4" />
             )}
-            {t('analyzeProject.results.sendModificationButton')}
+            {t('analyzeProject.results.processModificationButton')}
           </Button>
         </CardContent>
       </Card>
@@ -285,4 +251,3 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 };
 
 export default AnalyzeProjectResultsDisplay;
-

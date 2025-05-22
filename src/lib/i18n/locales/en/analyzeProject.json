@@ -1,4 +1,3 @@
-
 {
   "title": "Analyze Full Project",
   "description": "Perform a holistic analysis of an entire project, uploaded or from Git.",
@@ -31,15 +30,15 @@
     "modificationInputPlaceholder": "E.g.: Add a 'logger.js' file in the 'src/utils' folder.",
     "processModificationButton": "Process Modification with AI",
     "saveSnapshotButton": "Save Analysis Snapshot",
-    "applyAndDownloadButton": "Apply Selected & Download Project (ZIP)",
-    "applyAndDownloadTooltipDisabled": "Downloading with applied changes is only available if the project source was a Git URL or a processed ZIP.",
-    "selectSuggestionCheckboxAria": "Select suggestion for area {area}",
-    "applyInfoText": "Select suggestions you wish to apply. This will modify the base files (if source was Git or a processed ZIP) before ZIP download.",
+    "downloadProjectZipButton": "Download Modified Project (ZIP)",
+    "applySelectedSuggestionsButton": "Apply Selected Changes",
+    "applyInfoText": "Select the suggestions you wish to apply. This will modify the base files (if the source was Git or a processed ZIP) which will be used for the ZIP download or further AI modifications.",
+    "downloadProjectZipTooltipDisabled": "ZIP download is only available if the source was Git or a processed ZIP and base files exist.",
     "modificationContextPrefix": "Context of the current analysis being queried/modified:",
     "lastModificationRequestLabel": "Last modification request",
     "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
     "chatInteractionLogPrefix": "Modification Chat Interaction (with AI)",
-    "sendModificationButton": "Send Modification"
+    "snapshotName": "Project Analysis - {name} - {time}"
   },
   "toast": {
     "invalidFile": {
@@ -85,30 +84,34 @@
       "title": "Modification Error",
       "description": "Could not process your modification request.",
       "emptyModificationRequest": "Please describe the modification you want to make.",
-      "noBaseFilesGit": "File modification is only possible if the original source was Git.",
-      "noBaseFilesZip": "File modification for uploaded ZIPs requires the ZIP to be processed successfully first.",
+      "noBaseFiles": "File modification is only possible if the original source was Git or a ZIP was processed successfully.",
       "consultationError": "An error occurred while consulting the AI about the analysis."
     },
-    "modificationSuccessGit": {
-      "title": "Modification Processed (Files)",
-      "description": "The AI has attempted to modify the project files. Review the results."
+    "modificationSuccess": {
+      "title": "Modification Processed",
+      "description": "The AI has attempted to apply the changes to the project. Review the files and notes."
     },
-    "modificationSuccessZip": {
-      "title": "Consultation Processed (Notes)",
+    "modificationConsultationSuccess": {
+      "title": "Consultation Processed",
       "description": "The AI has processed your query about the analysis. Review updated notes."
     },
     "downloadError": {
       "title": "Download Error",
       "noBaseFiles": "No base files to download. This occurs if the source was not Git or if ZIP processing failed.",
-      "noSuggestionsSelected": "No Suggestions Selected",
       "selectSuggestions": "Please select at least one suggestion with applicable content to download.",
       "unknown": "Unknown error generating ZIP of modified project."
     },
-    "applyingAndZipping": "Applying suggestions and generating ZIP...",
+    "selectedSuggestionsApplied": {
+        "title": "Changes Applied",
+        "description": "Selected suggestions have been applied in memory. You can now download the modified ZIP or continue suggesting changes to the AI."
+    },
+    "noSuggestionsToApply": {
+        "title": "No Suggestions to Apply",
+        "description": "Please select at least one suggestion with applicable content."
+    },
     "zipDownloadSuccess": {
       "title": "Modified Project Download (ZIP) Started",
       "description": "The file {filename} is downloading."
-    },
-    "uploadedFileFallback": "uploaded file"
+    }
   }
 }

@@ -25,21 +25,21 @@
     "suggestionPriorityLabel": "Prioridad:",
     "suggestedPromptLabel": "Prompt Sugerido:",
     "groupLogTitle": "Log Detallado del Análisis",
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del grupo seleccionado para guiar el proceso de la IA.",
     "modifyAnalysisSectionTitle": "Sugerir Modificaciones al Proyecto",
     "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
     "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
-    "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
-    "applyAndDownloadTooltipDisabled": "La descarga con cambios aplicados solo está disponible si la fuente del proyecto fue una URL de Git o un ZIP procesado.",
-    "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área {area}",
-    "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) antes de la descarga ZIP.",
-    "modificationContextPrefix": "Contexto del análisis actual sobre el que se realiza la consulta/modificación:",
+    "downloadProjectZipButton": "Descargar Proyecto Modificado (ZIP)",
+    "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados",
+    "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) que se usarán para la descarga ZIP o futuras modificaciones IA.",
+    "downloadProjectZipTooltipDisabled": "La descarga ZIP solo está disponible si la fuente fue Git o un ZIP procesado y existen archivos base.",
+    "modificationContextPrefix": "Contexto del análisis actual: {focusArea}, Fuente: {sourceType}",
     "lastModificationRequestLabel": "Última petición de modificación",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
-    "chatInteractionLogPrefix": "Interacción del Chat de Modificación (con IA)",
-    "sendModificationButton": "Enviar Modificación"
+    "chatInteractionLogPrefix": "Interacción de Chat de Modificación (con IA)",
+    "snapshotName": "Análisis de Proyecto - {name} - {time}"
   },
   "toast": {
     "invalidFile": {
@@ -53,7 +53,7 @@
     "zipReadError": {
       "title": "Error al Leer ZIP",
       "description": "No se pudo leer el archivo ZIP: {error}",
-      "noValidFiles": "El archivo ZIP subido '{fileName}' no contiene archivos de texto legibles o está vacío."
+      "noValidFiles": "El archivo ZIP subido '{fileName}' no contiene archivos de texto/código legibles o está vacío."
     },
     "zipProcessed": {
       "title": "ZIP Procesado",
@@ -85,30 +85,34 @@
       "title": "Error en Modificación",
       "description": "No se pudo procesar tu petición de modificación.",
       "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
-      "noBaseFilesGit": "La modificación de archivos solo es posible si la fuente original fue Git.",
-      "noBaseFilesZip": "La modificación de archivos para ZIPs subidos requiere que el ZIP sea procesado exitosamente primero.",
+      "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP procesado exitosamente.",
       "consultationError": "Ocurrió un error al consultar a la IA sobre el análisis."
     },
-    "modificationSuccessGit": {
-      "title": "Modificación Procesada (Archivos)",
-      "description": "La IA ha intentado modificar los archivos del proyecto. Revisa los resultados."
+    "modificationSuccess": {
+      "title": "Modificación Procesada",
+      "description": "La IA ha intentado aplicar los cambios al proyecto. Revisa los archivos y las notas."
     },
-    "modificationSuccessZip": {
-      "title": "Consulta Procesada (Notas)",
+    "modificationConsultationSuccess": {
+      "title": "Consulta Procesada",
       "description": "La IA ha procesado tu consulta sobre el análisis. Revisa las notas actualizadas."
     },
     "downloadError": {
       "title": "Error de Descarga",
       "noBaseFiles": "No hay archivos base para descargar. Esto ocurre si la fuente no fue Git o si el procesamiento del ZIP falló.",
-      "noSuggestionsSelected": "Sin Sugerencias Seleccionadas",
       "selectSuggestions": "Por favor, selecciona al menos una sugerencia con contenido aplicable para descargar.",
       "unknown": "Error desconocido al generar el ZIP del proyecto modificado."
     },
-    "applyingAndZipping": "Aplicando sugerencias y generando ZIP...",
+    "selectedSuggestionsApplied": {
+        "title": "Cambios Aplicados",
+        "description": "Las sugerencias seleccionadas han sido aplicadas en memoria. Ahora puedes descargar el ZIP modificado o continuar sugiriendo cambios a la IA."
+    },
+    "noSuggestionsToApply": {
+        "title": "Sin Sugerencias para Aplicar",
+        "description": "Por favor, selecciona al menos una sugerencia con contenido aplicable."
+    },
     "zipDownloadSuccess": {
       "title": "Descarga de Proyecto Modificado (ZIP) Iniciada",
       "description": "El archivo {filename} se está descargando."
-    },
-    "uploadedFileFallback": "archivo subido"
+    }
   }
 }
