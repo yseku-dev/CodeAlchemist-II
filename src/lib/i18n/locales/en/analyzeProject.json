@@ -26,13 +26,13 @@
     "suggestedPromptLabel": "Suggested Prompt:",
     "groupLogTitle": "Detailed Analysis Log",
     "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
-    "modifySectionTitle": "Suggest Modifications to Project",
+    "modifyAnalysisSectionTitle": "Suggest Modifications to Project",
     "modificationInputLabel": "Describe the modification you want to apply to the project:",
     "modificationInputPlaceholder": "E.g.: Add a 'logger.js' file in the 'src/utils' folder.",
     "processModificationButton": "Process Modification with AI",
     "saveSnapshotButton": "Save Analysis Snapshot",
     "snapshotName": "Project Analysis - {name} - {time}",
-    "applyAndDownloadButton": "Apply & Download Project (ZIP)",
+    "applyAndDownloadButton": "Apply Selected & Download Project (ZIP)",
     "applyAndDownloadTooltipDisabled": "Downloading with applied changes is only available if the project source was a Git URL or a processed ZIP.",
     "selectSuggestionCheckboxAria": "Select suggestion for area {area}",
     "applyInfoText": "Select suggestions you wish to apply. This will modify the base files (if source was Git or a processed ZIP) before ZIP download.",
@@ -85,14 +85,14 @@
         "title": "Modification Error",
         "description": "Could not process your modification request.",
         "emptyModificationRequest": "Please describe the modification you want to make.",
-        "noBaseFiles": "No base files to modify. This occurs if the source was not Git or ZIP processing failed."
+        "noBaseFiles": "No base files to modify (requires Git source or processed ZIP)."
     },
     "modificationSuccess": {
-        "title": "Modification Processed",
-        "description": "The AI has processed your request regarding the project. Review updated notes and files."
+        "title": "Modification Processed (Files)",
+        "description": "The AI has attempted to modify the project files. Review the results."
     },
     "modificationConsultationSuccess": {
-        "title": "Consultation Processed",
+        "title": "Consultation Processed (Notes)",
         "description": "The AI has processed your query about the analysis. Review updated notes."
     },
     "downloadError": {

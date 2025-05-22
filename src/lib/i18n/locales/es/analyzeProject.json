@@ -26,13 +26,13 @@
     "suggestedPromptLabel": "Prompt Sugerido:",
     "groupLogTitle": "Log Detallado del Análisis",
     "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
-    "modifySectionTitle": "Sugerir Modificaciones al Proyecto",
+    "modifyAnalysisSectionTitle": "Sugerir Modificaciones al Proyecto",
     "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
     "modificationInputPlaceholder": "Ej: Añade un archivo 'logger.js' en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
     "snapshotName": "Análisis de Proyecto - {name} - {time}",
-    "applyAndDownloadButton": "Aplicar y Descargar Proyecto (ZIP)",
+    "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
     "applyAndDownloadTooltipDisabled": "La descarga con cambios aplicados solo está disponible si la fuente del proyecto fue una URL de Git o un ZIP procesado.",
     "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área {area}",
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) antes de la descarga ZIP.",
@@ -85,14 +85,14 @@
         "title": "Error en Modificación",
         "description": "No se pudo procesar tu petición de modificación.",
         "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
-        "noBaseFiles": "No hay archivos base para modificar. Esto ocurre si la fuente no fue Git o si el procesamiento del ZIP falló."
+        "noBaseFiles": "No hay archivos base para modificar (requiere fuente Git o ZIP procesado)."
     },
     "modificationSuccess": {
-        "title": "Modificación Procesada",
-        "description": "La IA ha procesado tu petición sobre el proyecto. Revisa las notas y archivos actualizados."
+        "title": "Modificación Procesada (Archivos)",
+        "description": "La IA ha intentado modificar los archivos del proyecto. Revisa los resultados."
     },
     "modificationConsultationSuccess": {
-        "title": "Consulta Procesada",
+        "title": "Consulta Procesada (Notas)",
         "description": "La IA ha procesado tu consulta sobre el análisis. Revisa las notas actualizadas."
     },
     "downloadError": {
