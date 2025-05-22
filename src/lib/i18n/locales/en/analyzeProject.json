@@ -26,17 +26,20 @@
     "suggestedPromptLabel": "Suggested Prompt:",
     "groupLogTitle": "Detailed Analysis Log",
     "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
-    "modifyAnalysisSectionTitle": "Discuss/Modify Analysis with AI",
-    "modificationInputLabel": "Describe your question or modification about the analysis:",
-    "modificationInputPlaceholder": "E.g.: Can you detail more about suggestion X? or What are the implications of area Y?",
-    "sendModificationButton": "Send Request",
+    "modifyAnalysisSectionTitle": "Suggest Modifications to Project",
+    "modificationInputLabel": "Describe the modification you want to apply to the project:",
+    "modificationInputPlaceholder": "E.g.: Add a 'logger.js' file in the 'src/utils' folder.",
+    "processModificationButton": "Process Modification with AI",
+    "sendModificationButton": "Send Modification",
     "saveSnapshotButton": "Save Analysis Snapshot",
     "snapshotName": "Project Analysis - {name} - {time}",
-    "applyAndDownloadButton": "Apply Selected & Download Project (ZIP)",
+    "applyAndDownloadButton": "Apply & Download Project (ZIP)",
+    "applyAndDownloadTooltipDisabled": "Download with applied changes is only available if the project source was a Git URL.",
     "selectSuggestionCheckboxAria": "Select suggestion for area {area}",
-    "applyInfoText": "Select suggestions you wish to conceptually apply. This option is available if the project source was a Git URL. The ZIP download will contain the original files with the selected modifications.",
+    "applyInfoText": "Select suggestions you wish to apply. This will modify the base files (if source was Git) before ZIP download.",
     "modificationContextPrefix": "Context of the current analysis being queried/modified:",
-    "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English."
+    "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
+    "chatInteractionLogPrefix": "Chat Interaction"
   },
   "toast": {
     "invalidFile": {
@@ -75,13 +78,14 @@
       "unknown": "Unknown error fetching repository."
     },
     "modificationError": {
-        "title": "Analysis Query Error",
-        "description": "Could not process your query about the analysis.",
-        "emptyModificationRequest": "Please type your question or modification."
+        "title": "Modification Error",
+        "description": "Could not process your modification request.",
+        "emptyModificationRequest": "Please describe the modification you want to make.",
+        "noGitSource": "File modification is only possible if the original source was a Git URL."
     },
     "modificationSuccess": {
-        "title": "Response Received",
-        "description": "The AI has processed your query. Check the chat."
+        "title": "Modification Processed",
+        "description": "The AI has processed your request. Review files and notes."
     },
     "downloadError": {
       "title": "Download Error",

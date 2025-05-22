@@ -26,17 +26,20 @@
     "suggestedPromptLabel": "Prompt Sugerido:",
     "groupLogTitle": "Log Detallado del Análisis",
     "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
-    "modifyAnalysisSectionTitle": "Discutir/Modificar Análisis con IA",
-    "modificationInputLabel": "Describe tu pregunta o modificación sobre el análisis:",
-    "modificationInputPlaceholder": "Ej: ¿Puedes detallar más sobre la sugerencia X? o ¿Qué implicaciones tiene el área Y?",
-    "sendModificationButton": "Enviar Petición",
+    "modifyAnalysisSectionTitle": "Sugerir Modificaciones al Proyecto",
+    "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
+    "modificationInputPlaceholder": "Ej: Añade un archivo 'logger.js' en la carpeta 'src/utils'.",
+    "processModificationButton": "Procesar Modificación con IA",
+    "sendModificationButton": "Enviar Modificación",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
     "snapshotName": "Análisis de Proyecto - {name} - {time}",
-    "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
+    "applyAndDownloadButton": "Aplicar y Descargar Proyecto (ZIP)",
+    "applyAndDownloadTooltipDisabled": "La descarga con cambios aplicados solo está disponible si la fuente del proyecto fue una URL de Git.",
     "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área {area}",
-    "applyInfoText": "Selecciona las sugerencias que deseas aplicar conceptualmente. Esta opción está disponible si la fuente del proyecto fue una URL de Git. La descarga ZIP contendrá los archivos originales con las modificaciones seleccionadas.",
+    "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git) antes de la descarga ZIP.",
     "modificationContextPrefix": "Contexto del análisis actual sobre el que se realiza la consulta/modificación:",
-    "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano."
+    "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
+    "chatInteractionLogPrefix": "Interacción de Chat"
   },
   "toast": {
     "invalidFile": {
@@ -75,13 +78,14 @@
       "unknown": "Error desconocido al obtener el repositorio."
     },
     "modificationError": {
-        "title": "Error en Consulta sobre Análisis",
-        "description": "No se pudo procesar tu petición sobre el análisis.",
-        "emptyModificationRequest": "Por favor, escribe tu pregunta o modificación."
+        "title": "Error en Modificación",
+        "description": "No se pudo procesar tu petición de modificación.",
+        "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
+        "noGitSource": "La modificación de archivos solo es posible si la fuente original fue una URL de Git."
     },
     "modificationSuccess": {
-        "title": "Respuesta Recibida",
-        "description": "La IA ha procesado tu petición. Revisa el chat."
+        "title": "Modificación Procesada",
+        "description": "La IA ha procesado tu petición. Revisa los archivos y notas."
     },
     "downloadError": {
       "title": "Error de Descarga",
