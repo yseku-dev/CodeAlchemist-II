@@ -31,14 +31,14 @@
     "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
-    "downloadProjectZipButton": "Descargar Proyecto Modificado (ZIP)",
+    "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
     "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados",
+    "downloadProjectZipButton": "Descargar Proyecto Modificado (ZIP)",
+    "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente fue Git o un ZIP procesado que generó archivos base.",
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) que se usarán para la descarga ZIP o futuras modificaciones IA.",
-    "downloadProjectZipTooltipDisabled": "La descarga ZIP solo está disponible si la fuente fue Git o un ZIP procesado y existen archivos base.",
-    "modificationContextPrefix": "Contexto del análisis actual: {focusArea}, Fuente: {sourceType}",
+    "modificationContextPrefix": "Contexto del análisis actual que se está consultando/modificando:",
     "lastModificationRequestLabel": "Última petición de modificación",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
-    "chatInteractionLogPrefix": "Interacción de Chat de Modificación (con IA)",
     "snapshotName": "Análisis de Proyecto - {name} - {time}"
   },
   "toast": {
@@ -85,7 +85,7 @@
       "title": "Error en Modificación",
       "description": "No se pudo procesar tu petición de modificación.",
       "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
-      "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP procesado exitosamente.",
+      "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP procesado exitosamente que generó archivos base.",
       "consultationError": "Ocurrió un error al consultar a la IA sobre el análisis."
     },
     "modificationSuccess": {
@@ -113,6 +113,7 @@
     "zipDownloadSuccess": {
       "title": "Descarga de Proyecto Modificado (ZIP) Iniciada",
       "description": "El archivo {filename} se está descargando."
-    }
+    },
+    "applyingAndZipping": "Aplicando sugerencias y generando ZIP..."
   }
 }

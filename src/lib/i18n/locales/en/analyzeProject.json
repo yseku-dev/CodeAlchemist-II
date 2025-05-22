@@ -1,3 +1,4 @@
+
 {
   "title": "Analyze Full Project",
   "description": "Perform a holistic analysis of an entire project, uploaded or from Git.",
@@ -30,14 +31,14 @@
     "modificationInputPlaceholder": "E.g.: Add a 'logger.js' file in the 'src/utils' folder.",
     "processModificationButton": "Process Modification with AI",
     "saveSnapshotButton": "Save Analysis Snapshot",
-    "downloadProjectZipButton": "Download Modified Project (ZIP)",
+    "applyAndDownloadButton": "Apply Selected & Download Project (ZIP)",
     "applySelectedSuggestionsButton": "Apply Selected Changes",
+    "downloadProjectZipButton": "Download Modified Project (ZIP)",
+    "downloadProjectZipTooltipDisabled": "ZIP download of the modified project is only available if the source was Git or a processed ZIP that generated base files.",
     "applyInfoText": "Select the suggestions you wish to apply. This will modify the base files (if the source was Git or a processed ZIP) which will be used for the ZIP download or further AI modifications.",
-    "downloadProjectZipTooltipDisabled": "ZIP download is only available if the source was Git or a processed ZIP and base files exist.",
     "modificationContextPrefix": "Context of the current analysis being queried/modified:",
     "lastModificationRequestLabel": "Last modification request",
     "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
-    "chatInteractionLogPrefix": "Modification Chat Interaction (with AI)",
     "snapshotName": "Project Analysis - {name} - {time}"
   },
   "toast": {
@@ -84,7 +85,7 @@
       "title": "Modification Error",
       "description": "Could not process your modification request.",
       "emptyModificationRequest": "Please describe the modification you want to make.",
-      "noBaseFiles": "File modification is only possible if the original source was Git or a ZIP was processed successfully.",
+      "noBaseFiles": "File modification is only possible if the original source was Git or a ZIP was processed successfully that generated base files.",
       "consultationError": "An error occurred while consulting the AI about the analysis."
     },
     "modificationSuccess": {
@@ -112,6 +113,7 @@
     "zipDownloadSuccess": {
       "title": "Modified Project Download (ZIP) Started",
       "description": "The file {filename} is downloading."
-    }
+    },
+    "applyingAndZipping": "Applying suggestions and generating ZIP..."
   }
 }
