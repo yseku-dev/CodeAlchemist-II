@@ -26,20 +26,20 @@
     "suggestedPromptLabel": "Suggested Prompt:",
     "groupLogTitle": "Detailed Analysis Log",
     "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
-    "modifyAnalysisSectionTitle": "Suggest Modifications to Project",
+    "modifySectionTitle": "Suggest Modifications to Project",
     "modificationInputLabel": "Describe the modification you want to apply to the project:",
     "modificationInputPlaceholder": "E.g.: Add a 'logger.js' file in the 'src/utils' folder.",
     "processModificationButton": "Process Modification with AI",
-    "sendModificationButton": "Send Modification",
     "saveSnapshotButton": "Save Analysis Snapshot",
     "snapshotName": "Project Analysis - {name} - {time}",
     "applyAndDownloadButton": "Apply & Download Project (ZIP)",
-    "applyAndDownloadTooltipDisabled": "Download with applied changes is only available if the project source was a Git URL.",
+    "applyAndDownloadTooltipDisabled": "Downloading with applied changes is only available if the project source was a Git URL or a processed ZIP.",
     "selectSuggestionCheckboxAria": "Select suggestion for area {area}",
-    "applyInfoText": "Select suggestions you wish to apply. This will modify the base files (if source was Git) before ZIP download.",
+    "applyInfoText": "Select suggestions you wish to apply. This will modify the base files (if source was Git or a processed ZIP) before ZIP download.",
     "modificationContextPrefix": "Context of the current analysis being queried/modified:",
+    "lastModificationRequestLabel": "Last modification request",
     "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
-    "chatInteractionLogPrefix": "Chat Interaction"
+    "chatInteractionLogPrefix": "Modification Chat Interaction (with AI)"
   },
   "toast": {
     "invalidFile": {
@@ -54,6 +54,10 @@
       "title": "ZIP Read Error",
       "description": "Could not read the ZIP file: {error}",
       "noValidFiles": "The uploaded ZIP file '{fileName}' does not contain readable text files or is empty."
+    },
+    "zipProcessed": {
+      "title": "ZIP Processed",
+      "description": "{count} text/code files extracted from ZIP for analysis."
     },
     "unsupportedFileType": {
       "title": "Unsupported File Type",
@@ -81,15 +85,19 @@
         "title": "Modification Error",
         "description": "Could not process your modification request.",
         "emptyModificationRequest": "Please describe the modification you want to make.",
-        "noGitSource": "File modification is only possible if the original source was a Git URL."
+        "noBaseFiles": "No base files to modify. This occurs if the source was not Git or ZIP processing failed."
     },
     "modificationSuccess": {
         "title": "Modification Processed",
-        "description": "The AI has processed your request. Review files and notes."
+        "description": "The AI has processed your request regarding the project. Review updated notes and files."
+    },
+    "modificationConsultationSuccess": {
+        "title": "Consultation Processed",
+        "description": "The AI has processed your query about the analysis. Review updated notes."
     },
     "downloadError": {
       "title": "Download Error",
-      "noGitSource": "Downloading the modified project is only available if the original source was a Git URL.",
+      "noBaseFiles": "No base files to download. This occurs if the source was not Git or ZIP processing failed.",
       "noSuggestionsSelected": "No Suggestions Selected",
       "selectSuggestions": "Please select at least one suggestion with applicable content to download.",
       "unknown": "Unknown error generating ZIP of modified project."
@@ -98,6 +106,7 @@
     "zipDownloadSuccess": {
       "title": "Modified Project Download (ZIP) Started",
       "description": "The file {filename} is downloading."
-    }
+    },
+    "uploadedFileFallback": "uploaded file"
   }
 }

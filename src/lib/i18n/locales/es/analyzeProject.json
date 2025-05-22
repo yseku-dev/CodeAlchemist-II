@@ -26,20 +26,20 @@
     "suggestedPromptLabel": "Prompt Sugerido:",
     "groupLogTitle": "Log Detallado del Análisis",
     "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
-    "modifyAnalysisSectionTitle": "Sugerir Modificaciones al Proyecto",
+    "modifySectionTitle": "Sugerir Modificaciones al Proyecto",
     "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
     "modificationInputPlaceholder": "Ej: Añade un archivo 'logger.js' en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
-    "sendModificationButton": "Enviar Modificación",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
     "snapshotName": "Análisis de Proyecto - {name} - {time}",
     "applyAndDownloadButton": "Aplicar y Descargar Proyecto (ZIP)",
-    "applyAndDownloadTooltipDisabled": "La descarga con cambios aplicados solo está disponible si la fuente del proyecto fue una URL de Git.",
+    "applyAndDownloadTooltipDisabled": "La descarga con cambios aplicados solo está disponible si la fuente del proyecto fue una URL de Git o un ZIP procesado.",
     "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área {area}",
-    "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git) antes de la descarga ZIP.",
+    "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) antes de la descarga ZIP.",
     "modificationContextPrefix": "Contexto del análisis actual sobre el que se realiza la consulta/modificación:",
+    "lastModificationRequestLabel": "Última petición de modificación",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
-    "chatInteractionLogPrefix": "Interacción de Chat"
+    "chatInteractionLogPrefix": "Interacción del Chat de Modificación (con IA)"
   },
   "toast": {
     "invalidFile": {
@@ -54,6 +54,10 @@
       "title": "Error al Leer ZIP",
       "description": "No se pudo leer el archivo ZIP: {error}",
       "noValidFiles": "El archivo ZIP subido '{fileName}' no contiene archivos de texto legibles o está vacío."
+    },
+    "zipProcessed": {
+      "title": "ZIP Procesado",
+      "description": "{count} archivos de texto/código extraídos del ZIP para análisis."
     },
     "unsupportedFileType": {
       "title": "Tipo de Archivo no Soportado",
@@ -81,15 +85,19 @@
         "title": "Error en Modificación",
         "description": "No se pudo procesar tu petición de modificación.",
         "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
-        "noGitSource": "La modificación de archivos solo es posible si la fuente original fue una URL de Git."
+        "noBaseFiles": "No hay archivos base para modificar. Esto ocurre si la fuente no fue Git o si el procesamiento del ZIP falló."
     },
     "modificationSuccess": {
         "title": "Modificación Procesada",
-        "description": "La IA ha procesado tu petición. Revisa los archivos y notas."
+        "description": "La IA ha procesado tu petición sobre el proyecto. Revisa las notas y archivos actualizados."
+    },
+    "modificationConsultationSuccess": {
+        "title": "Consulta Procesada",
+        "description": "La IA ha procesado tu consulta sobre el análisis. Revisa las notas actualizadas."
     },
     "downloadError": {
       "title": "Error de Descarga",
-      "noGitSource": "La descarga del proyecto modificado solo está disponible si la fuente original fue una URL de Git.",
+      "noBaseFiles": "No hay archivos base para descargar. Esto ocurre si la fuente no fue Git o si el procesamiento del ZIP falló.",
       "noSuggestionsSelected": "Sin Sugerencias Seleccionadas",
       "selectSuggestions": "Por favor, selecciona al menos una sugerencia con contenido aplicable para descargar.",
       "unknown": "Error desconocido al generar el ZIP del proyecto modificado."
@@ -98,6 +106,7 @@
     "zipDownloadSuccess": {
       "title": "Descarga de Proyecto Modificado (ZIP) Iniciada",
       "description": "El archivo {filename} se está descargando."
-    }
+    },
+    "uploadedFileFallback": "archivo subido"
   }
 }
