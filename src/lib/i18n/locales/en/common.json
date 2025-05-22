@@ -28,6 +28,8 @@
   "unknownError": "Unknown error",
   "fileSelected": "File selected: {name}",
   "redefineRequestButton": "Redefine Request with AI",
+  "userLabel": "User",
+  "assistantLabel": "AI Assistant",
   "toast": {
     "redefineEmpty": {
       "title": "Empty Description",
@@ -44,6 +46,10 @@
     "redefineError": {
       "title": "Redefine Error",
       "description": "Could not redefine the request with AI."
+    },
+    "copiedToClipboard": {
+      "title": "Copied",
+      "description": "Content copied to clipboard."
     }
   }
 }

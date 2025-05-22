@@ -28,6 +28,8 @@
   "unknownError": "Error desconocido",
   "fileSelected": "Archivo seleccionado: {name}",
   "redefineRequestButton": "Redefinir Petición con IA",
+  "userLabel": "Usuario",
+  "assistantLabel": "Asistente IA",
   "toast": {
     "redefineEmpty": {
       "title": "Descripción Vacía",
@@ -44,6 +46,10 @@
     "redefineError": {
       "title": "Error al Redefinir",
       "description": "No se pudo redefinir la petición con la IA."
+    },
+    "copiedToClipboard": {
+      "title": "Copiado",
+      "description": "Contenido copiado al portapapeles."
     }
   }
 }
