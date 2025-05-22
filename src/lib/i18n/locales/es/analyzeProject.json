@@ -28,10 +28,9 @@
     "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
     "modifyAnalysisSectionTitle": "Sugerir Modificaciones al Proyecto",
     "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
-    "modificationInputPlaceholder": "Ej: Añade un archivo 'logger.js' en la carpeta 'src/utils'.",
+    "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
-    "snapshotName": "Análisis de Proyecto - {name} - {time}",
     "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
     "applyAndDownloadTooltipDisabled": "La descarga con cambios aplicados solo está disponible si la fuente del proyecto fue una URL de Git o un ZIP procesado.",
     "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área {area}",
@@ -39,7 +38,8 @@
     "modificationContextPrefix": "Contexto del análisis actual sobre el que se realiza la consulta/modificación:",
     "lastModificationRequestLabel": "Última petición de modificación",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
-    "chatInteractionLogPrefix": "Interacción del Chat de Modificación (con IA)"
+    "chatInteractionLogPrefix": "Interacción del Chat de Modificación (con IA)",
+    "sendModificationButton": "Enviar Modificación"
   },
   "toast": {
     "invalidFile": {
@@ -82,18 +82,20 @@
       "unknown": "Error desconocido al obtener el repositorio."
     },
     "modificationError": {
-        "title": "Error en Modificación",
-        "description": "No se pudo procesar tu petición de modificación.",
-        "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
-        "noBaseFiles": "No hay archivos base para modificar (requiere fuente Git o ZIP procesado)."
+      "title": "Error en Modificación",
+      "description": "No se pudo procesar tu petición de modificación.",
+      "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
+      "noBaseFilesGit": "La modificación de archivos solo es posible si la fuente original fue Git.",
+      "noBaseFilesZip": "La modificación de archivos para ZIPs subidos requiere que el ZIP sea procesado exitosamente primero.",
+      "consultationError": "Ocurrió un error al consultar a la IA sobre el análisis."
     },
-    "modificationSuccess": {
-        "title": "Modificación Procesada (Archivos)",
-        "description": "La IA ha intentado modificar los archivos del proyecto. Revisa los resultados."
+    "modificationSuccessGit": {
+      "title": "Modificación Procesada (Archivos)",
+      "description": "La IA ha intentado modificar los archivos del proyecto. Revisa los resultados."
     },
-    "modificationConsultationSuccess": {
-        "title": "Consulta Procesada (Notas)",
-        "description": "La IA ha procesado tu consulta sobre el análisis. Revisa las notas actualizadas."
+    "modificationSuccessZip": {
+      "title": "Consulta Procesada (Notas)",
+      "description": "La IA ha procesado tu consulta sobre el análisis. Revisa las notas actualizadas."
     },
     "downloadError": {
       "title": "Error de Descarga",
