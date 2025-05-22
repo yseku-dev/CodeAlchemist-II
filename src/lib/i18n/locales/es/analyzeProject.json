@@ -31,15 +31,15 @@
     "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
-    "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
     "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados",
-    "downloadProjectZipButton": "Descargar Proyecto Modificado (ZIP)",
+    "applyAndDownloadButton": "Descargar Proyecto Modificado (ZIP)",
     "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente fue Git o un ZIP procesado que generó archivos base.",
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) que se usarán para la descarga ZIP o futuras modificaciones IA.",
     "modificationContextPrefix": "Contexto del análisis actual que se está consultando/modificando:",
     "lastModificationRequestLabel": "Última petición de modificación",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
-    "snapshotName": "Análisis de Proyecto - {name} - {time}"
+    "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área: {area}",
+    "sendModificationButton": "Enviar Modificación"
   },
   "toast": {
     "invalidFile": {
@@ -103,12 +103,12 @@
       "unknown": "Error desconocido al generar el ZIP del proyecto modificado."
     },
     "selectedSuggestionsApplied": {
-        "title": "Cambios Aplicados",
-        "description": "Las sugerencias seleccionadas han sido aplicadas en memoria. Ahora puedes descargar el ZIP modificado o continuar sugiriendo cambios a la IA."
+      "title": "Cambios Aplicados",
+      "description": "Las sugerencias seleccionadas han sido aplicadas en memoria. Ahora puedes descargar el ZIP modificado o continuar sugiriendo cambios a la IA."
     },
     "noSuggestionsToApply": {
-        "title": "Sin Sugerencias para Aplicar",
-        "description": "Por favor, selecciona al menos una sugerencia con contenido aplicable."
+      "title": "Sin Sugerencias para Aplicar",
+      "description": "Por favor, selecciona al menos una sugerencia con contenido aplicable."
     },
     "zipDownloadSuccess": {
       "title": "Descarga de Proyecto Modificado (ZIP) Iniciada",
