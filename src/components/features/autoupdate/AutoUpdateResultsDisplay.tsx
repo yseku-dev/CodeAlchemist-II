@@ -13,6 +13,7 @@ import CodeBlock from '@/components/code-block';
 import { Label } from '@/components/ui/label';
 import { useI18n } from '@/context/I18nContext';
 import PageSectionHeader from '@/components/layout/PageSectionHeader'; // Import PageSectionHeader
+import type { TranslationKey } from '@/lib/i18n/translations';
 
 interface AutoUpdateResultsDisplayProps {
   analysisResult: AnalyzeCodeOutput | null;
@@ -30,7 +31,7 @@ interface AutoUpdateResultsDisplayProps {
   onDownloadSuggestions: (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => void;
   onOpenCommitDialog: () => void;
   unifiedPrompt: string | null;
-  onSaveSnapshot: () => void; // Added prop for saving snapshot
+  onSaveSnapshot: () => void;
 }
 
 /**
@@ -54,33 +55,37 @@ export default function AutoUpdateResultsDisplay({
   onDownloadSuggestions,
   onOpenCommitDialog,
   unifiedPrompt,
-  onSaveSnapshot, // Destructure new prop
+  onSaveSnapshot,
 }: AutoUpdateResultsDisplayProps) {
   const { t } = useI18n();
 
-  const resultActions = analysisResult ? (
+  const resultActions = (
     <div className="flex flex-wrap gap-2 justify-start sm:justify-end w-full sm:w-auto">
-      <Button variant="outline" size="sm" onClick={() => onDownloadSuggestions('JSON_SUGGESTIONS')} disabled={!suggestions.length || isLoading}>
-        <Download className="mr-2 h-4 w-4" /> {t('autoupdate.results.downloadSuggestionsJson')}
-      </Button>
+      {analysisResult && suggestions.length > 0 && (
+        <Button variant="outline" size="sm" onClick={() => onDownloadSuggestions('JSON_SUGGESTIONS')} disabled={isLoading}>
+          <Download className="mr-2 h-4 w-4" /> {t('autoupdate.results.downloadSuggestionsJson')}
+        </Button>
+      )}
       <Button variant="outline" size="sm" onClick={() => onDownloadSuggestions('ZIP_PROJECT')} disabled={isLoading}>
         <FileArchive className="mr-2 h-4 w-4" /> {t('autoupdate.results.downloadCurrentCodeZip')}
       </Button>
       <Button variant="outline" size="sm" onClick={onOpenCommitDialog} disabled={isLoading}>
         <GitCommit className="mr-2 h-4 w-4" /> {t('autoupdate.results.uploadToGit')}
       </Button>
-      <Button variant="outline" size="sm" onClick={onSaveSnapshot} disabled={isLoading}>
-        <Save className="mr-2 h-4 w-4" /> {t('autoupdate.results.saveSnapshotButton')}
-      </Button>
+      {analysisResult && (
+        <Button variant="outline" size="sm" onClick={onSaveSnapshot} disabled={isLoading}>
+          <Save className="mr-2 h-4 w-4" /> {t('autoupdate.results.saveSnapshotButton')}
+        </Button>
+      )}
     </div>
-  ) : null;
+  );
 
   return (
     <Card className="lg:col-span-2">
       <PageSectionHeader
         icon={ClipboardList}
         title={t('autoupdate.results.title')}
-        actions={resultActions} // Use the defined actions here
+        actions={resultActions}
       />
       <CardContent>
         {error && <ErrorDisplay error={error} onAutoFix={() => onAutoFixError(error || t('autoupdate.errors.unknownAnalysisError'))} context={t('autoupdate.autofix.errorContext', {error: error || ''})} />}
