@@ -9,19 +9,19 @@
     "codeSourceLabel": "Fuente del Código para Auto-Análisis",
     "sourceLocal": "Local (código actual de la app)",
     "sourceGit": "URL del Repositorio Git",
-    "gitUrlLabel": "URL del Repositorio Git",
-    "gitUrlPlaceholder": "URL HTTPS del repo CodeAlchemist",
-    "gitUrlRequired": "Se requiere la URL del repositorio Git.",
+    "gitUrlLabel": "URL del Repositorio Git (Opcional)",
+    "gitUrlPlaceholder": "Ej: https://github.com/usuario/repo",
+    "gitUrlRequired": "Se requiere la URL del repositorio Git si se selecciona esta fuente.",
     "analysisParamsLabel": "Parámetros de Auto-Análisis",
-    "analysisPrefsLabel": "Preferencias de Análisis / Campo de Enfoque (opcional)",
-    "analysisPrefsPlaceholder": "Ej: Enfocarse en optimización UI. Todas las sugerencias en castellano.",
+    "analysisPrefsLabel": "Preferencias de Análisis / Campo de Enfoque (Opcional)",
+    "analysisPrefsPlaceholder": "Ej: 'Enfócate en optimizar el rendimiento de la UI...', 'Revisa la seguridad en las llamadas API...', 'Todas las sugerencias deben estar en castellano.'",
+    "analysisPrefsDescription": "Describe qué tipo de actualizaciones o áreas te gustaría que la IA priorizara. Especifica el idioma si es necesario.",
     "startButton": "Iniciar Auto-Análisis",
     "startButtonLoading": "Analizando..."
   },
   "results": {
     "title": "Resultados del Auto-Análisis",
     "downloadSuggestionsJson": "Descargar Sugerencias (JSON)",
-    "downloadProjectZip": "Descargar Proyecto con Sugerencias Aplicadas (ZIP)",
     "downloadCurrentCodeZip": "Descargar Código Actual (ZIP)",
     "uploadToGit": "Subir a Git",
     "noResults": "Inicia un análisis para ver los resultados.",
@@ -53,7 +53,7 @@
     "downloadRequested": "Descarga solicitada: {format}",
     "suggestionsDownloadedJson": "Sugerencias de AutoUpdate descargadas como JSON.",
     "applyingSuggestionToZip": "Aplicando contenido de sugerencia a {fileName} para ZIP.",
-    "projectZipDownloaded": "Sugerencias Descargadas (Formato ZIP Conteniendo JSON). Se ha descargado un archivo .zip. Importante: Este archivo ZIP contiene un único archivo JSON con las sugerencias de código. No es un ZIP del proyecto completo con estructura de carpetas. Para obtener el proyecto completo, necesitarías clonarlo desde su repositorio Git y aplicar manually las sugerencias descargadas.",
+    "projectZipDownloaded": "Descarga de Código Actual con Sugerencias Aplicadas (ZIP). Archivos: {numFiles}. Nombre: {filename}",
     "zipGenerationFailed": "Generación de ZIP fallida: {error}",
     "gitUploadFailedConfig": "Subida a Git fallida: Configuración incompleta.",
     "commitMessageMissing": "Subida a Git fallida: Mensaje de commit requerido.",
@@ -79,6 +79,10 @@
     "unifiedFooter": "// --- FIN: Prompt para mejorar el archivo: {area} ---"
   },
   "toast": {
+    "fetchingGit": {
+      "title": "Obteniendo de Git...",
+      "description": "Obteniendo código del repositorio Git para análisis."
+    },
     "gettingLocalCode": {
       "title": "Obteniendo Código Local...",
       "description": "Contactando al servidor para el código fuente."
@@ -112,20 +116,15 @@
     },
     "downloadComplete": {
       "title": "Descarga Completada",
-      "suggestionsJsonDescription": "Sugerencias descargadas como {filename}.",
-      "projectZipDescription": "Este archivo ZIP ({filename}) contiene un JSON con los cambios sugeridos por la IA. Para aplicar estas mejoras, necesitarás el código fuente base de CodeAlchemist (de Git) y aplicar manualmente los cambios del JSON."
+      "suggestionsJsonDescription": "Sugerencias descargadas como {filename}."
     },
     "preparingProjectZip": {
       "title": "Preparando Descarga del Proyecto (ZIP)...",
-      "description": "Obteniendo código del servidor..."
-    },
-    "downloadProjectZipToast": {
-        "title": "Descarga de Proyecto con Sugerencias (ZIP conteniendo JSON de cambios)",
-        "description": "Este archivo ZIP ({filename}) contiene un archivo JSON que detalla los archivos que serían modificados por las sugerencias de IA y su nuevo contenido propuesto. **No es un ZIP del proyecto ejecutable completo.** Para 'correrlo en local' con estas mejoras, necesitarás: 1. El código fuente base de CodeAlchemist (obtenido de su repositorio Git). 2. Aplicar manualmente los cambios detallados en el JSON descargado a tu copia local del código fuente. Esta descarga te proporciona los 'diffs' o contenidos de archivo propuestos por la IA."
+      "description": "Obteniendo código del servidor y aplicando cambios..."
     },
     "downloadCurrentCodeZipToast": {
-        "title": "Descarga de Código Actual (ZIP)",
-        "description": "Descarga de un ZIP que contiene el código fuente actual del proyecto, obtenido del servidor, ha iniciado. Este proceso puede tardar unos momentos. ({filename})"
+        "title": "Descarga de Código Actual con Sugerencias (ZIP)",
+        "description": "El archivo ZIP ({filename}) se ha generado con el código fuente actual y las sugerencias marcadas aplicadas. Se está iniciando la descarga."
     },
     "zipError": {
       "title": "Error al Generar ZIP",
@@ -174,8 +173,7 @@
   },
   "downloads": {
     "suggestionsJsonFilename": "autoupdate_sugerencias.json",
-    "projectZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip",
-    "currentCodeZipFilename": "CodeAlchemist_CodigoActual.zip"
+    "currentCodeZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip"
   },
   "errors": {
     "getLocalSourceFailed": "No se pudo obtener el código fuente local para análisis.",
@@ -217,7 +215,6 @@
     }
   },
   "autofix": {
-    "errorContext": "Error a analizar: {error}\\n\\nContexto: Error ocurrido en la funcionalidad AutoUpdate (análisis del propio código de CodeAlchemist).",
-    "focusArea": "Explica el siguiente error y propone una solución o pasos para depurarlo: \\\"{error}\\\""
+    "errorContext": "Error a analizar: {error}\\n\\nContexto: Error ocurrido en la funcionalidad AutoUpdate (análisis del propio código de CodeAlchemist)."
   }
 }

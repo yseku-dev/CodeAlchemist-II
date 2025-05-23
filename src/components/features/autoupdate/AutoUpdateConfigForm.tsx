@@ -1,4 +1,4 @@
-
+// src/components/features/autoupdate/AutoUpdateConfigForm.tsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Sparkles, Wand2 } from 'lucide-react'; // Added Wand2
+import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
 import { Separator } from '@/components/ui/separator';
@@ -31,8 +31,8 @@ interface AutoUpdateConfigFormProps {
   isLoading: boolean;
   progress: number;
   isAnalysisInProgress: boolean;
-  isRedefiningAnalysisPrefs: boolean; // New prop
-  onRedefineAnalysisPrefs: () => Promise<void>; // New prop
+  isRedefiningAnalysisPrefs: boolean;
+  onRedefineAnalysisPrefs: () => Promise<void>;
 }
 
 /**
@@ -53,8 +53,8 @@ export default function AutoUpdateConfigForm({
   isLoading,
   progress,
   isAnalysisInProgress,
-  isRedefiningAnalysisPrefs, // New prop
-  onRedefineAnalysisPrefs, // New prop
+  isRedefiningAnalysisPrefs,
+  onRedefineAnalysisPrefs,
 }: AutoUpdateConfigFormProps) {
   const { t } = useI18n();
   const [isMounted, setIsMounted] = useState(false);
@@ -63,41 +63,40 @@ export default function AutoUpdateConfigForm({
     setIsMounted(true);
   }, []);
 
-  if (!isMounted && typeof window === 'undefined') { // Check for SSR context specifically
+  if (!isMounted && !llmConfigSource) { // Updated condition to check llmConfigSource
     return (
-        <Card className="lg:col-span-1">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                <Sparkles className="h-7 w-7 text-primary" />
-                <span>{t('autoupdate.config.title')}</span>
-                </CardTitle>
-                <CardDescription>{t('autoupdate.config.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
-                <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
-                <div className="h-20 w-full bg-muted rounded-md animate-pulse"></div>
-                <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
-            </CardContent>
-        </Card>
+      <Card className="lg:col-span-1">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <Sparkles className="h-7 w-7 text-primary" />
+            <span>{t('autoupdate.config.title')}</span>
+          </CardTitle>
+          <CardDescription>{t('autoupdate.config.description')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
+          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
+          <div className="h-20 w-full bg-muted rounded-md animate-pulse"></div>
+          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
+        </CardContent>
+      </Card>
     );
   }
-
 
   return (
     <Card className="lg:col-span-1">
       <CardHeader>
         <CardTitle className="flex items-center gap-3">
           <Sparkles className="h-7 w-7 text-primary" />
-          <span>{isMounted ? t('autoupdate.config.title') : 'autoupdate.config.title'}</span>
+          <span>{t('autoupdate.config.title')}</span>
         </CardTitle>
-        <CardDescription>{isMounted ? t('autoupdate.config.description') : 'autoupdate.config.description'}</CardDescription>
+        <CardDescription>{t('autoupdate.config.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <LLMConfigSelector 
-            value={llmConfigSource} 
-            onChange={onLlmConfigSourceChange} 
-            label={t('autoupdate.config.llmSourceLabel')} 
+        <LLMConfigSelector
+          value={llmConfigSource}
+          onChange={onLlmConfigSourceChange}
+          label={t('autoupdate.config.llmSourceLabel')}
         />
 
         <div className="space-y-2">
@@ -114,13 +113,14 @@ export default function AutoUpdateConfigForm({
         {sourceType === "Git" && (
           <div className="space-y-2">
             <Label htmlFor="autoupdate-git-url">{t('autoupdate.config.gitUrlLabel')}</Label>
-            <Input 
-              id="autoupdate-git-url" 
-              value={gitRepoUrl} 
-              onChange={(e) => onGitRepoUrlChange(e.target.value)} 
-              placeholder={t('autoupdate.config.gitUrlPlaceholder')} 
-              disabled={isLoading || isRedefiningAnalysisPrefs} 
+            <Input
+              id="autoupdate-git-url"
+              value={gitRepoUrl}
+              onChange={(e) => onGitRepoUrlChange(e.target.value)}
+              placeholder={t('autoupdate.config.gitUrlPlaceholder')}
+              disabled={isLoading || isRedefiningAnalysisPrefs}
             />
+            {sourceType === "Git" && !gitRepoUrl && <p className="text-xs text-destructive">{t('autoupdate.config.gitUrlRequired')}</p>}
           </div>
         )}
 
@@ -139,18 +139,19 @@ export default function AutoUpdateConfigForm({
               {t('common.redefineRequestButton')}
             </Button>
           </div>
-          <Textarea 
-            id="analysis-prefs" 
-            value={analysisPreferences} 
-            onChange={(e) => onAnalysisPreferencesChange(e.target.value)} 
-            placeholder={t('autoupdate.config.analysisPrefsPlaceholder')} 
-            rows={3} 
-            disabled={isLoading || isRedefiningAnalysisPrefs} 
+          <Textarea
+            id="analysis-prefs"
+            value={analysisPreferences}
+            onChange={(e) => onAnalysisPreferencesChange(e.target.value)}
+            placeholder={t('autoupdate.config.analysisPrefsPlaceholder')}
+            rows={3}
+            disabled={isLoading || isRedefiningAnalysisPrefs}
           />
+           <p className="text-xs text-muted-foreground">{t('autoupdate.config.analysisPrefsDescription')}</p>
         </div>
 
-        <Button onClick={onStartAnalysis} disabled={isLoading || isRedefiningAnalysisPrefs || !llmConfigSource } className="w-full">
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4"/>}
+        <Button onClick={onStartAnalysis} disabled={isLoading || isRedefiningAnalysisPrefs || !llmConfigSource || (sourceType === "Git" && !gitRepoUrl)} className="w-full">
+          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
           {isLoading ? t('autoupdate.config.startButtonLoading') : t('autoupdate.config.startButton')}
         </Button>
         {isAnalysisInProgress && progress > 0 && progress < 100 && llmConfigSource?.type !== 'Grupo' && (
