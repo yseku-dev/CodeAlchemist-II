@@ -11,9 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
-import { Textarea } from '@/components/ui/textarea'; // Added Textarea import
+import { Textarea } from '@/components/ui/textarea';
 
-type ProjectSourceType = "upload" | "git";
+type ProjectSourceType = "upload" | "git" | "local"; // Added "local"
 
 interface AnalyzeProjectFormProps {
   llmConfigSource: LLMConfigSourceOption | undefined;
@@ -21,6 +21,7 @@ interface AnalyzeProjectFormProps {
   projectSourceType: ProjectSourceType;
   onProjectSourceTypeChange: (value: ProjectSourceType) => void;
   uploadedFile: File | null;
+  uploadedFileName?: string | null; // Made optional
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
   gitUrl: string;
@@ -39,7 +40,7 @@ interface AnalyzeProjectFormProps {
 
 const AnalyzeProjectForm: React.FC<AnalyzeProjectFormProps> = ({
   llmConfigSource, onLlmConfigSourceChange, projectSourceType, onProjectSourceTypeChange,
-  uploadedFile, onFileChange, fileInputRef, gitUrl, onGitUrlChange,
+  uploadedFile, uploadedFileName, onFileChange, fileInputRef, gitUrl, onGitUrlChange,
   searchDepth, onSearchDepthChange, focusArea, onFocusAreaChange, onAnalyze,
   isLoading, loadingMessage, t,
   isRedefiningFocusArea, onRedefineFocusArea,
@@ -55,6 +56,7 @@ const AnalyzeProjectForm: React.FC<AnalyzeProjectFormProps> = ({
           <SelectContent>
             <SelectItem value="upload">{t('analyzeProject.sourceUpload')}</SelectItem>
             <SelectItem value="git">{t('analyzeProject.sourceGit')}</SelectItem>
+            <SelectItem value="local">{t('analyzeProject.sourceLocal')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -63,7 +65,7 @@ const AnalyzeProjectForm: React.FC<AnalyzeProjectFormProps> = ({
         <div className="space-y-2">
           <Label htmlFor="project-file-upload">{t('analyzeProject.uploadLabel')}</Label>
           <Input id="project-file-upload" type="file" ref={fileInputRef} onChange={onFileChange} accept=".zip,application/zip,.json,application/json" disabled={isLoading} />
-          {uploadedFile && <p className="text-xs text-muted-foreground">{t('common.fileSelected', { name: uploadedFile.name })}</p>}
+          {uploadedFileName && <p className="text-xs text-muted-foreground">{t('common.fileSelected', { name: uploadedFileName })}</p>}
         </div>
       )}
 
@@ -73,6 +75,8 @@ const AnalyzeProjectForm: React.FC<AnalyzeProjectFormProps> = ({
           <Input id="project-git-url" value={gitUrl} onChange={(e) => onGitUrlChange(e.target.value)} placeholder={t('analyzeProject.gitUrlPlaceholder')} disabled={isLoading} />
         </div>
       )}
+      
+      {/* No UI needed for "local" source type in this form part */}
 
       <Separator />
       <Label>{t('analyzeProject.paramsLabel')}</Label>
@@ -94,11 +98,20 @@ const AnalyzeProjectForm: React.FC<AnalyzeProjectFormProps> = ({
           onChange={(e) => onFocusAreaChange(e.target.value)}
           placeholder={t('analyzeProject.focusPlaceholder')}
           disabled={isLoading || isRedefiningFocusArea}
-          rows={3} // Make the textarea larger
+          rows={3}
         />
       </div>
 
-      <Button onClick={onAnalyze} disabled={isLoading || isRedefiningFocusArea || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
+      <Button 
+        onClick={onAnalyze} 
+        disabled={
+            isLoading || 
+            isRedefiningFocusArea || 
+            (projectSourceType === 'upload' && !uploadedFile) || 
+            (projectSourceType === 'git' && !gitUrl.trim())
+        } 
+        className="w-full"
+      >
         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
         {isLoading && loadingMessage ? loadingMessage : t('analyzeProject.analyzeButton')}
       </Button>

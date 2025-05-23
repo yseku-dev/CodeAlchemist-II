@@ -1,4 +1,3 @@
-
 {
   "title": "Analyze Full Project",
   "description": "Perform a holistic analysis of an entire project, uploaded or from Git.",
@@ -6,6 +5,7 @@
   "projectSourceLabel": "Project Source",
   "sourceUpload": "Upload File (ZIP/JSON)",
   "sourceGit": "Git URL",
+  "sourceLocal": "Local (Current App Source Code)",
   "uploadLabel": "Upload File (.zip, .json)",
   "gitUrlLabel": "Git URL",
   "gitUrlPlaceholder": "https://github.com/user/repo.git",
@@ -30,11 +30,11 @@
     "modificationInputLabel": "Describe the modification you want to apply to the project:",
     "modificationInputPlaceholder": "E.g.: Add a 'logger.js' file in the 'src/utils' folder.",
     "processModificationButton": "Process Modification with AI",
-    "saveSnapshotButton": "Save Analysis Snapshot",
-    "applySelectedSuggestionsButton": "Apply Selected Changes",
     "applyAndDownloadButton": "Download Modified Project (ZIP)",
-    "downloadProjectZipTooltipDisabled": "ZIP download of the modified project is only available if the source was Git or a processed ZIP that generated base files.",
+    "downloadProjectZipTooltipDisabled": "ZIP download of the modified project is only available if the source was Git or a processed ZIP.",
     "applyInfoText": "Select the suggestions you wish to apply. This will modify the base files (if the source was Git or a processed ZIP) which will be used for the ZIP download or further AI modifications.",
+    "saveSnapshotButton": "Save Analysis Snapshot",
+    "snapshotName": "Project Analysis - {name} - {time}",
     "modificationContextPrefix": "Context of the current analysis being queried/modified:",
     "lastModificationRequestLabel": "Last modification request",
     "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
@@ -53,7 +53,8 @@
     "zipReadError": {
       "title": "ZIP Read Error",
       "description": "Could not read the ZIP file: {error}",
-      "noValidFiles": "The uploaded ZIP file '{fileName}' does not contain readable text files or is empty."
+      "noValidFiles": "The uploaded ZIP file '{fileName}' does not contain readable text files or is empty.",
+      "invalidJsonContent": "The snapshot's JSON content is invalid for zipping project."
     },
     "zipProcessed": {
       "title": "ZIP Processed",
@@ -77,9 +78,14 @@
     },
     "processingFile": "Processing file...",
     "fetchingGit": "Fetching Git repository content...",
+    "gettingLocalSource": "Fetching local source code...",
     "gitFetchError": {
       "title": "Error Fetching from Git",
       "unknown": "Unknown error fetching repository."
+    },
+    "localSourceError": {
+      "title": "Error Fetching Local Code",
+      "description": "Could not get local source code from server: {error}"
     },
     "modificationError": {
       "title": "Modification Error",
@@ -92,7 +98,7 @@
       "title": "Modification Processed",
       "description": "The AI has attempted to apply the changes to the project. Review the files and notes."
     },
-    "modificationConsultationSuccess": {
+    "modificationSuccessConsultation": {
       "title": "Consultation Processed",
       "description": "The AI has processed your query about the analysis. Review updated notes."
     },
@@ -103,12 +109,12 @@
       "unknown": "Unknown error generating ZIP of modified project."
     },
     "selectedSuggestionsApplied": {
-        "title": "Changes Applied",
-        "description": "Selected suggestions have been applied in memory. You can now download the modified ZIP or continue suggesting changes to the AI."
+      "title": "Changes Applied",
+      "description": "Selected suggestions have been applied in memory. You can now download the modified ZIP or continue suggesting changes to the AI."
     },
     "noSuggestionsToApply": {
-        "title": "No Suggestions to Apply",
-        "description": "Please select at least one suggestion with applicable content."
+      "title": "No Suggestions to Apply",
+      "description": "Please select at least one suggestion with applicable content."
     },
     "zipDownloadSuccess": {
       "title": "Modified Project Download (ZIP) Started",

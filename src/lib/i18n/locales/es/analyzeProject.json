@@ -1,4 +1,3 @@
-
 {
   "title": "Análisis de Proyecto Completo",
   "description": "Realiza un análisis holístico de un proyecto entero, subido o desde Git.",
@@ -6,6 +5,7 @@
   "projectSourceLabel": "Fuente del Proyecto",
   "sourceUpload": "Subir Archivo (ZIP/JSON)",
   "sourceGit": "URL de Git",
+  "sourceLocal": "Local (Código Fuente Actual de la App)",
   "uploadLabel": "Subir Archivo (.zip, .json)",
   "gitUrlLabel": "URL de Git",
   "gitUrlPlaceholder": "https://github.com/usuario/repo.git",
@@ -30,11 +30,11 @@
     "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
     "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
-    "saveSnapshotButton": "Guardar Snapshot del Análisis",
-    "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados",
     "applyAndDownloadButton": "Descargar Proyecto Modificado (ZIP)",
-    "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente fue Git o un ZIP procesado que generó archivos base.",
+    "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente original fue Git o un ZIP procesado.",
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) que se usarán para la descarga ZIP o futuras modificaciones IA.",
+    "saveSnapshotButton": "Guardar Snapshot del Análisis",
+    "snapshotName": "Análisis de Proyecto - {name} - {time}",
     "modificationContextPrefix": "Contexto del análisis actual que se está consultando/modificando:",
     "lastModificationRequestLabel": "Última petición de modificación",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
@@ -53,7 +53,8 @@
     "zipReadError": {
       "title": "Error al Leer ZIP",
       "description": "No se pudo leer el archivo ZIP: {error}",
-      "noValidFiles": "El archivo ZIP subido '{fileName}' no contiene archivos de texto/código legibles o está vacío."
+      "noValidFiles": "El archivo ZIP subido '{fileName}' no contiene archivos de texto/código legibles o está vacío.",
+      "invalidJsonContent": "El contenido JSON del snapshot es inválido para generar un ZIP de proyecto."
     },
     "zipProcessed": {
       "title": "ZIP Procesado",
@@ -77,22 +78,27 @@
     },
     "processingFile": "Procesando archivo...",
     "fetchingGit": "Obteniendo contenido del repositorio Git...",
+    "gettingLocalSource": "Obteniendo código fuente local...",
     "gitFetchError": {
       "title": "Error al Obtener de Git",
       "unknown": "Error desconocido al obtener el repositorio."
+    },
+    "localSourceError": {
+      "title": "Error al Obtener Código Local",
+      "description": "No se pudo obtener el código fuente local del servidor: {error}"
     },
     "modificationError": {
       "title": "Error en Modificación",
       "description": "No se pudo procesar tu petición de modificación.",
       "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
-      "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP procesado exitosamente que generó archivos base.",
+      "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP fue procesado exitosamente que generó archivos base.",
       "consultationError": "Ocurrió un error al consultar a la IA sobre el análisis."
     },
     "modificationSuccess": {
       "title": "Modificación Procesada",
       "description": "La IA ha intentado aplicar los cambios al proyecto. Revisa los archivos y las notas."
     },
-    "modificationConsultationSuccess": {
+    "modificationSuccessConsultation": {
       "title": "Consulta Procesada",
       "description": "La IA ha procesado tu consulta sobre el análisis. Revisa las notas actualizadas."
     },
