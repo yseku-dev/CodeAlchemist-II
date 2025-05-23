@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { Loader2, Sparkles, Wand2, DownloadCloud, FileArchive } from 'lucide-react'; // Added DownloadCloud
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
 import { Separator } from '@/components/ui/separator';
@@ -28,7 +28,9 @@ interface AutoUpdateConfigFormProps {
   analysisPreferences: string;
   onAnalysisPreferencesChange: (value: string) => void;
   onStartAnalysis: () => void;
-  isLoading: boolean;
+  onDownloadCurrentSourceZip: () => void; // Nueva prop
+  isLoading: boolean; // Estado de carga general (para análisis, git, etc.)
+  isDownloadingSource: boolean; // Nuevo estado de carga para descarga ZIP
   progress: number;
   isAnalysisInProgress: boolean;
   isRedefiningAnalysisPrefs: boolean;
@@ -37,7 +39,8 @@ interface AutoUpdateConfigFormProps {
 
 /**
  * @fileOverview Component for the AutoUpdate configuration form.
- * Allows users to set LLM source, code source, and analysis preferences.
+ * Allows users to set LLM source, code source, analysis preferences,
+ * start analysis, and download the current project source code.
  * Internationalized using useI18n.
  */
 export default function AutoUpdateConfigForm({
@@ -50,7 +53,9 @@ export default function AutoUpdateConfigForm({
   analysisPreferences,
   onAnalysisPreferencesChange,
   onStartAnalysis,
+  onDownloadCurrentSourceZip, // Nueva prop
   isLoading,
+  isDownloadingSource, // Nuevo estado
   progress,
   isAnalysisInProgress,
   isRedefiningAnalysisPrefs,
@@ -63,7 +68,7 @@ export default function AutoUpdateConfigForm({
     setIsMounted(true);
   }, []);
 
-  if (!isMounted && !llmConfigSource) { // Updated condition to check llmConfigSource
+  if (!isMounted && !llmConfigSource) {
     return (
       <Card className="lg:col-span-1">
         <CardHeader>
@@ -74,14 +79,16 @@ export default function AutoUpdateConfigForm({
           <CardDescription>{t('autoupdate.config.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
-          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
-          <div className="h-20 w-full bg-muted rounded-md animate-pulse"></div>
-          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
+          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for LLM Selector */}
+          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for Source Selector */}
+          <div className="h-20 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for Preferences */}
+          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for Start Button */}
+          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for Download Button */}
         </CardContent>
       </Card>
     );
   }
+
 
   return (
     <Card className="lg:col-span-1">
@@ -124,6 +131,18 @@ export default function AutoUpdateConfigForm({
           </div>
         )}
 
+        <Button 
+          onClick={onDownloadCurrentSourceZip} 
+          disabled={isLoading || isDownloadingSource} 
+          variant="outline" 
+          className="w-full"
+        >
+          {isDownloadingSource ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DownloadCloud className="mr-2 h-4 w-4" />}
+          {t('autoupdate.config.downloadCurrentSourceZipButton')}
+        </Button>
+        <p className="text-xs text-muted-foreground -mt-4 text-center">{t('autoupdate.config.downloadCurrentSourceZipDescription')}</p>
+
+
         <Separator />
         <Label>{t('autoupdate.config.analysisParamsLabel')}</Label>
         <div className="space-y-1">
@@ -150,9 +169,13 @@ export default function AutoUpdateConfigForm({
            <p className="text-xs text-muted-foreground">{t('autoupdate.config.analysisPrefsDescription')}</p>
         </div>
 
-        <Button onClick={onStartAnalysis} disabled={isLoading || isRedefiningAnalysisPrefs || !llmConfigSource || (sourceType === "Git" && !gitRepoUrl)} className="w-full">
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-          {isLoading ? t('autoupdate.config.startButtonLoading') : t('autoupdate.config.startButton')}
+        <Button 
+            onClick={onStartAnalysis} 
+            disabled={isLoading || isRedefiningAnalysisPrefs || !llmConfigSource || (sourceType === "Git" && !gitRepoUrl.trim())} 
+            className="w-full"
+        >
+          {isLoading && !isDownloadingSource && !isRedefiningAnalysisPrefs ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+          {isLoading && !isDownloadingSource && !isRedefiningAnalysisPrefs ? t('autoupdate.config.startButtonLoading') : t('autoupdate.config.startButton')}
         </Button>
         {isAnalysisInProgress && progress > 0 && progress < 100 && llmConfigSource?.type !== 'Grupo' && (
           <Progress value={progress} className="w-full mt-2" />

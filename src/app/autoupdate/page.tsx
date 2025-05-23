@@ -17,12 +17,12 @@ import ConfirmDialog from '@/components/confirm-dialog';
 import CodeBlock from '@/components/code-block';
 import { AppError } from '@/utils/AppError';
 import { useRouter } from 'next/navigation';
-import { getApplicationSourceBundle, handleUploadToGit } from './actions'; // Import Server Actions
+import { getApplicationSourceBundle, handleUploadToGit } from './actions'; 
 import JSZip from 'jszip';
 import LogsDisplay from '@/components/logs-display';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
-import { useLocalStorage } from '@/hooks/useLocalStorage'; // Import useLocalStorage
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 
 /**
@@ -52,14 +52,14 @@ export default function AutoUpdatePage() {
   const [llmConfigSource, setLlmConfigSource] = useLocalStorage<LLMConfigSourceOption | undefined>('codealchemist-au-llmConfigSource', undefined);
 
   useEffect(() => {
-    if (!llmConfigSource && agents && agents.length > 0) {
+    if (!llmConfigSource && agents?.length > 0) {
       const defaultAgent = agents.find(a => a.name === "RefactorizadorCodigoExperto");
       setLlmConfigSource(defaultAgent
         ? { type: 'Agente' as const, id: defaultAgent.id, name: defaultAgent.name }
         : { type: 'Ajustes Globales' as const }
       );
-    } else if (!llmConfigSource && agents) {
-      setLlmConfigSource({ type: 'Ajustes Globales' as const });
+    } else if (!llmConfigSource && agents) { 
+        setLlmConfigSource({ type: 'Ajustes Globales' as const });
     }
   }, [agents, llmConfigSource, setLlmConfigSource]);
 
@@ -67,7 +67,8 @@ export default function AutoUpdatePage() {
   const [gitRepoUrl, setGitRepoUrl] = useLocalStorage<string>('codealchemist-au-gitRepoUrl', '');
   const [analysisPreferences, setAnalysisPreferences] = useLocalStorage<string>('codealchemist-au-analysisPreferences', '');
 
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // For analysis process
+  const [isDownloadingSource, setIsDownloadingSource] = useState(false); // Specific for source ZIP download
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -95,24 +96,23 @@ export default function AutoUpdatePage() {
   const _processAiAnalysisOutput = useCallback((
     aiResult: AnalyzeCodeOutput,
     currentLlmConfigSourceUsed: LLMConfigSourceOption | undefined,
-    currentProjectSource?: AppSourceFile[] // Pass the AppSourceFile array
+    projectFilesForProcessing?: AppSourceFile[] 
   ): { analysisOutput: AnalyzeCodeOutput; mappedSuggestions: AutoUpdateSuggestion[]; generatedUnifiedPrompt: string | null } => {
     addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.analysisProcessingComplete'), data: { outputTitle: aiResult.analysisTitle, numSuggestions: aiResult.detailedSuggestions.length } });
 
-    if (currentProjectSource) {
-      // Store a representation if needed, e.g., stringified or just a flag
-      setProjectSourceString(JSON.stringify(currentProjectSource.slice(0,5).map(f=>f.fileName))); // Example: store names of first 5 files
+    if (projectFilesForProcessing) {
+      setProjectSourceString(JSON.stringify(projectFilesForProcessing.map(f=>f.fileName).slice(0,10))); 
     }
 
     const mappedSuggestions: AutoUpdateSuggestion[] = aiResult.detailedSuggestions.map((s, index) => {
       let originalFileContent: string | undefined = undefined;
-      if (currentProjectSource && s.area) {
+      if (projectFilesForProcessing && s.area) {
         const normalizePath = (p: string) => p.replace(/^\.\//, '').replace(/^src\//, '');
-        const relatedFile = currentProjectSource.find(f => {
+        const relatedFile = projectFilesForProcessing.find(f => {
           if (!s.area) return false;
           const areaLower = normalizePath(s.area.toLowerCase());
           const fileNameLower = normalizePath(f.fileName.toLowerCase());
-          const baseAreaLower = areaLower.split(' (parte ')[0];
+          const baseAreaLower = areaLower.split(' (parte ')[0]; 
           return fileNameLower === baseAreaLower;
         });
         originalFileContent = relatedFile?.content;
@@ -190,10 +190,10 @@ export default function AutoUpdatePage() {
           })
           .catch(err => {
             clearInterval(intervalId);
-            throw err;
+            throw err; 
           });
       } else {
-        setProgress(50);
+        setProgress(50); 
         const aiResult = await callAnalyzeSelfCode(analysisInputForFlow);
         const { analysisOutput, mappedSuggestions, generatedUnifiedPrompt } = _processAiAnalysisOutput(aiResult, currentLlmConfigSourceUsed, projectFilesForProcessing);
         setAnalysisResult(analysisOutput);
@@ -205,20 +205,20 @@ export default function AutoUpdatePage() {
       }
 
     } catch (e: any) {
-      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.errors.analysisFailedUI'), errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.errors.analysisFailedUI'), errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage, flowName });
       if (e instanceof AppError) {
         setAnalysisError(e.friendlyMessage);
         toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title'), description: e.friendlyMessage });
         if (e.redirectTo) router.push(e.redirectTo);
       } else {
-        const errorMsg = e.message || t('autoupdate.errors.unknownAnalysisError');
+        const errorMsg = (e as Error).message || t('autoupdate.errors.unknownAnalysisError');
         setAnalysisError(errorMsg);
         toast({ variant: "destructive", title: t('autoupdate.toast.analysisError.title'), description: errorMsg });
       }
       setProgress(0);
       setProjectSourceString(null);
     }
-  }, [_processAiAnalysisOutput, toast, addDebugLog, router, t, setAnalysisResult, setSuggestions, setUnifiedPrompt]);
+  }, [_processAiAnalysisOutput, toast, addDebugLog, router, t]);
 
   const handleStartAnalysis = useCallback(async () => {
     setIsAnalyzing(true);
@@ -240,7 +240,7 @@ export default function AutoUpdatePage() {
     try {
       if (sourceType === 'Local') {
         toast({ title: t('autoupdate.toast.gettingLocalCode.title'), description: t('autoupdate.toast.gettingLocalCode.description') });
-        const bundleResult = await getApplicationSourceBundle(false); // Get individual files
+        const bundleResult = await getApplicationSourceBundle(false);
         if (bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
 
         if (!bundleResult.success || !bundleResult.files) {
@@ -250,21 +250,19 @@ export default function AutoUpdatePage() {
         projectFilesForProcessing = bundleResult.files;
         projectContentStringForAnalysis = bundleResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
         addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.localCodeObtained'), data: { numFiles: bundleResult.files.length } });
-        sourceLocationForAI = "Local"; // Or "UploadedString" if we treat it as such
+        sourceLocationForAI = "Local"; 
       } else if (sourceType === 'Git' && gitRepoUrl) {
         toast({ title: t('autoupdate.toast.fetchingGit.title'), description: t('autoupdate.toast.fetchingGit.description') });
-        // Actual Git fetching needs a Server Action, for now, we'll simulate with getApplicationSourceBundle if it were local
-        // For a real implementation, this would be:
-        // const gitFetchResult = await fetchRemoteGitRepository(gitRepoUrl);
-        // For now, simulate or use local as placeholder for Git content
-        const bundleResult = await getApplicationSourceBundle(false); // Placeholder for actual Git fetch
+        // TODO: Implement actual Git fetching Server Action if needed
+        // For now, using local bundle as a placeholder
+        const bundleResult = await getApplicationSourceBundle(false); 
         if (bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
         if (!bundleResult.success || !bundleResult.files) throw new AppError(bundleResult.error || "Error simulando obtención de Git", bundleResult, 'server');
         projectFilesForProcessing = bundleResult.files;
         projectContentStringForAnalysis = projectFilesForProcessing.map(f => `// --- ${t('autoupdate.analysis.fileMarker')}: ${f.fileName} ---\n${f.content}`).join('\n\n');
         sourceLocationForAI = "Git";
         addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: "Contenido de Git (simulado localmente) obtenido.", data: { numFiles: projectFilesForProcessing.length } });
-      } else if (sourceType === 'Git' && !gitRepoUrl) {
+      } else if (sourceType === 'Git' && !gitRepoUrl.trim()) {
         const errorMsg = t('autoupdate.config.gitUrlRequired');
         addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: errorMsg, data: { sourceType, gitRepoUrl }, flowName });
         setAnalysisError(errorMsg);
@@ -282,7 +280,7 @@ export default function AutoUpdatePage() {
         setIsAnalyzing(false); setLoadingMessage(null);
         return;
       }
-      if (projectFilesForProcessing) setProjectSourceString(JSON.stringify(projectFilesForProcessing.map(f=>f.fileName)));
+      if (projectFilesForProcessing) setProjectSourceString(JSON.stringify(projectFilesForProcessing.map(f=>f.fileName).slice(0,10)));
 
 
       setLoadingMessage(t('autoupdate.toast.analyzingWithAI.title'));
@@ -294,7 +292,7 @@ export default function AutoUpdatePage() {
         sourceCodeLocation: sourceLocationForAI,
         gitRepoUrl: sourceType === "Git" ? gitRepoUrl : undefined,
         projectContent: projectContentStringForAnalysis,
-        focusArea: analysisPreferences || undefined,
+        focusArea: analysisPreferences || undefined, // Use analysisPreferences as focusArea
         agentSystemPrompt: currentAgent?.systemPrompt || currentGroup?.mainTask || undefined,
       };
       await _executeAnalysisAndProcessResults(inputForFlow, llmConfigSource, projectFilesForProcessing);
@@ -308,27 +306,57 @@ export default function AutoUpdatePage() {
       setIsAnalyzing(false);
       setLoadingMessage(null);
     }
-  }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, getAgentById, getGroupById, _executeAnalysisAndProcessResults, toast, addDebugLog, t, setAnalysisResult, setSuggestions, setUnifiedPrompt, setDetailedLogs, setProjectSourceString]);
+  }, [sourceType, gitRepoUrl, analysisPreferences, llmConfigSource, getAgentById, getGroupById, _executeAnalysisAndProcessResults, toast, addDebugLog, t]);
 
-  const handleApplySuggestionClick = useCallback((suggestion: AutoUpdateSuggestion) => {
-    if (!(suggestion.userEditedContent !== undefined || suggestion.fullFileContentSuggested !== undefined)) {
-      toast({ variant: "destructive", title: t('autoupdate.toast.noContentToApply.title'), description: t('autoupdate.toast.noContentToApply.description') });
-      return;
+  const handleDownloadCurrentSourceZip = useCallback(async () => {
+    setIsDownloadingSource(true);
+    setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] [INFO] ${t('autoupdate.toast.downloadCurrentSourceZip.preparing')}`]);
+    toast({ title: t('autoupdate.toast.downloadCurrentSourceZip.preparing') });
+    addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: 'Iniciando descarga de código fuente actual (ZIP)...' });
+
+    try {
+      const bundleResult = await getApplicationSourceBundle(false);
+      if (bundleResult.logsBuilt) addDebugLog({ source: 'SERVER_SOURCE_BUNDLE', type: 'INFO_BATCH', message: 'Logs del servidor al obtener bundle para descarga ZIP:', data: bundleResult.logsBuilt});
+
+      if (!bundleResult.success || !bundleResult.files) {
+        const errorMsg = bundleResult.error || t('autoupdate.errors.getServerSourceFailedZip');
+        throw new AppError(errorMsg, bundleResult, 'server');
+      }
+
+      const filesToPackage: AppSourceFile[] = bundleResult.files;
+      const zip = new JSZip();
+      filesToPackage.forEach(file => {
+        zip.file(file.fileName, file.content);
+      });
+      
+      const zipFileName = t('autoupdate.downloads.currentCodeZipFilenameStatic');
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = zipFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({
+        title: t('autoupdate.toast.downloadCurrentCodeZip.successTitle'),
+        description: t('autoupdate.toast.downloadCurrentCodeZip.successDescription', { filename: zipFileName }),
+        duration: 7000,
+      });
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'SUCCESS', message: t('autoupdate.logs.projectZipDownloaded', { numFiles: filesToPackage.length, filename: zipFileName }) });
+
+    } catch (e:any) {
+      const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('autoupdate.errors.unknownZipError'));
+      toast({ variant: "destructive", title: t('autoupdate.toast.zipError.title'), description: errorMsg });
+      addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.zipGenerationFailed', { error: errorMsg }), errorDetails: e });
+    } finally {
+      setIsDownloadingSource(false);
     }
-    setSuggestionToApply(suggestion);
-    setShowConfirmApplyDialog(true);
-  }, [toast, t]);
+  }, [t, toast, addDebugLog]);
 
-  const confirmApplySuggestion = useCallback(() => {
-    if (!suggestionToApply) return;
-    addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionMarkedApplied', { area: suggestionToApply.area }) });
-    setSuggestions(prev => prev.map(s => s.id === suggestionToApply.id ? { ...s, status: 'applied', isEditing: false } : s));
-    toast({ title: t('autoupdate.toast.suggestionApplied.title'), description: t('autoupdate.toast.suggestionApplied.description', { area: suggestionToApply.area }) });
-    setShowConfirmApplyDialog(false);
-    setSuggestionToApply(null);
-  }, [suggestionToApply, toast, addDebugLog, t, setSuggestions]);
 
-  const handleDownload = useCallback(async (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => {
+  const handleDownloadSuggestions = useCallback(async (format: 'JSON_SUGGESTIONS') => {
     addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.downloadRequested', { format: format }) });
 
     if (format === 'JSON_SUGGESTIONS') {
@@ -362,79 +390,26 @@ export default function AutoUpdatePage() {
       URL.revokeObjectURL(url);
       toast({ title: t('autoupdate.toast.downloadComplete.title'), description: t('autoupdate.toast.downloadComplete.suggestionsJsonDescription', { filename: t('autoupdate.downloads.suggestionsJsonFilename') }) });
       addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionsDownloadedJson') });
-    } else if (format === 'ZIP_PROJECT') {
-      setIsAnalyzing(true);
-      setLoadingMessage(t('autoupdate.toast.preparingProjectZip.title'));
-      toast({ title: t('autoupdate.toast.preparingProjectZip.title'), description: t('autoupdate.toast.preparingProjectZip.description') });
-      let filesToPackage: AppSourceFile[] = [];
-      try {
-        const bundleResult = await getApplicationSourceBundle(false); // Request individual files
-        if (bundleResult.logsBuilt) setDetailedLogs(prev => [...prev, ...bundleResult.logsBuilt!]);
-
-        if (!bundleResult.success || !bundleResult.files) {
-          throw new AppError(bundleResult.error || t('autoupdate.errors.getServerSourceFailedZip'), bundleResult, 'server');
-        }
-        filesToPackage = bundleResult.files;
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'DEBUG', message: `Archivos base para ZIP (del servidor): ${filesToPackage.length}` });
-
-        if (suggestions && suggestions.length > 0) {
-          const appliedSuggestionsMap = new Map<string, string>();
-          suggestions.filter(s => s.status === 'applied').forEach(s => {
-            const content = s.userEditedContent ?? s.fullFileContentSuggested;
-            if (s.area && content !== undefined) {
-              appliedSuggestionsMap.set(s.area, content);
-            }
-          });
-
-          if (appliedSuggestionsMap.size > 0) {
-            addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: `Aplicando ${appliedSuggestionsMap.size} sugerencias marcadas al bundle del servidor para ZIP.` });
-          }
-
-          filesToPackage = filesToPackage.map(file => {
-            const normalizePath = (p: string) => p.replace(/^\.\//, '').replace(/^src\//, '');
-            const normalizedFileName = normalizePath(file.fileName);
-            for (const [area, content] of appliedSuggestionsMap.entries()) {
-              if (normalizePath(area) === normalizedFileName) {
-                addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'DEBUG', message: t('autoupdate.logs.applyingSuggestionToZip', { fileName: file.fileName }) });
-                return { ...file, content: content };
-              }
-            }
-            return file;
-          });
-        }
-
-        const zip = new JSZip();
-        filesToPackage.forEach(file => {
-          zip.file(file.fileName, file.content);
-        });
-        const zipFileNameKey = analysisResult?.analysisTitle || "CodeAlchemist";
-        const zipFileName = t('autoupdate.downloads.currentCodeZipFilename', { projectName: zipFileNameKey.replace(/\s+/g, '_').substring(0, 30) });
-
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        const url = URL.createObjectURL(zipBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = zipFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast({
-          title: t('autoupdate.toast.downloadCurrentCodeZipToast.title'),
-          description: t('autoupdate.toast.downloadCurrentCodeZipToast.description', { filename: zipFileName }),
-          duration: 12000,
-        });
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.projectZipDownloaded', { numFiles: filesToPackage.length, filename: zipFileName }) });
-      } catch (e: any) {
-        const errorMsg = e instanceof Error ? e.message : t('autoupdate.errors.unknownZipError');
-        toast({ variant: "destructive", title: t('autoupdate.toast.zipError.title'), description: errorMsg });
-        addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.zipGenerationFailed', { error: errorMsg }) });
-      } finally {
-        setIsAnalyzing(false);
-        setLoadingMessage(null);
-      }
     }
-  }, [suggestions, toast, addDebugLog, t, setIsAnalyzing, setLoadingMessage, analysisResult, setDetailedLogs]);
+  }, [suggestions, toast, addDebugLog, t]);
+
+  const handleApplySuggestionClick = useCallback((suggestion: AutoUpdateSuggestion) => {
+    if (!(suggestion.userEditedContent !== undefined || suggestion.fullFileContentSuggested !== undefined)) {
+      toast({ variant: "destructive", title: t('autoupdate.toast.noContentToApply.title'), description: t('autoupdate.toast.noContentToApply.description') });
+      return;
+    }
+    setSuggestionToApply(suggestion);
+    setShowConfirmApplyDialog(true);
+  }, [toast, t]);
+
+  const confirmApplySuggestion = useCallback(() => {
+    if (!suggestionToApply) return;
+    addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'INFO', message: t('autoupdate.logs.suggestionMarkedApplied', { area: suggestionToApply.area }) });
+    setSuggestions(prev => prev.map(s => s.id === suggestionToApply.id ? { ...s, status: 'applied', isEditing: false } : s));
+    toast({ title: t('autoupdate.toast.suggestionApplied.title'), description: t('autoupdate.toast.suggestionApplied.description', { area: suggestionToApply.area }) });
+    setShowConfirmApplyDialog(false);
+    setSuggestionToApply(null);
+  }, [suggestionToApply, toast, addDebugLog, t, setSuggestions]);
 
   const handleOpenCommitDialog = () => {
     if (!globalSettings.gitConfig.repoUrl || !globalSettings.gitConfig.username || !globalSettings.gitConfig.email || !globalSettings.gitConfig.pat) {
@@ -468,12 +443,12 @@ export default function AutoUpdatePage() {
         setShowCommitDialog(false);
         setCommitMessage('');
       } else {
-        setAnalysisError(result.message);
+        setAnalysisError(result.message); // Use analysisError for general page errors
         toast({ title: t('autoupdate.toast.gitUploadError.title'), description: result.message, variant: "destructive", duration: 10000 });
         addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.gitUploadError', { error: result.message }), data: result });
       }
     } catch (error: any) {
-      const errorMsg = error.message || t('autoupdate.errors.unknownGitUploadError');
+      const errorMsg = (error as Error).message || t('autoupdate.errors.unknownGitUploadError');
       setAnalysisError(errorMsg);
       toast({ title: t('autoupdate.toast.gitUploadError.title'), description: errorMsg, variant: "destructive", duration: 10000 });
       addDebugLog({ source: 'AUTOUPDATE_PAGE', type: 'ERROR', message: t('autoupdate.logs.gitUploadException', { error: errorMsg }), data: error });
@@ -481,7 +456,7 @@ export default function AutoUpdatePage() {
     } finally {
       setIsUploadingGit(false);
     }
-  }, [globalSettings.gitConfig, commitMessage, toast, addDebugLog, t, setDetailedLogs, setCommitMessage]);
+  }, [globalSettings.gitConfig, commitMessage, toast, addDebugLog, t, setDetailedLogs, setCommitMessage, setAnalysisError]);
 
   const handleAutoFixError = useCallback(async (errorMsgFromDisplay: string) => {
     const contextForAI = t('autoupdate.autofix.errorContext', { error: errorMsgFromDisplay });
@@ -493,13 +468,13 @@ export default function AutoUpdatePage() {
     try {
       const fixSuggestion = await callAutoFixErrorWithGroup({
         errorMessage: errorMsgFromDisplay,
-        codeContext: analysisError || "Error en AutoUpdate.", // Provide some context
+        codeContext: analysisError || "Error en AutoUpdate.",
         userInstructions: contextForAI,
       });
-      // Display fixSuggestion.data in a modal (logic already in ErrorDisplay when it calls this itself)
       toast({ title: t('autoupdate.toast.autofixSuggestion.title'), description: t('autoupdate.toast.autofixSuggestion.description') });
+      // Logic to display fixSuggestion (e.g., in a modal) would go here or in ErrorDisplay
     } catch (e) {
-      const errorMsg = e instanceof AppError ? e.friendlyMessage : (e as Error).message;
+      const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('common.unknownError'));
       toast({ variant: 'destructive', title: t('autoupdate.toast.autofixError.title'), description: errorMsg });
     }
   }, [addDebugLog, t, analysisError, callAutoFixErrorWithGroup, toast]);
@@ -529,7 +504,8 @@ export default function AutoUpdatePage() {
   const handleCancelEdit = useCallback((suggestionId: string) => {
     setSuggestions(prev => prev.map(s => {
       if (s.id === suggestionId) {
-        return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested ?? undefined };
+        // Revert to original AI suggestion if available, else empty or keep current if no original
+        return { ...s, isEditing: false, userEditedContent: s.fullFileContentSuggested ?? s.userEditedContent ?? '' };
       }
       return s;
     }));
@@ -561,7 +537,7 @@ export default function AutoUpdatePage() {
         suggestion: s_.suggestion,
         priority: s_.priority
       })),
-      projectSourceFilesHint: projectSourceString, // Hint of what files were analyzed
+      projectSourceFilesHint: projectSourceString, 
     };
 
     const snapshotName = `${t('autoupdate.logs.snapshotNamePrefix')} - ${new Date().toLocaleTimeString()}`;
@@ -595,10 +571,12 @@ export default function AutoUpdatePage() {
       setIsRedefiningAnalysisPrefs(false);
     }
   };
+  
+  const isLoadingOverall = isAnalyzing || isDownloadingSource || isUploadingGit || isRedefiningAnalysisPrefs;
 
   return (
     <React.Fragment>
-      <div className="space-y-6">
+      <div className="space-y-6"> {/* Contenedor principal de la página AutoUpdate */}
         <AutoUpdateConfigForm
           llmConfigSource={llmConfigSource}
           onLlmConfigSourceChange={setLlmConfigSource}
@@ -609,7 +587,9 @@ export default function AutoUpdatePage() {
           analysisPreferences={analysisPreferences}
           onAnalysisPreferencesChange={setAnalysisPreferences}
           onStartAnalysis={handleStartAnalysis}
-          isLoading={isAnalyzing || isUploadingGit || isRedefiningAnalysisPrefs}
+          onDownloadCurrentSourceZip={handleDownloadCurrentSourceZip} // Nueva prop
+          isLoading={isLoadingOverall} // Pasar estado de carga general
+          isDownloadingSource={isDownloadingSource} // Pasar estado específico
           progress={progress}
           isAnalysisInProgress={isAnalyzing && !analysisResult && progress < 100 && llmConfigSource?.type !== 'Grupo'}
           isRedefiningAnalysisPrefs={isRedefiningAnalysisPrefs}
@@ -619,7 +599,7 @@ export default function AutoUpdatePage() {
         <AutoUpdateResultsDisplay
           analysisResult={analysisResult}
           suggestions={suggestions}
-          isLoading={isAnalyzing && !analysisResult}
+          isLoading={isAnalyzing && !analysisResult} // Solo cargando resultados si el análisis principal está activo
           error={analysisError}
           onAutoFixError={handleAutoFixError}
           onApplySuggestion={handleApplySuggestionClick}
@@ -629,7 +609,7 @@ export default function AutoUpdatePage() {
           onCancelEdit={handleCancelEdit}
           onTestSuggestion={handleTestSuggestionClick}
           onTestInVenv={handleTestInVenvClick}
-          onDownloadSuggestions={handleDownload}
+          onDownloadSuggestions={handleDownloadSuggestions} // Para JSON de sugerencias
           onOpenCommitDialog={handleOpenCommitDialog}
           unifiedPrompt={unifiedPrompt}
           onSaveSnapshot={handleSaveAutoUpdateSnapshot}
@@ -723,4 +703,3 @@ export default function AutoUpdatePage() {
     </React.Fragment>
   );
 }
-

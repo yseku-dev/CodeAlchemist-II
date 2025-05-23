@@ -12,13 +12,13 @@ import AutoUpdateSuggestionCard from '@/components/features/autoupdate/autoupdat
 import CodeBlock from '@/components/code-block';
 import { Label } from '@/components/ui/label';
 import { useI18n } from '@/context/I18nContext';
-import PageSectionHeader from '@/components/layout/PageSectionHeader'; // Import PageSectionHeader
+import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import type { TranslationKey } from '@/lib/i18n/translations';
 
 interface AutoUpdateResultsDisplayProps {
   analysisResult: AnalyzeCodeOutput | null;
   suggestions: AutoUpdateSuggestion[];
-  isLoading: boolean;
+  isLoading: boolean; // General loading state from parent for disabling actions
   error: string | null;
   onAutoFixError: (errorMsg: string) => void;
   onApplySuggestion: (suggestion: AutoUpdateSuggestion) => void;
@@ -28,7 +28,7 @@ interface AutoUpdateResultsDisplayProps {
   onCancelEdit: (suggestionId: string) => void;
   onTestSuggestion: (suggestion: AutoUpdateSuggestion) => void;
   onTestInVenv: (suggestion: AutoUpdateSuggestion) => void;
-  onDownloadSuggestions: (format: 'JSON_SUGGESTIONS' | 'ZIP_PROJECT') => void;
+  onDownloadSuggestions: (format: 'JSON_SUGGESTIONS') => void; // Only JSON suggestions now
   onOpenCommitDialog: () => void;
   unifiedPrompt: string | null;
   onSaveSnapshot: () => void;
@@ -66,9 +66,7 @@ export default function AutoUpdateResultsDisplay({
           <Download className="mr-2 h-4 w-4" /> {t('autoupdate.results.downloadSuggestionsJson')}
         </Button>
       )}
-      <Button variant="outline" size="sm" onClick={() => onDownloadSuggestions('ZIP_PROJECT')} disabled={isLoading}>
-        <FileArchive className="mr-2 h-4 w-4" /> {t('autoupdate.results.downloadCurrentCodeZip')}
-      </Button>
+      {/* El botón "Descargar Código Actual (ZIP)" se movió al ConfigForm */}
       <Button variant="outline" size="sm" onClick={onOpenCommitDialog} disabled={isLoading}>
         <GitCommit className="mr-2 h-4 w-4" /> {t('autoupdate.results.uploadToGit')}
       </Button>

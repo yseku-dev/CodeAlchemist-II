@@ -12,6 +12,8 @@
     "gitUrlLabel": "Git Repository URL (Optional)",
     "gitUrlPlaceholder": "E.g.: https://github.com/user/repo",
     "gitUrlRequired": "Git repository URL is required if this source is selected.",
+    "downloadCurrentSourceZipButton": "Download Current Source Code (ZIP)",
+    "downloadCurrentSourceZipDescription": "Fetches source code from server and packages it as a ZIP.",
     "analysisParamsLabel": "Self-Analysis Parameters",
     "analysisPrefsLabel": "Analysis Preferences / Focus Area (Optional)",
     "analysisPrefsPlaceholder": "E.g.: 'Focus on UI optimization...', 'Review security in API calls...', 'All suggestions in English.'",
@@ -22,7 +24,6 @@
   "results": {
     "title": "Self-Analysis Results",
     "downloadSuggestionsJson": "Download Suggestions (JSON)",
-    "downloadCurrentCodeZip": "Download Current Code (ZIP)",
     "uploadToGit": "Upload to Git",
     "noResults": "Start an analysis to see results.",
     "analysisTitleLabel": "Analysis Title:",
@@ -118,13 +119,10 @@
       "title": "Download Complete",
       "suggestionsJsonDescription": "Suggestions downloaded as {filename}."
     },
-    "preparingProjectZip": {
-      "title": "Preparing Project Download (ZIP)...",
-      "description": "Getting code from server and applying changes..."
-    },
-    "downloadCurrentCodeZipToast": {
-        "title": "Download of Current Code with Suggestions (ZIP)",
-        "description": "The ZIP file ({filename}) has been generated with the current source code and marked suggestions applied. Download is starting."
+     "downloadCurrentSourceZip": {
+      "preparing": "Preparing download of current source code (ZIP)...",
+      "successTitle": "Source Code Download (ZIP) Started",
+      "successDescription": "The file {filename} is downloading."
     },
     "zipError": {
       "title": "Error Generating ZIP",
@@ -173,6 +171,7 @@
   },
   "downloads": {
     "suggestionsJsonFilename": "autoupdate_suggestions.json",
+    "currentCodeZipFilenameStatic": "CodeAlchemist_Current_Source.zip",
     "currentCodeZipFilename": "CodeAlchemist_CurrentCode_With_Suggestions.zip"
   },
   "errors": {
