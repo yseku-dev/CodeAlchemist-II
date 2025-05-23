@@ -1,3 +1,4 @@
+
 {
   "title": "Analyze Full Project",
   "description": "Perform a holistic analysis of an entire project, uploaded or from Git.",
@@ -25,21 +26,22 @@
     "suggestionPriorityLabel": "Priority:",
     "suggestedPromptLabel": "Suggested Prompt:",
     "groupLogTitle": "Detailed Analysis Log",
-    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\"{orchestratorContext}...\"\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+    "groupContextLog": "Workgroup Context Log:\n------------------------------------\nSelected Group: {groupName}\nGroup Main Task: {groupTask}\nUser Input: {userInput}\nOrchestrator Context (used to guide AI):\n\\\"{orchestratorContext}...\\\"\\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
     "modifyAnalysisSectionTitle": "Suggest Modifications to Project",
     "modificationInputLabel": "Describe the modification you want to apply to the project:",
     "modificationInputPlaceholder": "E.g.: Add a 'logger.js' file in the 'src/utils' folder.",
     "processModificationButton": "Process Modification with AI",
     "applyAndDownloadButton": "Download Modified Project (ZIP)",
-    "downloadProjectZipTooltipDisabled": "ZIP download of the modified project is only available if the source was Git or a processed ZIP.",
-    "applyInfoText": "Select the suggestions you wish to apply. This will modify the base files (if the source was Git or a processed ZIP) which will be used for the ZIP download or further AI modifications.",
+    "downloadProjectZipTooltipDisabled": "ZIP download of the modified project is only available if the original source was Git or a successfully processed ZIP that generated base files.",
+    "applyInfoText": "Select the suggestions you wish to apply. This will modify the base files (if source was Git or a processed ZIP) which will be used for the ZIP download or further AI modifications.",
     "saveSnapshotButton": "Save Analysis Snapshot",
     "snapshotName": "Project Analysis - {name} - {time}",
-    "modificationContextPrefix": "Context of the current analysis being queried/modified:",
+    "modificationContextPrefix": "Context of the current analysis being queried/modified: Focus on {focusArea}, Source Type: {sourceType}",
     "lastModificationRequestLabel": "Last modification request",
     "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
     "selectSuggestionCheckboxAria": "Select suggestion for area: {area}",
-    "sendModificationButton": "Send Modification"
+    "sendModificationButton": "Send Modification",
+    "chatInteractionLogPrefix": "Chat Interaction ({time})"
   },
   "toast": {
     "invalidFile": {
@@ -53,8 +55,7 @@
     "zipReadError": {
       "title": "ZIP Read Error",
       "description": "Could not read the ZIP file: {error}",
-      "noValidFiles": "The uploaded ZIP file '{fileName}' does not contain readable text files or is empty.",
-      "invalidJsonContent": "The snapshot's JSON content is invalid for zipping project."
+      "noValidFiles": "The uploaded ZIP file '{fileName}' does not contain readable text files or is empty."
     },
     "zipProcessed": {
       "title": "ZIP Processed",
@@ -78,10 +79,9 @@
     },
     "processingFile": "Processing file...",
     "fetchingGit": "Fetching Git repository content...",
-    "gettingLocalSource": "Fetching local source code...",
-    "gitFetchError": {
-      "title": "Error Fetching from Git",
-      "unknown": "Unknown error fetching repository."
+    "gettingLocalSource": {
+      "title": "Fetching Local Code...",
+      "description": "Contacting server for source code."
     },
     "localSourceError": {
       "title": "Error Fetching Local Code",
@@ -96,11 +96,8 @@
     },
     "modificationSuccess": {
       "title": "Modification Processed",
-      "description": "The AI has attempted to apply the changes to the project. Review the files and notes."
-    },
-    "modificationSuccessConsultation": {
-      "title": "Consultation Processed",
-      "description": "The AI has processed your query about the analysis. Review updated notes."
+      "description": "The AI has attempted to apply the changes to the project. Review the files and notes.",
+      "consultationDescription": "The AI has processed your query about the analysis. Review updated notes."
     },
     "downloadError": {
       "title": "Download Error",
@@ -121,5 +118,8 @@
       "description": "The file {filename} is downloading."
     },
     "applyingAndZipping": "Applying suggestions and generating ZIP..."
+  },
+  "downloads": {
+    "zipFilename": "project_{projectName}"
   }
 }

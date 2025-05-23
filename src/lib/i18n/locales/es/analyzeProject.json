@@ -1,3 +1,4 @@
+
 {
   "title": "Análisis de Proyecto Completo",
   "description": "Realiza un análisis holístico de un proyecto entero, subido o desde Git.",
@@ -25,21 +26,22 @@
     "suggestionPriorityLabel": "Prioridad:",
     "suggestedPromptLabel": "Prompt Sugerido:",
     "groupLogTitle": "Log Detallado del Análisis",
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\"{orchestratorContext}...\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del grupo seleccionado para guiar el proceso de la IA.",
     "modifyAnalysisSectionTitle": "Sugerir Modificaciones al Proyecto",
     "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
     "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
     "applyAndDownloadButton": "Descargar Proyecto Modificado (ZIP)",
-    "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente original fue Git o un ZIP procesado.",
+    "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente original fue Git o un ZIP procesado exitosamente que generó archivos base.",
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) que se usarán para la descarga ZIP o futuras modificaciones IA.",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
     "snapshotName": "Análisis de Proyecto - {name} - {time}",
-    "modificationContextPrefix": "Contexto del análisis actual que se está consultando/modificando:",
+    "modificationContextPrefix": "Contexto del análisis actual que se está consultando/modificando: Foco en {focusArea}, Tipo de Fuente: {sourceType}",
     "lastModificationRequestLabel": "Última petición de modificación",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
     "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área: {area}",
-    "sendModificationButton": "Enviar Modificación"
+    "sendModificationButton": "Enviar Modificación",
+    "chatInteractionLogPrefix": "Interacción de Chat ({time})"
   },
   "toast": {
     "invalidFile": {
@@ -78,10 +80,9 @@
     },
     "processingFile": "Procesando archivo...",
     "fetchingGit": "Obteniendo contenido del repositorio Git...",
-    "gettingLocalSource": "Obteniendo código fuente local...",
-    "gitFetchError": {
-      "title": "Error al Obtener de Git",
-      "unknown": "Error desconocido al obtener el repositorio."
+    "gettingLocalSource": {
+      "title": "Obteniendo Código Local...",
+      "description": "Contactando al servidor para el código fuente."
     },
     "localSourceError": {
       "title": "Error al Obtener Código Local",
@@ -96,11 +97,8 @@
     },
     "modificationSuccess": {
       "title": "Modificación Procesada",
-      "description": "La IA ha intentado aplicar los cambios al proyecto. Revisa los archivos y las notas."
-    },
-    "modificationSuccessConsultation": {
-      "title": "Consulta Procesada",
-      "description": "La IA ha procesado tu consulta sobre el análisis. Revisa las notas actualizadas."
+      "description": "La IA ha intentado aplicar los cambios al proyecto. Revisa los archivos y las notas.",
+      "consultationDescription": "La IA ha procesado tu consulta sobre el análisis. Revisa las notas actualizadas."
     },
     "downloadError": {
       "title": "Error de Descarga",
@@ -121,5 +119,8 @@
       "description": "El archivo {filename} se está descargando."
     },
     "applyingAndZipping": "Aplicando sugerencias y generando ZIP..."
+  },
+  "downloads": {
+    "zipFilename": "proyecto_{projectName}"
   }
 }
