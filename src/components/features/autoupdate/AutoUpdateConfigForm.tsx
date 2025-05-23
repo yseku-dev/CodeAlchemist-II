@@ -1,3 +1,4 @@
+
 // src/components/features/autoupdate/AutoUpdateConfigForm.tsx
 "use client";
 
@@ -9,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Sparkles, Wand2, DownloadCloud, FileArchive } from 'lucide-react'; // Added DownloadCloud
+import { Loader2, Sparkles, Wand2, DownloadCloud } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
 import { Separator } from '@/components/ui/separator';
@@ -28,9 +29,9 @@ interface AutoUpdateConfigFormProps {
   analysisPreferences: string;
   onAnalysisPreferencesChange: (value: string) => void;
   onStartAnalysis: () => void;
-  onDownloadCurrentSourceZip: () => void; // Nueva prop
-  isLoading: boolean; // Estado de carga general (para análisis, git, etc.)
-  isDownloadingSource: boolean; // Nuevo estado de carga para descarga ZIP
+  onDownloadCurrentSourceZip: () => void;
+  isLoading: boolean; 
+  isDownloadingSource: boolean;
   progress: number;
   isAnalysisInProgress: boolean;
   isRedefiningAnalysisPrefs: boolean;
@@ -53,9 +54,9 @@ export default function AutoUpdateConfigForm({
   analysisPreferences,
   onAnalysisPreferencesChange,
   onStartAnalysis,
-  onDownloadCurrentSourceZip, // Nueva prop
+  onDownloadCurrentSourceZip,
   isLoading,
-  isDownloadingSource, // Nuevo estado
+  isDownloadingSource,
   progress,
   isAnalysisInProgress,
   isRedefiningAnalysisPrefs,
@@ -79,11 +80,11 @@ export default function AutoUpdateConfigForm({
           <CardDescription>{t('autoupdate.config.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for LLM Selector */}
-          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for Source Selector */}
-          <div className="h-20 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for Preferences */}
-          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for Start Button */}
-          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div> {/* Placeholder for Download Button */}
+          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
+          <div className="h-10 w-full bg-muted rounded-md animate-pulse"></div>
+          <Button variant="outline" className="w-full h-10 bg-muted animate-pulse" disabled />
+          <div className="h-20 w-full bg-muted rounded-md animate-pulse"></div>
+          <Button className="w-full h-10 bg-muted animate-pulse" disabled />
         </CardContent>
       </Card>
     );
@@ -184,3 +185,5 @@ export default function AutoUpdateConfigForm({
     </Card>
   );
 }
+
+    
