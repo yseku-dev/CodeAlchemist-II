@@ -6,6 +6,7 @@
   "projectSourceLabel": "Fuente del Proyecto",
   "sourceUpload": "Subir Archivo",
   "sourceGit": "URL de Git",
+  "sourceLocal": "Local (Código Fuente Actual de la App)",
   "uploadLabel": "Subir Archivo (.zip, .json, .py, .js, etc.)",
   "gitUrlLabel": "URL de Git",
   "gitUrlPlaceholder": "https://github.com/usuario/repo.git",
@@ -68,6 +69,14 @@
     },
     "processingFile": "Procesando archivo...",
     "fetchingGit": "Obteniendo contenido del repositorio Git...",
+    "gettingLocalSource": {
+      "title": "Obteniendo Código Local...",
+      "description": "Contactando al servidor para el código fuente."
+    },
+    "localSourceError": {
+        "title": "Error al Obtener Código Local",
+        "description": "No se pudo obtener el código fuente local del servidor: {error}"
+    },
     "analyzingWithAI": "Analizando con IA...",
     "fileReadError": {
       "title": "Error de Lectura",
@@ -106,3 +115,5 @@
     }
   }
 }
+
+    

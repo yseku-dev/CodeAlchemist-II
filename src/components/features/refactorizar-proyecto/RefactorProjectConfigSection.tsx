@@ -1,8 +1,9 @@
 
+// src/components/features/refactorizar-proyecto/RefactorProjectConfigSection.tsx
 "use client";
 
 import React from 'react';
-import { CardContent } from '@/components/ui/card'; // Card is not used directly here, only CardContent
+import { CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,13 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, GitPullRequestDraft, Wand2 } from 'lucide-react';
 import LLMConfigSelector from '@/components/llm-config-selector';
 import type { LLMConfigSourceOption } from '@/types';
-import { GENERAL_PRIORITIES, type GeneralPriority, NINGUNA_PRIORITY_VALUE } from '@/lib/constants'; // Import NINGUNA_PRIORITY_VALUE
+import { GENERAL_PRIORITIES, type GeneralPriority, NINGUNA_PRIORITY_VALUE } from '@/lib/constants';
 import { Separator } from "@/components/ui/separator";
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import type { TranslationKey } from '@/lib/i18n/translations';
 
-type ProjectSourceType = "upload" | "git";
-// const NINGUNA_PRIORITY_VALUE = "__none__"; // Removed local definition
+type ProjectSourceType = "upload" | "git" | "local"; // Asegurarse que "local" esté aquí
 
 interface RefactorProjectConfigSectionProps {
   llmConfigSource: LLMConfigSourceOption | undefined;
@@ -25,6 +25,7 @@ interface RefactorProjectConfigSectionProps {
   projectSourceType: ProjectSourceType;
   onProjectSourceTypeChange: (value: ProjectSourceType) => void;
   uploadedFile: File | null;
+  uploadedFileName?: string | null;
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
   gitUrl: string;
@@ -49,14 +50,13 @@ interface RefactorProjectConfigSectionProps {
 
 const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> = ({
   llmConfigSource, onLlmConfigSourceChange, projectSourceType, onProjectSourceTypeChange,
-  uploadedFile, onFileChange, fileInputRef, gitUrl, onGitUrlChange,
+  uploadedFile, uploadedFileName, onFileChange, fileInputRef, gitUrl, onGitUrlChange,
   refactorGoals, onRefactorGoalsChange, generalPriority, onGeneralPriorityChange,
   searchDepth, onSearchDepthChange, focusArea, onFocusAreaChange, onAnalyze,
   isLoading, loadingMessage, t,
   isRedefiningGoals, onRedefineGoals, isRedefiningFocusArea, onRedefineFocusArea,
 }) => {
   return (
-    // The parent Card is in page.tsx, this component only renders its content structure
     <> 
       <PageSectionHeader
         icon={GitPullRequestDraft}
@@ -73,6 +73,7 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
             <SelectContent>
               <SelectItem value="upload">{t('refactorProject.sourceUpload')}</SelectItem>
               <SelectItem value="git">{t('refactorProject.sourceGit')}</SelectItem>
+              <SelectItem value="local">{t('refactorProject.sourceLocal')}</SelectItem> {/* ASEGURAR QUE ESTA LÍNEA ESTÉ PRESENTE */}
             </SelectContent>
           </Select>
         </div>
@@ -81,7 +82,7 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
           <div className="space-y-2">
             <Label htmlFor="file-upload">{t('refactorProject.uploadLabel')}</Label>
             <Input id="file-upload" type="file" ref={fileInputRef} onChange={onFileChange} disabled={isLoading} accept=".zip,application/zip,.json,application/json,.js,.ts,.jsx,.tsx,.py,.java,.html,.css,.txt,.md" />
-            {uploadedFile && <p className="text-xs text-muted-foreground">{t('common.fileSelected', { name: uploadedFile.name })}</p>}
+            {uploadedFileName && <p className="text-xs text-muted-foreground">{t('common.fileSelected', { name: uploadedFileName })}</p>}
           </div>
         )}
 
@@ -91,6 +92,15 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
             <Input id="git-url" value={gitUrl} onChange={(e) => onGitUrlChange(e.target.value)} placeholder={t('refactorProject.gitUrlPlaceholder')} disabled={isLoading} />
           </div>
         )}
+        
+        {projectSourceType === "local" && (
+          <div className="p-3 my-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-md">
+            <p className="text-xs text-blue-800 dark:text-blue-200">
+              {t('common.localSourceInfo')}
+            </p>
+          </div>
+        )}
+
 
         <Separator />
         <Label>{t('refactorProject.paramsLabel')}</Label>
@@ -148,11 +158,21 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
             onChange={(e) => onFocusAreaChange(e.target.value)} 
             placeholder={t('refactorProject.focusPlaceholder')} 
             disabled={isLoading || isRedefiningFocusArea}
-            rows={2} // Slightly larger for focus area
+            rows={2}
           />
         </div>
 
-        <Button onClick={onAnalyze} disabled={isLoading || isRedefiningGoals || isRedefiningFocusArea || (projectSourceType === 'upload' && !uploadedFile) || (projectSourceType === 'git' && !gitUrl.trim())} className="w-full">
+        <Button 
+            onClick={onAnalyze} 
+            disabled={
+                isLoading || 
+                isRedefiningGoals ||
+                isRedefiningFocusArea ||
+                (projectSourceType === 'upload' && !uploadedFile && !uploadedFileName) || // Permite si ya hay un uploadedFileName de localStorage
+                (projectSourceType === 'git' && !gitUrl.trim())
+            } 
+            className="w-full"
+        >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
           {isLoading && loadingMessage ? loadingMessage : t('refactorProject.analyzeButton')}
         </Button>
@@ -162,3 +182,5 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
 };
 
 export default RefactorProjectConfigSection;
+
+    

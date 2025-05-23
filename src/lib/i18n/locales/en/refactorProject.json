@@ -6,6 +6,7 @@
   "projectSourceLabel": "Project Source",
   "sourceUpload": "Upload File",
   "sourceGit": "Git URL",
+  "sourceLocal": "Local (Current App Source Code)",
   "uploadLabel": "Upload File (.zip, .json, .py, .js, etc.)",
   "gitUrlLabel": "Git URL",
   "gitUrlPlaceholder": "https://github.com/user/repo.git",
@@ -68,6 +69,14 @@
     },
     "processingFile": "Processing file...",
     "fetchingGit": "Fetching Git repository content...",
+    "gettingLocalSource": {
+      "title": "Fetching Local Code...",
+      "description": "Contacting server for source code."
+    },
+    "localSourceError": {
+        "title": "Error Fetching Local Code",
+        "description": "Could not get local source code from server: {error}"
+    },
     "analyzingWithAI": "Analyzing with AI...",
     "fileReadError": {
       "title": "Read Error",
@@ -106,3 +115,5 @@
     }
   }
 }
+
+    
