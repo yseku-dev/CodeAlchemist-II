@@ -12,7 +12,7 @@ import { ListChecks, Info, MessageSquare, Bot, User, Loader2, Send, Wand2, Save,
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { AnalyzeCodeOutput, ChatMessage, DetailedSuggestionForUI } from '@/types';
+import type { AnalyzeCodeOutput, ChatMessage, DetailedSuggestionForUI, AppSourceFile } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,7 +33,7 @@ interface AnalyzeProjectResultsDisplayProps {
   onRedefineModificationRequest: () => Promise<void>;
   onSaveSnapshot: () => void;
   onApplySelectedCheckboxSuggestions: () => void;
-  scrollAreaRefChat: React.RefObject<HTMLDivElement>;
+  originalProjectFiles: AppSourceFile[] | null; // Added prop
 }
 
 /**
@@ -59,7 +59,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
   onRedefineModificationRequest,
   onSaveSnapshot,
   onApplySelectedCheckboxSuggestions,
-  scrollAreaRefChat,
+  originalProjectFiles, // Destructure new prop
 }) => {
   if (!result) {
     return null;
@@ -76,13 +76,12 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
       <TooltipProvider>
         <Tooltip open={!canApplyAndDownload ? undefined : false}>
           <TooltipTrigger asChild>
-            <span tabIndex={0}>
+            <span tabIndex={0}> {/* Wrap button for Tooltip when disabled */}
               <Button
                 onClick={onDownloadProjectZip}
                 variant="outline"
                 size="sm"
                 disabled={!canApplyAndDownload}
-                className="w-full sm:w-auto"
               >
                 <Download className="mr-2 h-4 w-4" />
                 {t('analyzeProject.results.applyAndDownloadButton')}
@@ -91,7 +90,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
           </TooltipTrigger>
           {!canApplyAndDownload && (
             <TooltipContent>
-              <p>{t('analyzeProject.results.downloadProjectZipTooltipDisabled')}</p>
+              <p>{t('analyzeProject.toast.downloadError.noBaseFiles')}</p>
             </TooltipContent>
           )}
         </Tooltip>
@@ -104,7 +103,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
       <Card className="mt-6 bg-background">
         <PageSectionHeader
           icon={ListChecks}
-          title={result.analysisTitle || t('analyzeProject.results.noResults')}
+          title={result.analysisTitle || t('analyzeProject.results.noResults' as TranslationKey)}
           actions={headerActions}
         />
         <CardContent className="space-y-4">
@@ -150,7 +149,12 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
               )}
               <ScrollArea className="h-60 border rounded-md p-2 bg-muted/30">
                 <ul className="space-y-3 text-sm">
-                  {suggestionsForUI.map((suggestion) => (
+                  {suggestionsForUI.map((suggestion) => {
+                     // Log para depuración
+                    console.log(
+                        `[AnalyzeProjectResultsDisplay] Sugerencia ID: ${suggestion.id}, area: ${suggestion.area}, canApplyAndDownload: ${canApplyAndDownload}, tieneSuggestedContent: ${!!suggestion.suggestedContent}, contenidoSugerido (inicio): '${(suggestion.suggestedContent || "").substring(0,50)}...'`
+                    );
+                    return (
                     <li key={suggestion.id} className="p-2 border-b last:border-b-0">
                       <div className="flex items-start gap-2">
                         {suggestion.suggestedContent && canApplyAndDownload && (
@@ -159,7 +163,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                                 checked={!!suggestion.isSelected}
                                 onCheckedChange={() => onToggleSuggestionSelection(suggestion.id)}
                                 className="mt-1"
-                                aria-label={t('analyzeProject.results.selectSuggestionCheckboxAria', { area: suggestion.area })}
+                                aria-label={t('analyzeProject.results.selectSuggestionCheckboxAria' as TranslationKey, { area: suggestion.area })}
                             />
                         )}
                          <div className="flex-grow">
@@ -179,7 +183,8 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                         </div>
                       </div>
                     </li>
-                  ))}
+                  );
+                })}
                 </ul>
               </ScrollArea>
               {canApplyAndDownload && (
@@ -194,7 +199,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
             </div>
           )}
           {result.groupLog && (
-            <LogsDisplay title={t('analyzeProject.results.groupLogTitle')} logs={result.groupLog} />
+            <LogsDisplay title={t('analyzeProject.results.groupLogTitle' as TranslationKey)} logs={result.groupLog} />
           )}
         </CardContent>
       </Card>
@@ -216,21 +221,21 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                     size="sm"
                     onClick={onRedefineModificationRequest}
                     disabled={(!modificationPrompt || !modificationPrompt.trim()) || isRedefiningModificationPrompt || isProcessingModification}
-                    title={t('common.redefineRequestButton')}
+                    title={t('common.redefineRequestButton' as TranslationKey)}
                 >
                     {isRedefiningModificationPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                    <span className="sr-only">{t('common.redefineRequestButton')}</span>
+                    <span className="sr-only">{t('common.redefineRequestButton' as TranslationKey)}</span>
                 </Button>
             </div>
             <Textarea
               id="project-analysis-modification-input"
               value={modificationPrompt}
               onChange={(e) => onModificationPromptChange(e.target.value)}
-              placeholder={t('analyzeProject.results.modificationInputPlaceholder')}
+              placeholder={t('analyzeProject.results.modificationInputPlaceholder' as TranslationKey)}
               rows={3}
-              disabled={isProcessingModification || isRedefiningModificationPrompt || !canApplyAndDownload}
+              disabled={isProcessingModification || isRedefiningModificationPrompt}
             />
-             {!canApplyAndDownload && <p className="text-xs text-muted-foreground mt-1">{t('analyzeProject.toast.modificationError.noBaseFiles')}</p>}
+             {!canApplyAndDownload && <p className="text-xs text-muted-foreground mt-1">{t('analyzeProject.toast.modificationError.noBaseFiles' as TranslationKey)}</p>}
           </div>
           <Button
             onClick={onProcessModification}
@@ -251,3 +256,5 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
 };
 
 export default AnalyzeProjectResultsDisplay;
+
+    
