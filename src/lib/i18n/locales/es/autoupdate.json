@@ -12,8 +12,8 @@
     "gitUrlLabel": "URL del Repositorio Git (Opcional)",
     "gitUrlPlaceholder": "Ej: https://github.com/usuario/repo",
     "gitUrlRequired": "Se requiere la URL del repositorio Git si se selecciona esta fuente.",
-    "downloadCurrentSourceZipButton": "Descargar Código Fuente Actual (ZIP)",
-    "downloadCurrentSourceZipDescription": "Obtiene el código fuente del servidor y lo empaqueta en un ZIP.",
+    "downloadCurrentSourceZipButton": "Descargar Código Fuente Original (ZIP)",
+    "downloadCurrentSourceZipDescription": "Obtiene el código fuente actual del servidor y lo empaqueta en un ZIP.",
     "analysisParamsLabel": "Parámetros de Auto-Análisis",
     "analysisPrefsLabel": "Preferencias de Análisis / Campo de Enfoque (Opcional)",
     "analysisPrefsPlaceholder": "Ej: 'Enfócate en optimizar el rendimiento de la UI...', 'Revisa la seguridad en las llamadas API...', 'Todas las sugerencias deben estar en castellano.'",
@@ -24,6 +24,7 @@
   "results": {
     "title": "Resultados del Auto-Análisis",
     "downloadSuggestionsJson": "Descargar Sugerencias (JSON)",
+    "downloadCurrentCodeZip": "Descargar Código con Sugerencias Aplicadas (ZIP)",
     "uploadToGit": "Subir a Git",
     "noResults": "Inicia un análisis para ver los resultados.",
     "analysisTitleLabel": "Título del Análisis:",
@@ -44,7 +45,7 @@
     "editContentLabel": "Editar Contenido Sugerido:"
   },
   "logs": {
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}\\nInput del Usuario: {userInput}\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\\\"{orchestratorContext}...\\\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
     "analysisStarting": "Iniciando Auto-Análisis...",
     "analysisProcessingComplete": "Procesamiento del análisis de AutoUpdate completado.",
     "localCodeObtained": "Código local obtenido del servidor.",
@@ -120,9 +121,13 @@
       "suggestionsJsonDescription": "Sugerencias descargadas como {filename}."
     },
     "downloadCurrentSourceZip": {
-      "preparing": "Preparando descarga del código fuente actual (ZIP)...",
-      "successTitle": "Descarga de Código Fuente (ZIP) Iniciada",
+      "preparing": "Preparando descarga del código fuente original...",
+      "successTitle": "Descarga de Código Fuente Original (ZIP) Iniciada",
       "successDescription": "El archivo {filename} se está descargando."
+    },
+    "downloadCurrentCodeZipToast": {
+      "title": "Descarga de Proyecto con Sugerencias (ZIP) Iniciada",
+      "description": "El archivo {filename} (ZIP con código del servidor + sugerencias aplicadas en cliente) se está descargando."
     },
     "zipError": {
       "title": "Error al Generar ZIP",
@@ -171,8 +176,8 @@
   },
   "downloads": {
     "suggestionsJsonFilename": "autoupdate_sugerencias.json",
-    "currentCodeZipFilenameStatic": "CodeAlchemist_Fuente_Actual.zip",
-    "currentCodeZipFilename": "CodeAlchemist_CodigoActual_Con_Sugerencias.zip"
+    "currentCodeZipFilenameStatic": "CodeAlchemist_Fuente_Original.zip",
+    "currentCodeZipFilename": "CodeAlchemist_Con_Sugerencias_Aplicadas.zip"
   },
   "errors": {
     "getLocalSourceFailed": "No se pudo obtener el código fuente local para análisis.",
@@ -191,7 +196,7 @@
       "confirmText": "Sí, Marcar como Aplicada",
       "description": {
         "p1": "Se marcará como aplicada la sugerencia para {area}.",
-        "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manually en tu entorno de desarrollo:"
+        "p2": "La modificación real del archivo no es posible desde el navegador. Revisa el contenido sugerido (o editado) y aplícalo manualmente en tu entorno de desarrollo:"
       }
     },
     "noContentToShow": "Error: No hay contenido para mostrar.",
@@ -217,3 +222,5 @@
     "errorContext": "Error a analizar: {error}\\n\\nContexto: Error ocurrido en la funcionalidad AutoUpdate (análisis del propio código de CodeAlchemist)."
   }
 }
+
+    
