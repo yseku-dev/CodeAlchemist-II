@@ -2,7 +2,7 @@
 // src/components/features/generar-proyecto/GenerateProjectResultsDisplay.tsx
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react'; // Import useEffect
 import { Button } from '@/components/ui/button';
 import { Download, Send, Wand2, Loader2, MessageSquare, Bot, User, Save } from 'lucide-react';
 import FileTreeDisplay from '@/components/file-tree';
@@ -14,20 +14,19 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-
 interface GenerateProjectResultsDisplayProps {
   result: ProjectGenerationResult | null;
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
   onDownloadProject: () => void;
   onSaveSnapshot: () => void;
-  chatHistory?: ChatMessage[]; // Made optional
+  chatHistory?: ChatMessage[];
   currentModificationRequest: string;
   onCurrentModificationRequestChange: (value: string) => void;
   onSendModificationRequest: () => Promise<void>;
   isModifyingProject: boolean;
   isRedefiningModificationRequest: boolean;
   onRedefineModificationRequest: () => Promise<void>;
-  scrollAreaRefChat: React.RefObject<HTMLDivElement>;
+  // scrollAreaRefChat: React.RefObject<HTMLDivElement>; // No se usa aquí
 }
 
 /**
@@ -38,28 +37,39 @@ interface GenerateProjectResultsDisplayProps {
  * All texts are internationalized.
  * @module GenerateProjectResultsDisplay
  */
-
-/**
- * GenerateProjectResultsDisplay component.
- * Renders the results section for the "Generate Project" page, including modification chat.
- *
- * @param {GenerateProjectResultsDisplayProps} props - The props for the component.
- * @returns {JSX.Element | null} The rendered results display section, or null if no result.
- */
 const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps> = ({
   result,
   t,
   onDownloadProject,
   onSaveSnapshot,
-  chatHistory = [], // Default value provided here
+  chatHistory = [],
   currentModificationRequest,
   onCurrentModificationRequestChange,
   onSendModificationRequest,
   isModifyingProject,
   isRedefiningModificationRequest,
   onRedefineModificationRequest,
-  scrollAreaRefChat,
 }) => {
+
+  // Log props for debugging button state
+  console.log('[GenerateProjectResultsDisplay] Render. Props de estado:', {
+    isModifyingProject,
+    isRedefiningModificationRequest,
+    currentModificationRequestValue: currentModificationRequest,
+    hasTextInRequest: !!(currentModificationRequest && currentModificationRequest.trim()),
+    isSendButtonDisabled: isModifyingProject || isRedefiningModificationRequest || (!currentModificationRequest || !currentModificationRequest.trim()),
+    isRedefineButtonDisabled: (!currentModificationRequest || !currentModificationRequest.trim()) || isRedefiningModificationRequest || isModifyingProject,
+  });
+
+  useEffect(() => {
+    console.log('[GenerateProjectResultsDisplay EFFECT] Props actualizadas:', {
+      isModifyingProject,
+      isRedefiningModificationRequest,
+      currentModificationRequest,
+    });
+  }, [isModifyingProject, isRedefiningModificationRequest, currentModificationRequest]);
+
+
   if (!result) {
     return null;
   }
@@ -110,7 +120,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <ScrollArea className="h-48 border rounded-md p-3 bg-muted/30" ref={scrollAreaRefChat}>
+          <ScrollArea className="h-48 border rounded-md p-3 bg-muted/30"> {/* ref={scrollAreaRefChat} -> prop no usada */}
             {(chatHistory || []).length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                     {t('generateProject.results.modificationInputPlaceholder')}
@@ -136,7 +146,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
                     {msg.role === 'assistant' && (
                       <Bot className="h-5 w-5 self-start flex-shrink-0 text-accent" />
                     )}
-                     {msg.role === 'system' && ( // System messages (like errors)
+                     {msg.role === 'system' && ( 
                       <Bot className="h-5 w-5 self-start flex-shrink-0 text-destructive" />
                     )}
                     {msg.role === 'user' && (
