@@ -8,40 +8,44 @@
   "generateButton": "Generar Proyecto",
   "results": {
     "suggestedNameLabel": "Nombre Sugerido:",
+    "defaultProjectName": "proyecto-generado",
     "aiNotesLabel": "Notas de la IA:",
     "generatedFilesLabel": "Archivos Generados:",
     "downloadButton": "Descargar Proyecto (ZIP)",
-    "downloadNote": "Nota: La descarga será un archivo JSON con la estructura y contenido del proyecto.",
+    "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
     "groupLogTitle": "Log Detallado del Grupo",
     "modifyProjectSectionTitle": "Modificar Proyecto con IA",
     "modificationInputLabel": "Describe tu modificación:",
     "modificationInputPlaceholder": "Ej: Añade un archivo 'utils.js' en la carpeta 'src'.",
     "sendModificationButton": "Enviar Modificación",
+    "processModificationButton": "Procesar Modificación con IA",
     "saveSnapshotButton": "Guardar Snapshot del Proyecto",
-    "snapshotName": "Proyecto Generado - {name} - {time}"
+    "snapshotName": "Proyecto Generado - {name} - {time}",
+    "chatInteractionLogPrefix": "Interacción Chat ({time})",
+    "initialAiNotes": "Notas iniciales del proceso de generación."
   },
   "logs": {
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}\\nInput del Usuario: {userInput}\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}\\nInput del Usuario: {userInput}\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
     "multiTurnLog": {
       "processStart": "Iniciando generación de proyecto con grupo: {groupName}. Tarea: {taskDescription}",
       "orchestratorTurnStart": "Turno {turn} - Orquestador:",
-      "orchestratorReceiving": "  Recibiendo: {input}",
+      "orchestratorReceiving": "  Recibiendo Input: {input}",
       "orchestratorSendingPrompt": "  Enviando prompt al LLM (longitud: {length}):\\n{prompt}",
-      "orchestratorRawResponse": "  Respuesta JSON cruda del LLM (truncada): {response}",
+      "orchestratorRawResponse": "  Respuesta JSON Cruda del Orquestador (truncada): {response}",
       "orchestratorParsedDecision": "  Decisión parseada: Próximo Agente: {nextAgentId}, Instrucción (inicio): {instructionStart}..., Razonamiento (inicio): {reasoningStart}...",
       "orchestratorDataAggregation": "  Agregando datos del payload: Proyecto: {projectName}, Notas (inicio): {aiNotesStart}..., Archivos: {filesCount}",
       "agentTurnStart": "Turno {turn} - Agente {agentName}:",
       "agentReceivingInstruction": "  Recibiendo instrucción: {instruction}",
       "agentSendingPrompt": "  Enviando prompt al LLM (longitud: {length}):\\n{prompt}",
-      "agentRawResponse": "  Respuesta cruda del LLM (truncada): {response}",
+      "agentRawResponse": "  Respuesta cruda del Agente {agentName} (truncada): {response}",
       "processCompleted": "Proceso completado por el orquestador. Resultado final (resumen): {finalSummary}",
       "maxTurnsReached": "Se alcanzó el límite máximo de {maxTurns} turnos. La generación del proyecto podría estar incompleta.",
       "errorTurn": "[ERROR] Turno {turn} ({actor}): {errorMessage}",
-      "errorParsingOrchestratorResponse": "  [ERROR CRÍTICO] Orquestador no devolvió JSON válido. Respuesta: {response}. Error: {parseError}",
-      "errorOrchestratorMissingFields": "  [ERROR CRÍTICO] Respuesta del Orquestador incompleta. Faltan campos requeridos.",
-      "errorAgentNotFound": "  [ERROR CRÍTICO] Agente con ID '{agentId}' no encontrado.",
-      "errorCallingAgent": "  [ERROR] Falló la llamada al agente {agentName}: {errorMessage}",
-      "errorCallingOrchestrator": "  [ERROR] Falló la llamada al orquestador: {errorMessage}",
+      "errorParsingOrchestratorResponse": "  [ERROR CRÍTICO] Turno {turn} - Orquestador no devolvió JSON válido. Respuesta: {response}. Error de parseo: {parseError}",
+      "errorOrchestratorMissingFields": "  [ERROR CRÍTICO] Turno {turn} - Respuesta del Orquestador incompleta. Faltan campos requeridos.",
+      "errorAgentNotFound": "  [ERROR CRÍTICO] Turno {turn} - Agente con ID '{agentId}' no encontrado.",
+      "errorCallingAgent": "  [ERROR] Turno {turn} - Falló la llamada al agente {agentName}: {errorMessage}",
+      "errorCallingOrchestrator": "  [ERROR] Turno {turn} - Falló la llamada al orquestador: {errorMessage}",
       "finalProjectAssembly": "Ensamblando resultado final del proyecto...",
       "noValidResponseFromOrchestrator": "No se obtuvo una respuesta válida del orquestador para continuar."
     }
@@ -87,13 +91,12 @@
       "description": "No se pudo procesar la solicitud de modificación."
     },
     "modificationSuccess": {
-      "title": "Modificación Aplicada",
-      "description": "La IA ha procesado tu solicitud. Por favor, revisa los cambios.",
-      "defaultAiNote": "Modificación procesada. Revisa la estructura del proyecto y las notas."
+      "title": "Modificación Procesada",
+      "description": "La IA ha procesado tu solicitud. Por favor, revisa los cambios."
     },
     "emptyModificationRequest": {
-        "title": "Petición Vacía",
-        "description": "Por favor, describe la modificación que deseas realizar."
+      "title": "Petición Vacía",
+      "description": "Por favor, describe la modificación que deseas realizar."
     }
   }
 }

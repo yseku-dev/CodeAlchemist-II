@@ -8,6 +8,7 @@
   "generateButton": "Generate Project",
   "results": {
     "suggestedNameLabel": "Suggested Name:",
+    "defaultProjectName": "generated-project",
     "aiNotesLabel": "AI Notes:",
     "generatedFilesLabel": "Generated Files:",
     "downloadButton": "Download Project (ZIP)",
@@ -17,31 +18,34 @@
     "modificationInputLabel": "Describe your modification:",
     "modificationInputPlaceholder": "E.g.: Add a 'utils.js' file in the 'src' folder.",
     "sendModificationButton": "Send Modification",
+    "processModificationButton": "Process Modification with AI",
     "saveSnapshotButton": "Save Project Snapshot",
-    "snapshotName": "Generated Project - {name} - {time}"
+    "snapshotName": "Generated Project - {name} - {time}",
+    "chatInteractionLogPrefix": "Chat Interaction ({time})",
+    "initialAiNotes": "Initial notes from the group generation process."
   },
   "logs": {
-    "groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+    "groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
     "multiTurnLog": {
       "processStart": "Starting project generation with group: {groupName}. Task: {taskDescription}",
       "orchestratorTurnStart": "Turn {turn} - Orchestrator:",
-      "orchestratorReceiving": "  Receiving: {input}",
+      "orchestratorReceiving": "  Receiving Input: {input}",
       "orchestratorSendingPrompt": "  Sending prompt to LLM (length: {length}):\\n{prompt}",
-      "orchestratorRawResponse": "  Raw JSON response from LLM (truncated): {response}",
+      "orchestratorRawResponse": "  Raw JSON response from Orchestrator (truncated): {response}",
       "orchestratorParsedDecision": "  Parsed decision: Next Agent: {nextAgentId}, Instruction (start): {instructionStart}..., Reasoning (start): {reasoningStart}...",
       "orchestratorDataAggregation": "  Aggregating data from payload: Project: {projectName}, Notes (start): {aiNotesStart}..., Files: {filesCount}",
       "agentTurnStart": "Turn {turn} - Agent {agentName}:",
       "agentReceivingInstruction": "  Receiving instruction: {instruction}",
       "agentSendingPrompt": "  Sending prompt to LLM (length: {length}):\\n{prompt}",
-      "agentRawResponse": "  Raw response from LLM (truncated): {response}",
+      "agentRawResponse": "  Raw response from Agent {agentName} (truncated): {response}",
       "processCompleted": "Process completed by orchestrator. Final result (summary): {finalSummary}",
       "maxTurnsReached": "Maximum of {maxTurns} turns reached. Project generation might be incomplete.",
       "errorTurn": "[ERROR] Turn {turn} ({actor}): {errorMessage}",
-      "errorParsingOrchestratorResponse": "  [CRITICAL ERROR] Orchestrator did not return valid JSON. Response: {response}. Parse Error: {parseError}",
-      "errorOrchestratorMissingFields": "  [CRITICAL ERROR] Orchestrator response incomplete. Missing required fields.",
-      "errorAgentNotFound": "  [CRITICAL ERROR] Agent with ID '{agentId}' not found.",
-      "errorCallingAgent": "  [ERROR] Failed to call agent {agentName}: {errorMessage}",
-      "errorCallingOrchestrator": "  [ERROR] Failed to call orchestrator: {errorMessage}",
+      "errorParsingOrchestratorResponse": "  [CRITICAL ERROR] Turn {turn} - Orchestrator did not return valid JSON. Response: {response}. Parse Error: {parseError}",
+      "errorOrchestratorMissingFields": "  [CRITICAL ERROR] Turn {turn} - Orchestrator response incomplete. Missing required fields.",
+      "errorAgentNotFound": "  [CRITICAL ERROR] Turn {turn} - Agent with ID '{agentId}' not found.",
+      "errorCallingAgent": "  [ERROR] Turn {turn} - Failed to call agent {agentName}: {errorMessage}",
+      "errorCallingOrchestrator": "  [ERROR] Turn {turn} - Failed to call orchestrator: {errorMessage}",
       "finalProjectAssembly": "Assembling final project result...",
       "noValidResponseFromOrchestrator": "No valid response received from orchestrator to continue."
     }
@@ -87,13 +91,12 @@
       "description": "Could not process the modification request."
     },
     "modificationSuccess": {
-      "title": "Modification Applied",
-      "description": "The AI has processed your request. Please review the changes.",
-      "defaultAiNote": "Modification processed. Review project structure and notes."
+      "title": "Modification Processed",
+      "description": "The AI has processed your request. Please review the changes."
     },
     "emptyModificationRequest": {
-        "title": "Empty Request",
-        "description": "Please describe the modification you want to make."
+      "title": "Empty Request",
+      "description": "Please describe the modification you want to make."
     }
   }
 }
