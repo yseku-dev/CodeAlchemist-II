@@ -20,6 +20,7 @@ import esFlows from './locales/es/flows.json';
 import esFileTree from './locales/es/fileTree.json';
 import esCodeEditor from './locales/es/codeEditor.json';
 
+
 // Importaciones de Inglés
 import enCommon from './locales/en/common.json';
 import enDashboard from './locales/en/dashboard.json';
@@ -39,6 +40,7 @@ import enError from './locales/en/error.json';
 import enFlows from './locales/en/flows.json';
 import enFileTree from './locales/en/fileTree.json';
 import enCodeEditor from './locales/en/codeEditor.json';
+
 
 import type { LanguageCode } from '@/types';
 
@@ -80,7 +82,7 @@ export interface LanguageTranslations {
   flows: TranslationSet;
   fileTree: TranslationSet;
   codeEditor: TranslationSet;
-  [key: string]: TranslationSet | undefined;
+  [key: string]: TranslationSet | undefined; // Allows for additional top-level keys
 }
 
 /**
@@ -145,6 +147,12 @@ export const translationsData: AllTranslations = {
 };
 
 // Type guard to check if a value is a TranslationSet (for nested structures)
+/**
+ * Type guard to check if a given value is a TranslationSet.
+ * A TranslationSet is an object that is not an array and not null.
+ * @param {any} value - The value to check.
+ * @returns {value is TranslationSet} True if the value is a TranslationSet, false otherwise.
+ */
 export function isTranslationSet(value: any): value is TranslationSet {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

@@ -73,5 +73,19 @@
       "text": " para ver cómo CodeAlchemist se analiza a sí mismo."
     },
     "ctaButton": "Ir a Configuración"
+  },
+  "downloadReadme": {
+    "button": "Descargar README.md (.txt)",
+    "toast": {
+      "success": {
+        "title": "README Descargado",
+        "description": "El archivo README.txt ha comenzado a descargarse."
+      },
+      "error": {
+        "title": "Error de Descarga",
+        "description": "No se pudo descargar el archivo README: {error}"
+      },
+      "loading": "Obteniendo README del servidor..."
+    }
   }
 }

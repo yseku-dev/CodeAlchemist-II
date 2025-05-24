@@ -1,9 +1,9 @@
-
 // src/app/page.tsx
 "use client";
 
+import React, { useState } from 'react'; // Added useState
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // Removed CardFooter
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   FlaskConical, 
@@ -18,15 +18,21 @@ import {
   MessageCircle,
   Users2,
   Workflow,
-  LayoutDashboard
+  LayoutDashboard,
+  DownloadCloud, // Added DownloadCloud
+  Loader2, // Added Loader2
 } from 'lucide-react';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
+import { getReadmeContent } from './actions'; // Import Server Action
+import { useToast } from '@/hooks/use-toast'; // Import useToast
 
 /**
  * @fileOverview DashboardPage component.
  * This is the main landing page (Panel de Control) for the CodeAlchemist application.
  * It provides an overview of the platform's capabilities and quick access to its features.
+ * Includes a button to download the project's README.md file.
+ * @module DashboardPage
  */
 
 /**
@@ -93,6 +99,7 @@ const quickStartStepsData: QuickStartStep[] = [
  * - A welcoming message and a brief description of the application.
  * - A grid of interactive cards linking to the main features ("Características Principales").
  * - A "Guía Rápida de Inicio" to help new users get started.
+ * - A button to download the project's README.md file.
  * 
  * It uses `Link` components for navigation and `Card` components for structuring content.
  * Icons are from `lucide-react` to visually represent features.
@@ -102,6 +109,48 @@ const quickStartStepsData: QuickStartStep[] = [
  */
 export default function DashboardPage(): JSX.Element {
   const { t } = useI18n();
+  const { toast } = useToast();
+  const [isDownloadingReadme, setIsDownloadingReadme] = useState(false);
+
+  /**
+   * Handles the download of the README.md file.
+   * Fetches the content via a Server Action and initiates a browser download.
+   */
+  const handleDownloadReadme = async () => {
+    setIsDownloadingReadme(true);
+    toast({
+      title: t('dashboard.downloadReadme.toast.loading' as TranslationKey),
+    });
+    try {
+      const result = await getReadmeContent();
+      if (result.success && result.content) {
+        const blob = new Blob([result.content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'README.txt';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast({
+          title: t('dashboard.downloadReadme.toast.success.title' as TranslationKey),
+          description: t('dashboard.downloadReadme.toast.success.description' as TranslationKey),
+        });
+      } else {
+        throw new Error(result.error || 'Error desconocido al obtener el README');
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: t('dashboard.downloadReadme.toast.error.title' as TranslationKey),
+        description: t('dashboard.downloadReadme.toast.error.description' as TranslationKey, { error: error.message }),
+      });
+      console.error("Error downloading README:", error);
+    } finally {
+      setIsDownloadingReadme(false);
+    }
+  };
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8">
@@ -119,11 +168,11 @@ export default function DashboardPage(): JSX.Element {
         <h2 className="text-3xl font-semibold mb-8 text-center">{t('dashboard.features.title')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {featuresData.map((feature) => (
-            <Link href={feature.href} key={feature.titleKey} passHref legacyBehavior>
+            <Link href={feature.href} key={feature.titleKey as string} passHref legacyBehavior>
               <Card 
                 as="a" // Render Card as an anchor tag for semantic linking
                 className="hover:shadow-lg transition-shadow duration-300 cursor-pointer h-full flex flex-col transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                aria-label={t(feature.titleKey as TranslationKey)} // Use translated title for aria-label
+                aria-label={t(feature.titleKey as TranslationKey)}
               >
                 <CardHeader className="flex flex-row items-center gap-4 pb-3">
                   <feature.icon className="h-10 w-10 text-accent flex-shrink-0" aria-hidden="true" />
@@ -139,7 +188,7 @@ export default function DashboardPage(): JSX.Element {
       </section>
 
       {/* Section for Quick Start Guide */}
-      <section>
+      <section className="mb-12">
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="text-2xl md:text-3xl">{t('dashboard.quickstart.title')}</CardTitle>
@@ -167,7 +216,23 @@ export default function DashboardPage(): JSX.Element {
           </CardContent>
         </Card>
       </section>
+
+      {/* Section for README Download Button */}
+      <section className="mt-12 pt-8 border-t text-center">
+        <Button
+          onClick={handleDownloadReadme}
+          disabled={isDownloadingReadme}
+          variant="outline"
+          size="lg"
+        >
+          {isDownloadingReadme ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <DownloadCloud className="mr-2 h-5 w-5" />
+          )}
+          {t('dashboard.downloadReadme.button' as TranslationKey)}
+        </Button>
+      </section>
     </div>
   );
 }
-

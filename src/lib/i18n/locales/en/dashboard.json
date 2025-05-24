@@ -73,5 +73,19 @@
       "text": " to see CodeAlchemist analyze itself."
     },
     "ctaButton": "Go to Settings"
+  },
+  "downloadReadme": {
+    "button": "Download README.md (.txt)",
+    "toast": {
+      "success": {
+        "title": "README Downloaded",
+        "description": "The README.txt file has started downloading."
+      },
+      "error": {
+        "title": "Download Error",
+        "description": "Could not download README file: {error}"
+      },
+      "loading": "Fetching README from server..."
+    }
   }
 }
