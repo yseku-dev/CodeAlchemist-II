@@ -33,7 +33,7 @@ interface AnalyzeProjectResultsDisplayProps {
   onRedefineModificationRequest: () => Promise<void>;
   onSaveSnapshot: () => void;
   onApplySelectedCheckboxSuggestions: () => void;
-  originalProjectFiles: AppSourceFile[] | null; // Added prop
+  originalProjectFiles: AppSourceFile[] | null;
 }
 
 /**
@@ -59,7 +59,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
   onRedefineModificationRequest,
   onSaveSnapshot,
   onApplySelectedCheckboxSuggestions,
-  originalProjectFiles, // Destructure new prop
+  originalProjectFiles,
 }) => {
   if (!result) {
     return null;
@@ -76,7 +76,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
       <TooltipProvider>
         <Tooltip open={!canApplyAndDownload ? undefined : false}>
           <TooltipTrigger asChild>
-            <span tabIndex={0}> {/* Wrap button for Tooltip when disabled */}
+            <span tabIndex={0}>
               <Button
                 onClick={onDownloadProjectZip}
                 variant="outline"
@@ -90,7 +90,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
           </TooltipTrigger>
           {!canApplyAndDownload && (
             <TooltipContent>
-              <p>{t('analyzeProject.toast.downloadError.noBaseFiles')}</p>
+              <p>{t('analyzeProject.results.downloadProjectZipTooltipDisabled')}</p>
             </TooltipContent>
           )}
         </Tooltip>
@@ -103,7 +103,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
       <Card className="mt-6 bg-background">
         <PageSectionHeader
           icon={ListChecks}
-          title={result.analysisTitle || t('analyzeProject.results.noResults' as TranslationKey)}
+          title={result.analysisTitle || t('analyzeProject.results.noResults')}
           actions={headerActions}
         />
         <CardContent className="space-y-4">
@@ -150,7 +150,6 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
               <ScrollArea className="h-60 border rounded-md p-2 bg-muted/30">
                 <ul className="space-y-3 text-sm">
                   {suggestionsForUI.map((suggestion) => {
-                     // Log para depuración
                     console.log(
                         `[AnalyzeProjectResultsDisplay] Sugerencia ID: ${suggestion.id}, area: ${suggestion.area}, canApplyAndDownload: ${canApplyAndDownload}, tieneSuggestedContent: ${!!suggestion.suggestedContent}, contenidoSugerido (inicio): '${(suggestion.suggestedContent || "").substring(0,50)}...'`
                     );
@@ -163,7 +162,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                                 checked={!!suggestion.isSelected}
                                 onCheckedChange={() => onToggleSuggestionSelection(suggestion.id)}
                                 className="mt-1"
-                                aria-label={t('analyzeProject.results.selectSuggestionCheckboxAria' as TranslationKey, { area: suggestion.area })}
+                                aria-label={t('analyzeProject.results.selectSuggestionCheckboxAria', { area: suggestion.area })}
                             />
                         )}
                          <div className="flex-grow">
@@ -188,8 +187,8 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                 </ul>
               </ScrollArea>
               {canApplyAndDownload && (
-                <Button 
-                  onClick={onApplySelectedCheckboxSuggestions} 
+                <Button
+                  onClick={onApplySelectedCheckboxSuggestions}
                   disabled={!hasApplicableSuggestionsSelected}
                   className="mt-4 w-full sm:w-auto"
                 >
@@ -197,9 +196,6 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                 </Button>
               )}
             </div>
-          )}
-          {result.groupLog && (
-            <LogsDisplay title={t('analyzeProject.results.groupLogTitle' as TranslationKey)} logs={result.groupLog} />
           )}
         </CardContent>
       </Card>
@@ -221,25 +217,25 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                     size="sm"
                     onClick={onRedefineModificationRequest}
                     disabled={(!modificationPrompt || !modificationPrompt.trim()) || isRedefiningModificationPrompt || isProcessingModification}
-                    title={t('common.redefineRequestButton' as TranslationKey)}
+                    title={t('common.redefineRequestButton')}
                 >
                     {isRedefiningModificationPrompt ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                    <span className="sr-only">{t('common.redefineRequestButton' as TranslationKey)}</span>
+                    <span className="sr-only">{t('common.redefineRequestButton')}</span>
                 </Button>
             </div>
             <Textarea
               id="project-analysis-modification-input"
               value={modificationPrompt}
               onChange={(e) => onModificationPromptChange(e.target.value)}
-              placeholder={t('analyzeProject.results.modificationInputPlaceholder' as TranslationKey)}
+              placeholder={t('analyzeProject.results.modificationInputPlaceholder')}
               rows={3}
               disabled={isProcessingModification || isRedefiningModificationPrompt}
             />
-             {!canApplyAndDownload && <p className="text-xs text-muted-foreground mt-1">{t('analyzeProject.toast.modificationError.noBaseFiles' as TranslationKey)}</p>}
+             {!originalProjectFiles && <p className="text-xs text-muted-foreground mt-1">{t('analyzeProject.toast.modificationError.noBaseFiles')}</p>}
           </div>
           <Button
             onClick={onProcessModification}
-            disabled={isProcessingModification || isRedefiningModificationPrompt || (!modificationPrompt || !modificationPrompt.trim()) || !canApplyAndDownload}
+            disabled={isProcessingModification || isRedefiningModificationPrompt || (!modificationPrompt || !modificationPrompt.trim()) || !originalProjectFiles}
             className="w-full"
           >
             {isProcessingModification ? (
@@ -251,10 +247,11 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
           </Button>
         </CardContent>
       </Card>
+      {result.groupLog && (
+        <LogsDisplay title={t('analyzeProject.results.groupLogTitle')} logs={result.groupLog} />
+      )}
     </div>
   );
 };
 
 export default AnalyzeProjectResultsDisplay;
-
-    

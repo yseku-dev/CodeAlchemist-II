@@ -26,7 +26,7 @@
     "suggestionPriorityLabel": "Prioridad:",
     "suggestedPromptLabel": "Prompt Sugerido:",
     "groupLogTitle": "Log Detallado del Análisis",
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\\\"{orchestratorContext}...\\\"\\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del grupo seleccionado para guiar el proceso de la IA.",
     "modifyAnalysisSectionTitle": "Sugerir Modificaciones al Proyecto",
     "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
     "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
@@ -41,7 +41,13 @@
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
     "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área: {area}",
     "sendModificationButton": "Enviar Modificación",
-    "chatInteractionLogPrefix": "Interacción de Chat ({time})"
+    "chatInteractionLogPrefix": "Interacción de Chat ({time})",
+    "uploadedFileFallback": "Archivo Subido",
+    "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados"
+  },
+  "autofixContext": {
+    "projectPromptLabel": "Prompt del Proyecto",
+    "lastModificationLabel": "Última Petición de Modificación"
   },
   "toast": {
     "invalidFile": {
@@ -55,8 +61,7 @@
     "zipReadError": {
       "title": "Error al Leer ZIP",
       "description": "No se pudo leer el archivo ZIP: {error}",
-      "noValidFiles": "El archivo ZIP subido '{fileName}' no contiene archivos de texto/código legibles o está vacío.",
-      "invalidJsonContent": "El contenido JSON del snapshot es inválido para generar un ZIP de proyecto."
+      "noValidFiles": "El archivo ZIP subido '{fileName}' no contiene archivos de texto/código legibles o está vacío."
     },
     "zipProcessed": {
       "title": "ZIP Procesado",
@@ -92,7 +97,7 @@
       "title": "Error en Modificación",
       "description": "No se pudo procesar tu petición de modificación.",
       "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
-      "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP fue procesado exitosamente que generó archivos base.",
+      "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP fue procesado exitosamente (generando archivos base). Tipo de fuente actual: {sourceType}.",
       "consultationError": "Ocurrió un error al consultar a la IA sobre el análisis."
     },
     "modificationSuccess": {
@@ -107,12 +112,12 @@
       "unknown": "Error desconocido al generar el ZIP del proyecto modificado."
     },
     "selectedSuggestionsApplied": {
-      "title": "Cambios Aplicados",
-      "description": "Las sugerencias seleccionadas han sido aplicadas en memoria. Ahora puedes descargar el ZIP modificado o continuar sugiriendo cambios a la IA."
+      "title": "Cambios Seleccionados Aplicados",
+      "description": "Las sugerencias de checkbox seleccionadas han sido aplicadas en memoria. Ahora puedes descargar el ZIP modificado o continuar sugiriendo cambios a la IA."
     },
     "noSuggestionsToApply": {
       "title": "Sin Sugerencias para Aplicar",
-      "description": "Por favor, selecciona al menos una sugerencia con contenido aplicable."
+      "description": "Por favor, selecciona al menos una sugerencia con contenido aplicable mediante el checkbox."
     },
     "zipDownloadSuccess": {
       "title": "Descarga de Proyecto Modificado (ZIP) Iniciada",

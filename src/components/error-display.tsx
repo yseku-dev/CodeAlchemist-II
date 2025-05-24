@@ -108,8 +108,8 @@ export default function ErrorDisplay({ error, context, onAutoFix }: ErrorDisplay
     try {
       const result = await callAutoFixErrorWithGroup({
         errorMessage,
-        codeContext: errorStack,
-        userInstructions: context,
+        codeContext: errorStack || context, // Prefer stack, fallback to general context
+        userInstructions: context, // Pass general context as user instructions if available
       });
       setAutoFixResult(result);
       setIsModalOpen(true);
@@ -128,16 +128,16 @@ export default function ErrorDisplay({ error, context, onAutoFix }: ErrorDisplay
     <>
       <Alert variant="destructive" className="my-4 shadow-md">
         <AlertTriangle className="h-5 w-5" />
-        <AlertTitle className="font-semibold">{t('error.errorDisplay.title' as TranslationKey)}</AlertTitle>
+        <AlertTitle className="font-semibold">{t('error.errorDisplay.title')}</AlertTitle>
         <AlertDescription>
           <p className="mb-3 text-sm break-words">{errorMessage}</p>
           <div className="flex flex-wrap gap-2 mt-2">
             <Button variant="outline" size="sm" onClick={handleCopyError} className="border-destructive/70 hover:bg-destructive/10 text-destructive-foreground">
-              <Copy className="mr-1.5 h-3.5 w-3.5" /> {t('error.errorDisplay.copyButton' as TranslationKey)}
+              <Copy className="mr-1.5 h-3.5 w-3.5" /> {t('error.errorDisplay.copyButton')}
             </Button>
             <Button variant="outline" size="sm" onClick={handleAttemptAutoFix} disabled={isAutoFixing} className="border-destructive/70 hover:bg-destructive/10 text-destructive-foreground">
               {isAutoFixing ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Wand2 className="mr-1.5 h-3.5 w-3.5" />}
-              {isAutoFixing ? t('error.errorDisplay.autofixingButton' as TranslationKey) : t('error.errorDisplay.autofixButton' as TranslationKey)}
+              {isAutoFixing ? t('error.errorDisplay.autofixingButton') : t('error.errorDisplay.autofixButton')}
             </Button>
           </div>
         </AlertDescription>
@@ -149,16 +149,16 @@ export default function ErrorDisplay({ error, context, onAutoFix }: ErrorDisplay
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-accent">
                 <Wand2 className="h-6 w-6" />
-                {t('error.errorDisplay.autofixModal.title' as TranslationKey)}
+                {t('error.errorDisplay.autofixModal.title')}
               </DialogTitle>
               <DialogDescription>
-                {t('error.errorDisplay.autofixModal.description' as TranslationKey)}
+                {t('error.errorDisplay.autofixModal.description')}
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="flex-grow my-4 pr-3 -mr-3">
               <div className="space-y-4 text-sm">
                 <div>
-                  <h4 className="font-semibold text-foreground mb-1">{t('error.errorDisplay.autofixModal.originalErrorLabel' as TranslationKey)}</h4>
+                  <h4 className="font-semibold text-foreground mb-1">{t('error.errorDisplay.autofixModal.originalErrorLabel')}</h4>
                   <pre className="text-xs p-2 bg-muted rounded-md whitespace-pre-wrap">{errorMessage}</pre>
                   {errorStack && (
                      <details className="group mt-1">
@@ -175,12 +175,12 @@ export default function ErrorDisplay({ error, context, onAutoFix }: ErrorDisplay
                 </div>
                 <Separator />
                 <div>
-                  <h4 className="font-semibold text-foreground mb-1">{t('error.errorDisplay.autofixModal.diagnosisLabel' as TranslationKey)}</h4>
+                  <h4 className="font-semibold text-foreground mb-1">{t('error.errorDisplay.autofixModal.diagnosisLabel')}</h4>
                   <p className="text-muted-foreground whitespace-pre-wrap p-2 bg-muted/50 rounded-md">{autoFixResult.diagnosticNotes || "No se proporcionaron notas de diagnóstico específicas."}</p>
                 </div>
                 <Separator />
                 <div>
-                  <h4 className="font-semibold text-foreground mb-1">{t('error.errorDisplay.autofixModal.solutionLabel' as TranslationKey)}</h4>
+                  <h4 className="font-semibold text-foreground mb-1">{t('error.errorDisplay.autofixModal.solutionLabel')}</h4>
                   <pre className="p-2 bg-muted/50 rounded-md whitespace-pre-wrap font-mono text-xs">{autoFixResult.suggestedSolution}</pre>
                 </div>
                 <Separator />
@@ -188,7 +188,7 @@ export default function ErrorDisplay({ error, context, onAutoFix }: ErrorDisplay
                     <details className="group">
                         <summary className="cursor-pointer flex items-center text-xs text-muted-foreground hover:text-foreground">
                             <MessageSquareText className="mr-1.5 h-3.5 w-3.5"/>
-                            {t('error.errorDisplay.autofixModal.invocationLogLabel' as TranslationKey)}
+                            {t('error.errorDisplay.autofixModal.invocationLogLabel')}
                             <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180 ml-auto" />
                         </summary>
                         <pre className="mt-2 text-xs p-2 bg-muted rounded-md whitespace-pre-wrap border">
@@ -200,7 +200,7 @@ export default function ErrorDisplay({ error, context, onAutoFix }: ErrorDisplay
             </ScrollArea>
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="outline">{t('common.close' as TranslationKey)}</Button>
+                <Button variant="outline">{t('common.close')}</Button>
               </DialogClose>
             </DialogFooter>
           </DialogContent>
@@ -209,3 +209,5 @@ export default function ErrorDisplay({ error, context, onAutoFix }: ErrorDisplay
     </>
   );
 }
+
+    

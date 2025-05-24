@@ -41,7 +41,13 @@
     "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
     "selectSuggestionCheckboxAria": "Select suggestion for area: {area}",
     "sendModificationButton": "Send Modification",
-    "chatInteractionLogPrefix": "Chat Interaction ({time})"
+    "chatInteractionLogPrefix": "Chat Interaction ({time})",
+    "uploadedFileFallback": "Uploaded File",
+    "applySelectedSuggestionsButton": "Apply Selected Changes"
+  },
+  "autofixContext": {
+    "projectPromptLabel": "Project Prompt",
+    "lastModificationLabel": "Last Modification Request"
   },
   "toast": {
     "invalidFile": {
@@ -91,7 +97,7 @@
       "title": "Modification Error",
       "description": "Could not process your modification request.",
       "emptyModificationRequest": "Please describe the modification you want to make.",
-      "noBaseFiles": "File modification is only possible if the original source was Git or a ZIP was processed successfully that generated base files.",
+      "noBaseFiles": "File modification is only possible if the original source was Git or a ZIP was processed successfully (generating base files). Current source type: {sourceType}.",
       "consultationError": "An error occurred while consulting the AI about the analysis."
     },
     "modificationSuccess": {
@@ -106,12 +112,12 @@
       "unknown": "Unknown error generating ZIP of modified project."
     },
     "selectedSuggestionsApplied": {
-      "title": "Changes Applied",
-      "description": "Selected suggestions have been applied in memory. You can now download the modified ZIP or continue suggesting changes to the AI."
+      "title": "Selected Changes Applied",
+      "description": "Selected checkbox suggestions have been applied in memory. You can now download the modified ZIP or continue suggesting changes to the AI."
     },
     "noSuggestionsToApply": {
       "title": "No Suggestions to Apply",
-      "description": "Please select at least one suggestion with applicable content."
+      "description": "Please select at least one suggestion with applicable content using the checkbox."
     },
     "zipDownloadSuccess": {
       "title": "Modified Project Download (ZIP) Started",
