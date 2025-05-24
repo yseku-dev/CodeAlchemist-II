@@ -25,29 +25,31 @@
     "initialAiNotes": "Initial notes from the group generation process."
   },
   "logs": {
-    "groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
+    "groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
     "multiTurnLog": {
       "processStart": "Starting project generation with group: {groupName}. Task: {taskDescription}",
       "orchestratorTurnStart": "Turn {turn} - Orchestrator:",
-      "orchestratorReceiving": "  Receiving Input: {input}",
-      "orchestratorSendingPrompt": "  Sending prompt to LLM (length: {length}):\\n{prompt}",
-      "orchestratorRawResponse": "  Raw JSON response from Orchestrator (truncated): {response}",
-      "orchestratorParsedDecision": "  Parsed decision: Next Agent: {nextAgentId}, Instruction (start): {instructionStart}..., Reasoning (start): {reasoningStart}...",
-      "orchestratorDataAggregation": "  Aggregating data from payload: Project: {projectName}, Notes (start): {aiNotesStart}..., Files: {filesCount}",
+      "orchestratorReceiving": "Orchestrator Receiving Task (Turn {turn}):",
+      "orchestratorSendingPrompt": "Prompt for Orchestrator (Turn {turn}, Length: {length}):",
+      "orchestratorRawResponse": "Raw JSON Response from Orchestrator (Turn {turn}) (truncated):",
+      "orchestratorParsedDecision": "Parsed Orchestrator Decision (Turn {turn}): Next Agent: {nextAgentId}, Instruction (start): {instructionStart}..., Reasoning (start): {reasoningStart}...",
+      "orchestratorDataAggregation": "Orchestrator (Turn {turn}) - Aggregated data: Project: {projectName}, Notes (start): {aiNotesStart}..., Files: {filesCount}",
       "agentTurnStart": "Turn {turn} - Agent {agentName}:",
-      "agentReceivingInstruction": "  Receiving instruction: {instruction}",
-      "agentSendingPrompt": "  Sending prompt to LLM (length: {length}):\\n{prompt}",
-      "agentRawResponse": "  Raw response from Agent {agentName} (truncated): {response}",
-      "processCompleted": "Process completed by orchestrator. Final result (summary): {finalSummary}",
-      "maxTurnsReached": "Maximum of {maxTurns} turns reached. Project generation might be incomplete.",
+      "agentReceivingInstruction": "Agent {agentName} (Turn {turn}) Receiving Instruction:",
+      "agentSendingPrompt": "Prompt for Agent {agentName} (Turn {turn}, Length: {length}):",
+      "agentRawResponse": "Raw Response from Agent {agentName} (Turn {turn}) (truncated):",
+      "processCompleted": "Orchestrator (Turn {turn}) indicates: TASK COMPLETED. Final Result (summary): {finalSummary}",
+      "maxTurnsReached": "\nMaximum of {maxTurns} turns reached. Project generation might be incomplete.",
       "errorTurn": "[ERROR] Turn {turn} ({actor}): {errorMessage}",
-      "errorParsingOrchestratorResponse": "  [CRITICAL ERROR] Turn {turn} - Orchestrator did not return valid JSON. Response: {response}. Parse Error: {parseError}",
-      "errorOrchestratorMissingFields": "  [CRITICAL ERROR] Turn {turn} - Orchestrator response incomplete. Missing required fields.",
-      "errorAgentNotFound": "  [CRITICAL ERROR] Turn {turn} - Agent with ID '{agentId}' not found.",
-      "errorCallingAgent": "  [ERROR] Turn {turn} - Failed to call agent {agentName}: {errorMessage}",
-      "errorCallingOrchestrator": "  [ERROR] Turn {turn} - Failed to call orchestrator: {errorMessage}",
-      "finalProjectAssembly": "Assembling final project result...",
-      "noValidResponseFromOrchestrator": "No valid response received from orchestrator to continue."
+      "errorParsingOrchestratorResponse": "[CRITICAL ERROR] Turn {turn} - Orchestrator did not return valid JSON or is missing key fields. Raw response: {response}. Parse Error: {parseError}",
+      "errorOrchestratorMissingFields": "[CRITICAL ERROR] Turn {turn} - Orchestrator response incomplete. Missing required fields.",
+      "errorAgentNotFound": "[CRITICAL ERROR] Turn {turn} - Agent with ID '{agentId}' not found in default agents list.",
+      "errorCallingAgent": "[ERROR] Turn {turn} - Failed to call agent {agentName}: {errorMessage}",
+      "errorCallingOrchestrator": "[ERROR] Turn {turn} - Failed to call orchestrator: {errorMessage}",
+      "finalProjectAssembly": "Assembling final project result from accumulated data...",
+      "noValidResponseFromOrchestrator": "No valid response received from orchestrator to continue after turn {turn}.",
+      "promptLogHeader": "Prompt Sent:",
+      "responseLogHeader": "Response Received:"
     }
   },
   "confirmDialog": {
@@ -78,9 +80,9 @@
       "title": "Project Downloaded (ZIP)",
       "description": "A ZIP file ({filename}) with the project structure and content for \"{projectName}\" has been downloaded."
     },
-    "zipDownloadError": {
-      "title": "ZIP Download Error",
-      "description": "Could not generate the ZIP file: {error}"
+    "zipReadError": {
+      "title": "ZIP Read Error",
+      "description": "Could not read the ZIP file: {error}"
     },
     "modificationSent": {
       "title": "Modification Sent",
@@ -98,5 +100,8 @@
       "title": "Empty Request",
       "description": "Please describe the modification you want to make."
     }
+  },
+  "downloads": {
+    "zipFilename": "project_{projectName}.zip"
   }
 }

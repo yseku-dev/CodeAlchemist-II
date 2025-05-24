@@ -25,29 +25,31 @@
     "initialAiNotes": "Notas iniciales del proceso de generación."
   },
   "logs": {
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}\\nInput del Usuario: {userInput}\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}\\nInput del Usuario: {userInput}\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
     "multiTurnLog": {
       "processStart": "Iniciando generación de proyecto con grupo: {groupName}. Tarea: {taskDescription}",
       "orchestratorTurnStart": "Turno {turn} - Orquestador:",
-      "orchestratorReceiving": "  Recibiendo Input: {input}",
-      "orchestratorSendingPrompt": "  Enviando prompt al LLM (longitud: {length}):\\n{prompt}",
-      "orchestratorRawResponse": "  Respuesta JSON Cruda del Orquestador (truncada): {response}",
-      "orchestratorParsedDecision": "  Decisión parseada: Próximo Agente: {nextAgentId}, Instrucción (inicio): {instructionStart}..., Razonamiento (inicio): {reasoningStart}...",
-      "orchestratorDataAggregation": "  Agregando datos del payload: Proyecto: {projectName}, Notas (inicio): {aiNotesStart}..., Archivos: {filesCount}",
+      "orchestratorReceiving": "Orquestador Recibiendo Tarea (Turno {turn}):",
+      "orchestratorSendingPrompt": "Prompt para Orquestador (Turno {turn}, Longitud: {length}):",
+      "orchestratorRawResponse": "Respuesta JSON Cruda del Orquestador (Turno {turn}) (truncada):",
+      "orchestratorParsedDecision": "Decisión Parseada del Orquestador (Turno {turn}): Próximo Agente: {nextAgentId}, Instrucción (inicio): {instructionStart}..., Razonamiento (inicio): {reasoningStart}...",
+      "orchestratorDataAggregation": "Orquestador (Turno {turn}) - Datos agregados: Proyecto: {projectName}, Notas (inicio): {aiNotesStart}..., Archivos: {filesCount}",
       "agentTurnStart": "Turno {turn} - Agente {agentName}:",
-      "agentReceivingInstruction": "  Recibiendo instrucción: {instruction}",
-      "agentSendingPrompt": "  Enviando prompt al LLM (longitud: {length}):\\n{prompt}",
-      "agentRawResponse": "  Respuesta cruda del Agente {agentName} (truncada): {response}",
-      "processCompleted": "Proceso completado por el orquestador. Resultado final (resumen): {finalSummary}",
-      "maxTurnsReached": "Se alcanzó el límite máximo de {maxTurns} turnos. La generación del proyecto podría estar incompleta.",
+      "agentReceivingInstruction": "Agente {agentName} (Turno {turn}) Recibiendo Instrucción:",
+      "agentSendingPrompt": "Prompt para Agente {agentName} (Turno {turn}, Longitud: {length}):",
+      "agentRawResponse": "Respuesta Cruda de Agente {agentName} (Turno {turn}) (truncada):",
+      "processCompleted": "Orquestador (Turno {turn}) indica: TAREA COMPLETADA. Resultado Final (resumen): {finalSummary}",
+      "maxTurnsReached": "\nSe alcanzó el límite máximo de {maxTurns} turnos. La generación del proyecto podría estar incompleta.",
       "errorTurn": "[ERROR] Turno {turn} ({actor}): {errorMessage}",
-      "errorParsingOrchestratorResponse": "  [ERROR CRÍTICO] Turno {turn} - Orquestador no devolvió JSON válido. Respuesta: {response}. Error de parseo: {parseError}",
-      "errorOrchestratorMissingFields": "  [ERROR CRÍTICO] Turno {turn} - Respuesta del Orquestador incompleta. Faltan campos requeridos.",
-      "errorAgentNotFound": "  [ERROR CRÍTICO] Turno {turn} - Agente con ID '{agentId}' no encontrado.",
-      "errorCallingAgent": "  [ERROR] Turno {turn} - Falló la llamada al agente {agentName}: {errorMessage}",
-      "errorCallingOrchestrator": "  [ERROR] Turno {turn} - Falló la llamada al orquestador: {errorMessage}",
-      "finalProjectAssembly": "Ensamblando resultado final del proyecto...",
-      "noValidResponseFromOrchestrator": "No se obtuvo una respuesta válida del orquestador para continuar."
+      "errorParsingOrchestratorResponse": "[ERROR CRÍTICO] Turno {turn} - Orquestador no devolvió JSON válido o faltan campos clave. Respuesta cruda: {response}. Error de parseo: {parseError}",
+      "errorOrchestratorMissingFields": "[ERROR CRÍTICO] Turno {turn} - Respuesta del Orquestador incompleta. Faltan campos requeridos.",
+      "errorAgentNotFound": "[ERROR CRÍTICO] Turno {turn} - Agente con ID '{agentId}' no encontrado en la lista de agentes por defecto.",
+      "errorCallingAgent": "[ERROR] Turno {turn} - Falló la llamada al agente {agentName}: {errorMessage}",
+      "errorCallingOrchestrator": "[ERROR] Turno {turn} - Falló la llamada al orquestador: {errorMessage}",
+      "finalProjectAssembly": "Ensamblando resultado final del proyecto a partir de datos acumulados...",
+      "noValidResponseFromOrchestrator": "No se obtuvo una respuesta válida del orquestador para continuar después del turno {turn}.",
+      "promptLogHeader": "Prompt Enviado:",
+      "responseLogHeader": "Respuesta Recibida:"
     }
   },
   "confirmDialog": {
@@ -78,9 +80,9 @@
       "title": "Proyecto Descargado (ZIP)",
       "description": "Se ha descargado un archivo ZIP ({filename}) con la estructura y contenido del proyecto \"{projectName}\"."
     },
-    "zipDownloadError": {
-      "title": "Error al Descargar ZIP",
-      "description": "No se pudo generar el archivo ZIP: {error}"
+    "zipReadError": {
+      "title": "Error al Leer ZIP",
+      "description": "No se pudo leer el archivo ZIP: {error}"
     },
     "modificationSent": {
       "title": "Modificación Enviada",
@@ -98,5 +100,8 @@
       "title": "Petición Vacía",
       "description": "Por favor, describe la modificación que deseas realizar."
     }
+  },
+  "downloads": {
+    "zipFilename": "proyecto_{projectName}.zip"
   }
 }
