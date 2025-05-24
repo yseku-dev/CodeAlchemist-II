@@ -6,7 +6,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Send, Wand2, Loader2, MessageSquare, Bot, User, Save } from 'lucide-react';
 import FileTreeDisplay from '@/components/file-tree';
-// LogsDisplay es ahora manejado directamente en la página padre si es necesario
 import type { ProjectGenerationResult, ChatMessage } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { Label } from '@/components/ui/label';
@@ -21,8 +20,7 @@ interface GenerateProjectResultsDisplayProps {
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
   onDownloadProject: () => void;
   onSaveSnapshot: () => void;
-  // Props for modification chat
-  chatHistory: ChatMessage[];
+  chatHistory?: ChatMessage[]; // Made optional
   currentModificationRequest: string;
   onCurrentModificationRequestChange: (value: string) => void;
   onSendModificationRequest: () => Promise<void>;
@@ -53,7 +51,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
   t,
   onDownloadProject,
   onSaveSnapshot,
-  chatHistory,
+  chatHistory = [], // Default value provided here
   currentModificationRequest,
   onCurrentModificationRequestChange,
   onSendModificationRequest,
@@ -113,13 +111,13 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
         </CardHeader>
         <CardContent className="space-y-4">
           <ScrollArea className="h-48 border rounded-md p-3 bg-muted/30" ref={scrollAreaRefChat}>
-            {chatHistory.length === 0 && (
+            {(chatHistory || []).length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                     {t('generateProject.results.modificationInputPlaceholder')}
                 </p>
             )}
             <div className="space-y-3">
-              {chatHistory.map((msg) => (
+              {(chatHistory || []).map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex ${
@@ -173,7 +171,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
                     variant="outline"
                     size="sm"
                     onClick={onRedefineModificationRequest}
-                    disabled={!currentModificationRequest.trim() || isRedefiningModificationRequest || isModifyingProject}
+                    disabled={(!currentModificationRequest || !currentModificationRequest.trim()) || isRedefiningModificationRequest || isModifyingProject}
                     title={t('common.redefineRequestButton')}
                 >
                     {isRedefiningModificationRequest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
@@ -192,7 +190,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
           </div>
           <Button
             onClick={onSendModificationRequest}
-            disabled={isModifyingProject || isRedefiningModificationRequest || !currentModificationRequest.trim()}
+            disabled={isModifyingProject || isRedefiningModificationRequest || (!currentModificationRequest || !currentModificationRequest.trim())}
             className="w-full"
           >
             {isModifyingProject ? (
@@ -209,3 +207,5 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
 };
 
 export default GenerateProjectResultsDisplay;
+
+    
