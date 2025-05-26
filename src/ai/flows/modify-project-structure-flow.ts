@@ -64,7 +64,7 @@ const ProjectGenerationResultSchemaForFlowInternal = z.object({
 });
 
 const ModifyProjectStructureInputSchemaInternal = z.object({
-  currentProject: z.object({ // Simplified for the prompt, full schema is ProjectGenerationResultSchemaForFlowInternal
+  currentProject: z.object({
       projectName: z.string(),
       aiNotes: z.string(),
       files: z.array(GeneratedFileSchemaInternal)
@@ -137,19 +137,19 @@ Petición de Modificación del Usuario:
 "{{{modificationRequest}}}"
 
 Instrucciones Detalladas para tu respuesta JSON (Schema: ProjectGenerationResultSchemaForFlowInternal):
-1.  **`projectName` (string, OBLIGATORIO):** El nombre del proyecto. Generalmente debe mantenerse igual al de 'currentProject.projectName', a menos que la petición de modificación lo cambie explícitamente. ¡NO OMITIR ESTE CAMPO!
-2.  **`aiNotes` (string, OBLIGATORIO):** Comentarios o notas de la IA sobre los cambios realizados, cualquier problema encontrado durante la modificación, o sugerencias adicionales. Si la petición del usuario es ambigua o irrealizable, explícalo claramente aquí y devuelve la estructura del proyecto SIN cambios significativos en 'files' (pero actualiza 'aiNotes'). ¡NO OMITIR ESTE CAMPO!
-3.  **`files` (array de objetos GeneratedFile, OBLIGATORIO):** Una lista de TODOS los archivos y carpetas que representan la estructura COMPLETA del proyecto DESPUÉS de la modificación. ¡NO OMITIR ESTE CAMPO! Puede ser un array vacío \`[]\` si se eliminan todos los archivos.
-    *   Cada objeto `GeneratedFile` DEBE tener:
-        *   **`path` (string, OBLIGATORIO):** Ruta relativa del archivo/carpeta (ej. "src/components/Button.tsx", "README.md", "public/"). Las carpetas DEBEN terminar con \`/\`.
-        *   **`content` (string, OBLIGATORIO):** Contenido COMPLETO y FUNCIONAL del archivo. Vacío (\`""\`) para carpetas. No uses placeholders en lugar de código real.
-        *   **`isFolder` (boolean, opcional):** \`true\` si es una carpeta. Si \`path\` termina en \`/\`, se asume carpeta.
+1.  **\\\`projectName\\\` (string, OBLIGATORIO):** El nombre del proyecto. Generalmente debe mantenerse igual al de 'currentProject.projectName', a menos que la petición de modificación lo cambie explícitamente. ¡NO OMITIR ESTE CAMPO!
+2.  **\\\`aiNotes\\\` (string, OBLIGATORIO):** Comentarios o notas de la IA sobre los cambios realizados, cualquier problema encontrado durante la modificación, o sugerencias adicionales. Si la petición del usuario es ambigua o irrealizable, explícalo claramente aquí y devuelve la estructura del proyecto SIN cambios significativos en 'files' (pero actualiza 'aiNotes'). ¡NO OMITIR ESTE CAMPO!
+3.  **\\\`files\\\` (array de objetos GeneratedFile, OBLIGATORIO):** Una lista de TODOS los archivos y carpetas que representan la estructura COMPLETA del proyecto DESPUÉS de la modificación. ¡NO OMITIR ESTE CAMPO! Puede ser un array vacío \\\`[]\\\` si se eliminan todos los archivos.
+    *   Cada objeto \\\`GeneratedFile\\\` DEBE tener:
+        *   **\\\`path\\\` (string, OBLIGATORIO):** Ruta relativa del archivo/carpeta (ej. "src/components/Button.tsx", "README.md", "public/"). Las carpetas DEBEN terminar con \\\`/\`.
+        *   **\\\`content\\\` (string, OBLIGATORIO):** Contenido COMPLETO y FUNCIONAL del archivo. Vacío (\\\`""\\\`) para carpetas. No uses placeholders en lugar de código real.
+        *   **\\\`isFolder\\\` (boolean, opcional):** \\\`true\\\` si es una carpeta. Si \\\`path\\\` termina en \\\`/\`, se asume carpeta.
     *   **Acciones de Modificación:**
         *   **Añadir nuevos archivos/carpetas:** Inclúyelos en la lista de 'files' con su 'path' y 'content' completo. Si creas un archivo dentro de una nueva carpeta, asegúrate de que la carpeta también esté declarada.
         *   **Modificar archivos existentes:** Actualiza el 'content' del archivo correspondiente en la lista.
         *   **Eliminar archivos/carpetas:** Simplemente omite el archivo/carpeta de la nueva lista de 'files'.
     *   **IMPORTANTE: Mantén todos los archivos no afectados por la petición del usuario exactamente sin cambios en la nueva lista de 'files'.**
-4.  **`groupLog` (string, opcional):** Si esta modificación es parte de una ejecución de grupo, este campo puede contener logs. Generalmente, no necesitas generarlo tú mismo a menos que estés actuando como orquestador principal.
+4.  **\\\`groupLog\\\` (string, opcional):** Si esta modificación es parte de una ejecución de grupo, este campo puede contener logs. Generalmente, no necesitas generarlo tú mismo a menos que estés actuando como orquestador principal.
 
 Toda la salida (nombres de archivo, contenido, notas) debe estar en castellano.
 Tu respuesta DEBE SER ÚNICAMENTE el objeto JSON válido y completo que se adhiera a esta estructura. No incluyas ningún otro texto explicativo fuera del objeto JSON.
@@ -186,42 +186,56 @@ const modifyProjectStructureFlowGenkit = ai.defineFlow(
 
       if (!output) {
         originalErrorForAppError = { message: 'No output from LLM', llmUsage: llmResponse.usage };
-        console.error(`[Flow: ${flowName}] ${originalErrorForAppError.message}. Usage:`, originalErrorForAppError.llmUsage);
+        let schemaValidationErrorMsg = "";
+        if (llmResponse.usage?.promptInvalid) {
+            schemaValidationErrorMsg = ` Detalles de validación de schema de Genkit: ${JSON.stringify(llmResponse.usage.promptInvalid)}`;
+        }
+        console.error(`[Flow: ${flowName}] ${originalErrorForAppError.message}.${schemaValidationErrorMsg} Usage:`, originalErrorForAppError.llmUsage);
         throw new AppError(
-            `La IA no pudo modificar la estructura del proyecto (sin salida). ${llmResponse.usage?.promptInvalid ? 'Detalles de validación de schema de Genkit: ' + JSON.stringify(llmResponse.usage.promptInvalid) : ''}`.trim(),
+            `La IA no pudo modificar la estructura del proyecto (sin salida).${schemaValidationErrorMsg}`,
             originalErrorForAppError,
             'ai'
         );
       }
+      
+      let finalAiNotes = output.aiNotes || "Modificación procesada por la IA. Revisa los archivos.";
+      if (!output.projectName) {
+        finalAiNotes = `[ADVERTENCIA: La IA no proporcionó 'projectName'. Usando el nombre del proyecto actual o uno por defecto.] ${finalAiNotes}`;
+        console.warn(`[Flow: ${flowName}] La IA no proporcionó 'projectName'.`);
+      }
+      if (!output.files || !Array.isArray(output.files)) {
+         finalAiNotes = `[ADVERTENCIA: La IA no proporcionó una lista 'files' válida. Se devolvió una lista vacía.] ${finalAiNotes}`;
+         console.warn(`[Flow: ${flowName}] La IA no proporcionó una lista 'files' válida.`);
+      }
 
-      // Ensure required fields are present, even if schema validation from Genkit passes (which it should if output is not null)
-      // Genkit's schema validation is the primary guard. These are fallbacks or for more specific error messages.
       const validatedOutput: ProjectGenerationResult = {
         projectName: output.projectName || input.currentProject.projectName || "proyecto-modificado",
-        aiNotes: output.aiNotes || "Modificación procesada. Revisa los archivos.",
-        files: (output.files && Array.isArray(output.files)) ? output.files.map((file: any) => ({ // Cast file to any temporarily
-          path: file.path || 'ruta/desconocida/error.txt',
+        aiNotes: finalAiNotes,
+        files: (output.files && Array.isArray(output.files)) ? output.files.map((file: any) => ({ 
+          path: file.path || 'ruta/desconocida/error.txt', // Fallback si path falta
           content: typeof file.content === 'string' ? file.content : '',
           isFolder: typeof file.isFolder === 'boolean' ? file.isFolder : (file.path || '').endsWith('/'),
         })) : [],
         groupLog: output.groupLog,
       };
       
-      if (!output.projectName) {
-        validatedOutput.aiNotes = `[ADVERTENCIA: La IA no proporcionó 'projectName'. Usando por defecto.] ${validatedOutput.aiNotes}`;
-        console.warn(`[Flow: ${flowName}] La IA no proporcionó 'projectName'.`);
-      }
-      if (!output.files || !Array.isArray(output.files)) {
-         validatedOutput.aiNotes = `[ADVERTENCIA: La IA no proporcionó una lista 'files' válida. Se devolvió una lista vacía.] ${validatedOutput.aiNotes}`;
-         console.warn(`[Flow: ${flowName}] La IA no proporcionó una lista 'files' válida.`);
-      }
-      
-      console.log(`[Flow: ${flowName}] Output validado/normalizado:`, JSON.stringify(validatedOutput, null, 2)?.substring(0, 500) + '...');
+      console.log(`[Flow: ${flowName}] Output validado/normalizado (truncado):`, JSON.stringify(validatedOutput, null, 2)?.substring(0, 500) + '...');
       return validatedOutput as ProjectGenerationResult;
 
     } catch (error: any) {
       const originalErrorMessage = error?.message ? String(error.message) : 'Detalles del error no disponibles';
-      const schemaValidationError = error?.originalError?.llmUsage?.promptInvalid || error?.llmUsage?.promptInvalid;
+      let errorDetails = originalErrorForAppError || error;
+      if (errorDetails instanceof AppError) errorDetails = errorDetails.originalError || errorDetails;
+      
+      const schemaValidationError = error?.llmUsage?.promptInvalid || error?.originalError?.llmUsage?.promptInvalid;
+      let schemaValidationErrorMsg = "";
+      if (schemaValidationError) {
+        try {
+            schemaValidationErrorMsg = ` Detalles de validación de schema de Genkit: ${JSON.stringify(schemaValidationError)}`;
+        } catch {
+            schemaValidationErrorMsg = " Detalles de validación de schema de Genkit no pudieron ser serializados."
+        }
+      }
 
       console.error(`[Flow: ${flowName}] Error ORIGINAL capturado antes de lanzar AppError:`, error);
       if (error.stack) {
@@ -235,22 +249,18 @@ const modifyProjectStructureFlowGenkit = ai.defineFlow(
       }
 
       if (error instanceof AppError) {
+        // Si ya es un AppError, podrías querer añadir el schemaValidationErrorMsg si no está
+        error.friendlyMessage = `${error.friendlyMessage}${schemaValidationErrorMsg}`;
         throw error;
       }
 
-      let detailsForUser = originalErrorMessage;
-      if (schemaValidationError) {
-        detailsForUser = `INVALID_ARGUMENT: Schema validation failed. Parse Errors: ${JSON.stringify(schemaValidationError)}`;
-      }
-      detailsForUser = detailsForUser.substring(0, 150) + (detailsForUser.length > 150 ? '...' : '');
+      const detailsForUser = originalErrorMessage.substring(0, 100) + (originalErrorMessage.length > 100 ? '...' : '');
 
       throw new AppError(
-        `FALLO_EN_FLUJO_MODIFY_PROJECT: ${detailsForUser}`,
-        error, 
+        `FALLO_EN_FLUJO_MODIFY_PROJECT: ${detailsForUser}${schemaValidationErrorMsg}`,
+        errorDetails, 
         'ai'
       );
     }
   }
 );
-
-    
