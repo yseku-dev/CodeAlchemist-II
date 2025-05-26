@@ -15,7 +15,7 @@
     "downloadNote": "Note: The download will be a JSON file with the project structure and content.",
     "groupLogTitle": "Detailed Group Log",
     "modifyProjectSectionTitle": "Modify Project with AI",
-    "modificationInputLabel": "Describe your modification:",
+    "modificationInputLabel": "Describe the modification you want to apply to the project:",
     "modificationInputPlaceholder": "E.g.: Add a 'utils.js' file in the 'src' folder.",
     "sendModificationButton": "Send Modification",
     "processModificationButton": "Process Modification with AI",
@@ -24,16 +24,20 @@
     "chatInteractionLogPrefix": "Chat Interaction ({time})",
     "initialAiNotes": "Initial notes from the group generation process."
   },
+  "autofixContext": {
+    "projectPromptLabel": "Project Prompt",
+    "lastModificationLabel": "Last Modification Request"
+  },
   "logs": {
     "groupContextLog": "Workgroup Context Log:\\n------------------------------------\\nSelected Group: {groupName}\\nGroup Main Task: {groupTask}\\nUser Input: {userInput}\\nOrchestrator Context (used to guide AI):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNote: The Genkit flow ({flowName}) was executed using the selected group's orchestrator context to guide the AI process.",
     "multiTurnLog": {
       "processStart": "Starting project generation with group: {groupName}. Task: {taskDescription}",
       "orchestratorTurnStart": "Turn {turn} - Orchestrator:",
-      "orchestratorReceiving": "Orchestrator Receiving Task (Turn {turn}):",
+      "orchestratorReceiving": "Orchestrator Receiving Task (Turn {turn}) (Prompt Length: {promptLength}):",
       "orchestratorSendingPrompt": "Prompt for Orchestrator (Turn {turn}, Length: {length}):",
       "orchestratorRawResponse": "Raw JSON Response from Orchestrator (Turn {turn}) (truncated):",
       "orchestratorParsedDecision": "Parsed Orchestrator Decision (Turn {turn}): Next Agent: {nextAgentId}, Instruction (start): {instructionStart}..., Reasoning (start): {reasoningStart}...",
-      "orchestratorDataAggregation": "Orchestrator (Turn {turn}) - Aggregated data: Project: {projectName}, Notes (start): {aiNotesStart}..., Files: {filesCount}",
+      "orchestratorDataAggregation": "Orchestrator (Turn {turn}) - Aggregating data. Current Project: {projectName}, Notes (start): {aiNotesStart}..., Files: {filesCount}",
       "agentTurnStart": "Turn {turn} - Agent {agentName}:",
       "agentReceivingInstruction": "Agent {agentName} (Turn {turn}) Receiving Instruction:",
       "agentSendingPrompt": "Prompt for Agent {agentName} (Turn {turn}, Length: {length}):",
@@ -49,7 +53,19 @@
       "finalProjectAssembly": "Assembling final project result from accumulated data...",
       "noValidResponseFromOrchestrator": "No valid response received from orchestrator to continue after turn {turn}.",
       "promptLogHeader": "Prompt Sent:",
-      "responseLogHeader": "Response Received:"
+      "responseLogHeader": "Response Received:",
+      "noAgentToCall": "Orchestrator decided to delegate to '{agentIdToCall}' but no system prompt was found for this agent. Skipping agent call.",
+      "orchestratorDecisionInvalid": "Orchestrator's decision is invalid or incomplete. Cannot proceed.",
+      "orchestratorIndicatesCompletion": "Orchestrator has indicated the task is completed. Attempting to assemble final result.",
+      "finalResultFromOrchestrator": "Final result obtained directly from orchestrator's payload.",
+      "assemblingResultFromAccumulatedData": "Assembling final result from data accumulated during orchestration.",
+      "failedToParseFinalResult": "Error parsing final result from orchestrator as ProjectGenerationResult. Payload: {payloadString}",
+      "generatedProjectName": "AI Suggested Project Name",
+      "generatedAINotes": "AI Notes on Generated Project",
+      "generatedFileStructure": "Generated File and Folder Structure",
+      "noSpecificAgentResponse": "Agent {agentName} did not return a specific text response, or the response was empty.",
+      "orchestratorResponseNotJSON": "Orchestrator's response was not valid JSON or could not be parsed.",
+      "orchestratorResponseMissingFields": "Orchestrator's response is missing necessary fields (next_agent_id or instruction_for_next_agent)."
     }
   },
   "confirmDialog": {
@@ -73,8 +89,8 @@
       "description": "An error occurred while generating the project."
     },
     "downloadError": {
-      "title": "No Results",
-      "description": "There is no project structure to download."
+      "title": "Download Error",
+      "descriptionNoFiles": "There is no project structure to download."
     },
     "zipDownloadSuccess": {
       "title": "Project Downloaded (ZIP)",
@@ -99,7 +115,9 @@
     "emptyModificationRequest": {
       "title": "Empty Request",
       "description": "Please describe the modification you want to make."
-    }
+    },
+    "noProjectToModify": "There is no generated project to modify.",
+    "noProjectToSave": "There is no generated project to save as a snapshot."
   },
   "downloads": {
     "zipFilename": "project_{projectName}.zip"
