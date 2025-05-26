@@ -1,44 +1,77 @@
-
 // src/app/refactorizar-proyecto/page.tsx
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Card } from '@/components/ui/card'; // Import Card
-import { Loader2 } from 'lucide-react';
-import LLMConfigSelector from '@/components/llm-config-selector';
-import ErrorDisplay from '@/components/error-display';
-import { useDebug } from '@/context/DebugContext';
-import { useToast } from '@/hooks/use-toast';
-import type { LLMConfigSourceOption, RefactorSuggestion, RefactorProjectWithAIInput, RefactorProjectWithAIOutput as AIResult, Agent, AIAgentGroup, CodeSnapshot } from '@/types';
-import { GENERAL_PRIORITIES, type GeneralPriority, NINGUNA_PRIORITY_VALUE } from '@/lib/constants'; // Import NINGUNA_PRIORITY_VALUE
-import { callRefactorProjectWithAI, callRedefinePrompt } from '@/utils/apiClient';
+import React, { useState, useEffect, useCallback } from 'react'; // Removed useRef as it's in the hook
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useAppState } from '@/context/AppStateContext';
+import type {
+  LLMConfigSourceOption,
+  RefactorSuggestion,
+  RefactorProjectWithAIInput,
+  RefactorProjectWithAIOutput as AIResult,
+  Agent,
+  AIAgentGroup,
+  CodeSnapshot,
+} from '@/types';
+import { GENERAL_PRIORITIES, NINGUNA_PRIORITY_VALUE } from '@/lib/constants';
+import { callRefactorProjectWithAI } from '@/utils/apiClient';
 import { useRouter } from 'next/navigation';
 import { AppError } from '@/utils/AppError';
 import { useI18n } from '@/context/I18nContext';
 import type { TranslationKey } from '@/lib/i18n/translations';
-import { fetchRemoteGitRepository } from '@/app/autoupdate/actions';
+import { fetchRemoteGitRepository, getApplicationSourceBundle } from '@/app/autoupdate/actions';
 import RefactorProjectConfigSection from '@/components/features/refactorizar-proyecto/RefactorProjectConfigSection';
 import RefactorProjectResultsSection from '@/components/features/refactorizar-proyecto/RefactorProjectResultsSection';
 import LogsDisplay from '@/components/logs-display';
-
-
-type ProjectSourceType = "upload" | "git";
+import { useDebug } from '@/context/DebugContext';
+import { useToast } from '@/hooks/use-toast';
+import { useRefactorProjectForm, type ProjectSourceType, type RefactorProjectFormData } from '@/hooks/useRefactorProjectForm'; // Import the new hook
 
 /**
- * @fileOverview RefactorizarProyectoPage component allows users to analyze an existing project
- * for refactoring suggestions. Users can upload a project or provide a Git URL,
- * select an LLM configuration, and specify refactoring goals and priorities.
- * The component then displays AI-generated suggestions and a project overview.
- * All UI texts are internationalized.
- * This page has been refactored into smaller, more granular components.
+ * @fileOverview Page component for "Refactorizar Proyecto".
+ * Allows users to analyze an existing project (from upload, Git, or local source)
+ * for refactoring suggestions, manage these suggestions, and view diffs.
+ * Uses custom hook `useRefactorProjectForm` for form state and logic.
+ * Internationalized.
  */
 export default function RefactorizarProyectoPage() {
   const { agents, getAgentById, getGroupById, addSnapshot } = useAppState();
   const router = useRouter();
   const { t } = useI18n();
+  const { addLog: addDebugLog } = useDebug();
+  const { toast } = useToast();
 
-  const [llmConfigSource, setLlmConfigSource] = useState<LLMConfigSourceOption | undefined>(undefined);
+  // LLM Configuration State (remains in page)
+  const [llmConfigSource, setLlmConfigSource] = useLocalStorage<LLMConfigSourceOption | undefined>(
+    'codealchemist-rp-llmConfigSourcePage', // Ensure unique key if hook uses similar
+    undefined
+  );
+
+  // Form state and logic now handled by the custom hook
+  const {
+    projectSourceType, setProjectSourceType,
+    uploadedFile, uploadedFileName, handleFileChange, fileInputRef,
+    gitUrl, setGitUrl,
+    refactorGoals, setRefactorGoals,
+    generalPriority, setGeneralPriority,
+    searchDepth, setSearchDepth,
+    focusArea, setFocusArea,
+    isRedefiningGoals, handleRedefineGoals,
+    isRedefiningFocusArea, handleRedefineFocusArea,
+    getFormDataForAnalysis,
+  } = useRefactorProjectForm();
+
+  // Results and UI State (remains in page)
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useLocalStorage<AIResult | null>('codealchemist-rp-analysisResult', null);
+  const [suggestions, setSuggestions] = useLocalStorage<RefactorSuggestion[]>('codealchemist-rp-suggestions', []);
+  const [projectSourceString, setProjectSourceString] = useLocalStorage<string | null>('codealchemist-rp-projectSourceString', null);
+
+  const [showDiffModal, setShowDiffModal] = useState(false);
+  const [currentDiff, setCurrentDiff] = useState<{ original?: string; modified?: string } | null>(null);
+
 
   useEffect(() => {
     if (agents && agents.length > 0 && llmConfigSource === undefined) {
@@ -47,151 +80,120 @@ export default function RefactorizarProyectoPage() {
         ? { type: 'Agente' as const, id: defaultAgentFound.id, name: defaultAgentFound.name }
         : { type: 'Ajustes Globales' as const }
       );
-    } else if (agents && llmConfigSource === undefined) { 
-        setLlmConfigSource({ type: 'Ajustes Globales' as const });
+    } else if (agents && llmConfigSource === undefined) {
+      setLlmConfigSource({ type: 'Ajustes Globales' as const });
     }
-  }, [agents, llmConfigSource]);
+  }, [agents, llmConfigSource, setLlmConfigSource]);
 
-
-  const [projectSourceType, setProjectSourceType] = useState<ProjectSourceType>("upload");
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [gitUrl, setGitUrl] = useState('');
-  const [projectSourceString, setProjectSourceString] = useState<string | null>(null); 
-
-  const [refactorGoals, setRefactorGoals] = useState('');
-  const [generalPriority, setGeneralPriority] = useState<GeneralPriority | typeof NINGUNA_PRIORITY_VALUE>(NINGUNA_PRIORITY_VALUE);
-  const [searchDepth, setSearchDepth] = useState<string>(''); 
-  const [focusArea, setFocusArea] = useState<string>('');
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<AIResult | null>(null);
-  const [suggestions, setSuggestions] = useState<RefactorSuggestion[]>([]);
-
-  const [showDiffModal, setShowDiffModal] = useState(false);
-  const [currentDiff, setCurrentDiff] = useState<{ original?: string, modified?: string } | null>(null);
-  
-  const [isRedefiningGoals, setIsRedefiningGoals] = useState(false);
-  const [isRedefiningFocusArea, setIsRedefiningFocusArea] = useState(false);
-
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { addLog } = useDebug();
-  const { toast } = useToast();
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const allowedTypes = ['application/zip', 'application/json', 'text/plain', 'text/javascript', 'text/x-python-script', 'text/css', 'text/html'];
-      const allowedExtensions = ['.py', '.js', '.jsx', '.ts', '.tsx', '.java', '.json', '.html', '.css', '.txt', '.md'];
-      const isAllowedTextFile = allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext)) && 
-                                (file.type.startsWith('text/') || file.type === 'application/octet-stream' || file.type === '');
-
-      if ((allowedTypes.includes(file.type) || isAllowedTextFile || file.name.toLowerCase().endsWith('.zip')) && file.size <= 10 * 1024 * 1024) { 
-        setUploadedFile(file);
-        addLog({source: 'RefactorizarProyectoPage', type: 'INFO', message: `Archivo seleccionado para refactorizar: ${file.name}`, flowName: 'handleFileChange'});
-      } else {
-        toast({ variant: "destructive", title: t('refactorProject.toast.invalidFile.title' as TranslationKey), description: t('refactorProject.toast.invalidFile.description' as TranslationKey) });
-        setUploadedFile(null); 
-        if(fileInputRef.current) fileInputRef.current.value = ""; 
-      }
-    }
-  };
-
-  const handleAnalyze = async () => {
+  /**
+   * Handles the main analysis process.
+   * Fetches project source based on type, then calls the AI refactoring flow.
+   */
+  const handleAnalyze = useCallback(async () => {
     setIsLoading(true);
     setLoadingMessage(t('common.processing' as TranslationKey));
     setError(null);
     setAnalysisResult(null);
     setSuggestions([]);
-    let projectContentForAI = "";
-    let currentProjectSourceString = "";
+    let currentProjectSourceString = ""; // Renamed to avoid conflict with state variable
 
-    if (projectSourceType === "upload" && uploadedFile) {
+    const formData = getFormDataForAnalysis(); // Get data from hook
+
+    if (formData.projectSourceType === "upload" && formData.uploadedFile) {
       setLoadingMessage(t('refactorProject.toast.processingFile' as TranslationKey));
       try {
-        currentProjectSourceString = await uploadedFile.text();
-        projectContentForAI = currentProjectSourceString;
-        if (uploadedFile.type === 'application/zip' || uploadedFile.name.toLowerCase().endsWith('.zip')) {
-            projectContentForAI = `Contenido del archivo ZIP: ${uploadedFile.name}. (El contenido real del ZIP no se envía directamente al LLM en esta versión; se espera que el análisis se base en las metas y el enfoque si el LLM no puede procesar el ZIP).`;
-        }
-        addLog({source: 'RefactorizarProyectoPage', type: 'INFO', message: `Analizando archivo subido para refactorizar: ${uploadedFile.name}`, flowName: 'handleAnalyze'});
+        currentProjectSourceString = await formData.uploadedFile.text();
+        addDebugLog({ source: 'RefactorizarProyectoPage', type: 'INFO', message: `Analizando archivo subido: ${formData.uploadedFile.name}`, flowName: 'handleAnalyze' });
       } catch (readError: any) {
         toast({ variant: "destructive", title: t('refactorProject.toast.fileReadError.title' as TranslationKey), description: t('refactorProject.toast.fileReadError.description' as TranslationKey, { error: readError.message }) });
         setIsLoading(false); setLoadingMessage(null); return;
       }
-    } else if (projectSourceType === "git" && gitUrl) {
+    } else if (formData.projectSourceType === "git" && formData.gitUrl) {
       setLoadingMessage(t('refactorProject.toast.fetchingGit' as TranslationKey));
-      addLog({source: 'RefactorizarProyectoPage', type: 'INFO', message: `Obteniendo URL de Git para refactorizar: ${gitUrl}`, flowName: 'handleAnalyze'});
+      addDebugLog({ source: 'RefactorizarProyectoPage', type: 'INFO', message: `Obteniendo URL de Git: ${formData.gitUrl}`, flowName: 'handleAnalyze' });
       try {
-        const gitResult = await fetchRemoteGitRepository(gitUrl);
+        const gitResult = await fetchRemoteGitRepository(formData.gitUrl);
         if (gitResult.success && gitResult.files) {
           currentProjectSourceString = gitResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${f.fileName} ---\\n${f.content}`).join('\\n\\n');
-          projectContentForAI = currentProjectSourceString; 
-          if (gitResult.logsBuilt) gitResult.logsBuilt.forEach(logMsg => addLog({ source: 'FetchRemoteGit(Refactor)', type: 'INFO', message: logMsg }));
+          if (gitResult.logsBuilt) gitResult.logsBuilt.forEach(logMsg => addDebugLog({ source: 'FetchRemoteGit(Refactor)', type: 'INFO', message: logMsg }));
         } else {
           throw new Error(gitResult.error || t('refactorProject.toast.gitFetchError.unknown' as TranslationKey));
         }
       } catch (gitError: any) {
-        const errorMsg = gitError.message || t('refactorProject.toast.gitFetchError.unknown' as TranslationKey);
+        const errorMsg = (gitError as Error).message || t('refactorProject.toast.gitFetchError.unknown' as TranslationKey);
         toast({ variant: "destructive", title: t('refactorProject.toast.gitFetchError.title' as TranslationKey), description: errorMsg });
         setError(errorMsg); setIsLoading(false); setLoadingMessage(null); return;
       }
-    } else {
+    } else if (formData.projectSourceType === "local") {
+      setLoadingMessage(t('refactorProject.toast.gettingLocalSource.title' as TranslationKey));
+      try {
+        const bundleResult = await getApplicationSourceBundle(false);
+        if (bundleResult.success && bundleResult.files) {
+          currentProjectSourceString = bundleResult.files.map(f => `// --- ${t('autoupdate.analysis.fileMarker' as TranslationKey)}: ${f.fileName} ---\\n${f.content}`).join('\\n\\n');
+          if (bundleResult.logsBuilt) addDebugLog({ source: 'GetBundle(Refactor)', type: 'INFO_BATCH', message: 'Logs de ServerAction (getApplicationSourceBundle):', data: bundleResult.logsBuilt });
+        } else {
+          throw new Error(bundleResult.error || t('refactorProject.toast.localSourceError.descriptionDefault' as TranslationKey));
+        }
+      } catch (localSourceError: any) {
+        const errorMsg = (localSourceError as Error).message || t('refactorProject.toast.localSourceError.descriptionDefault' as TranslationKey);
+        toast({ variant: "destructive", title: t('refactorProject.toast.localSourceError.title' as TranslationKey), description: errorMsg });
+        setError(errorMsg); setIsLoading(false); setLoadingMessage(null); return;
+      }
+    }
+     else {
       toast({ variant: "destructive", title: t('refactorProject.toast.sourceRequired.title' as TranslationKey), description: t('refactorProject.toast.sourceRequired.description' as TranslationKey) });
       setIsLoading(false); setLoadingMessage(null); return;
     }
-    setProjectSourceString(currentProjectSourceString); 
+    setProjectSourceString(currentProjectSourceString);
 
     setLoadingMessage(t('refactorProject.toast.analyzingWithAI' as TranslationKey));
     let agentSystemPrompt: string | undefined;
     const flowName = 'callRefactorProjectWithAI';
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
-        const agent = getAgentById(llmConfigSource.id);
-        agentSystemPrompt = agent?.systemPrompt;
+      const agent = getAgentById(llmConfigSource.id);
+      agentSystemPrompt = agent?.systemPrompt;
     } else if (llmConfigSource?.type === 'Grupo' && llmConfigSource.id) {
-        const group: AIAgentGroup | undefined = getGroupById(llmConfigSource.id || '');
-        const orchestrator: Agent | undefined = getAgentById('orquestador-flujo-agentes');
-        agentSystemPrompt = orchestrator?.systemPrompt || group?.mainTask;
+      const group: AIAgentGroup | undefined = getGroupById(llmConfigSource.id || '');
+      const orchestrator: Agent | undefined = getAgentById('orquestador-flujo-agentes');
+      agentSystemPrompt = orchestrator?.systemPrompt || group?.mainTask;
     }
 
-    const input: RefactorProjectWithAIInput = {
-      projectSource: projectContentForAI,
-      goals: refactorGoals || undefined,
-      priority: generalPriority === NINGUNA_PRIORITY_VALUE ? undefined : generalPriority,
-      searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
-      focusArea: focusArea || undefined,
+    const inputForAI: RefactorProjectWithAIInput = {
+      projectSource: currentProjectSourceString,
+      goals: formData.refactorGoals || undefined,
+      priority: formData.generalPriority === NINGUNA_PRIORITY_VALUE ? undefined : formData.generalPriority,
+      searchDepth: formData.searchDepth ? parseInt(formData.searchDepth, 10) : undefined,
+      focusArea: formData.focusArea || undefined,
       agentSystemPrompt
     };
-    addLog({source: 'RefactorizarProyectoPage', type: 'INFO', message: `Refactorizando proyecto con input: ${JSON.stringify({...input, projectSource: input.projectSource.substring(0,200) + '...' })} y config: ${JSON.stringify(llmConfigSource)}`, flowName});
+    addDebugLog({ source: 'RefactorizarProyectoPage', type: 'INFO', message: `Refactorizando proyecto. Input (parcial): ${JSON.stringify({ ...inputForAI, projectSource: inputForAI.projectSource.substring(0, 200) + '...' })}. Config: ${JSON.stringify(llmConfigSource)}`, flowName });
 
     try {
-      const aiResultData: AIResult = await callRefactorProjectWithAI(input);
+      const aiResultData: AIResult = await callRefactorProjectWithAI(inputForAI);
       let finalResult: AIResult = { ...aiResultData };
       if (llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id && !finalResult.groupLog) {
-         const group = getGroupById(llmConfigSource.id || '');
-         const orchestratorAgent = getAgentById('orquestador-flujo-agentes');
-         finalResult.groupLog = t('refactorProject.logs.groupContextLog' as TranslationKey, {
-            groupName: llmConfigSource.name,
-            groupTask: (group?.mainTask || 'N/A').substring(0,150),
-            userInput: (input.focusArea || t('autoupdate.analysis.general' as TranslationKey)),
-            orchestratorContext: (orchestratorAgent?.systemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
-            flowName: 'refactorProjectWithAI'
+        const group = getGroupById(llmConfigSource.id || '');
+        const orchestratorAgent = getAgentById('orquestador-flujo-agentes');
+        finalResult.groupLog = t('refactorProject.logs.groupContextLog' as TranslationKey, {
+          groupName: llmConfigSource.name,
+          groupTask: (group?.mainTask || 'N/A').substring(0, 150),
+          userInput: (inputForAI.focusArea || t('autoupdate.analysis.general' as TranslationKey)),
+          orchestratorContext: (orchestratorAgent?.systemPrompt || t('autoupdate.logs.notAvailable' as TranslationKey)).substring(0, 200),
+          flowName: 'refactorProjectWithAI'
         });
       }
       setAnalysisResult(finalResult);
-      setSuggestions(finalResult.suggestions.map((s,idx) => ({...s, id: `suggestion-${idx}-${Date.now()}`, status: 'pending'})));
+      setSuggestions(finalResult.suggestions.map((s, idx) => ({ ...s, id: `suggestion-${idx}-${Date.now()}`, status: 'pending' })));
       toast({ title: t('refactorProject.toast.analysisComplete.title' as TranslationKey), description: t('refactorProject.toast.analysisComplete.description' as TranslationKey) });
-      addLog({source: 'RefactorizarProyectoPage', type: 'SUCCESS', message: "Análisis de refactorización exitoso.", data: {overviewLength: finalResult.projectOverview.length, suggestionCount: finalResult.suggestions.length}, flowName});
+      addDebugLog({ source: 'RefactorizarProyectoPage', type: 'SUCCESS', message: "Análisis de refactorización exitoso.", data: { overviewLength: finalResult.projectOverview?.length, suggestionCount: finalResult.suggestions?.length }, flowName });
     } catch (e: any) {
-      addLog({source:"RefactorizarProyectoPage", type: 'ERROR', message: "Fallo en análisis de refactorización (UI).", errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage, flowName });
+      addDebugLog({ source: "RefactorizarProyectoPage", type: 'ERROR', message: "Fallo en análisis de refactorización (UI).", errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage, flowName });
       if (e instanceof AppError) {
         setError(e.friendlyMessage);
         toast({ variant: "destructive", title: t('refactorProject.toast.analysisError.title' as TranslationKey), description: e.friendlyMessage });
         if (e.redirectTo) router.push(e.redirectTo);
       } else {
-        const errorMsg = (e as Error).message || t('refactorProject.toast.analysisError.description' as TranslationKey) ;
+        const errorMsg = (e as Error).message || t('refactorProject.toast.analysisError.descriptionDefault' as TranslationKey);
         setError(errorMsg);
         toast({ variant: "destructive", title: t('refactorProject.toast.analysisError.title' as TranslationKey), description: errorMsg });
       }
@@ -199,158 +201,110 @@ export default function RefactorizarProyectoPage() {
       setIsLoading(false);
       setLoadingMessage(null);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    llmConfigSource, getAgentById, getGroupById, t, toast, router, addDebugLog,
+    setAnalysisResult, setSuggestions, setError, setLoadingMessage, setIsLoading,
+    getFormDataForAnalysis, setProjectSourceString,
+    // Removed form-specific states as they are now in the hook
+  ]);
 
-  const handleApplySuggestion = (id: string) => {
+  const handleApplySuggestion = useCallback((id: string) => {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'applied' } : s));
-    const suggestionArea = suggestions.find(s=>s.id===id)?.area || t('common.unknownError' as TranslationKey);
+    const suggestionArea = suggestions.find(s => s.id === id)?.area || t('common.unknownError' as TranslationKey);
     toast({ title: t('refactorProject.toast.suggestionApplied.title' as TranslationKey), description: t('refactorProject.toast.suggestionApplied.description' as TranslationKey, { area: suggestionArea }) });
-    addLog({source: 'RefactorizarProyectoPage', type: 'INFO', message: `Sugerencia ${id} marcada como aplicada.`, flowName: 'handleApplySuggestion'});
-  };
+    addDebugLog({ source: 'RefactorizarProyectoPage', type: 'INFO', message: `Sugerencia ${id} marcada como aplicada.`, flowName: 'handleApplySuggestion' });
+  }, [suggestions, setSuggestions, t, toast, addDebugLog]);
 
-  const handleViewDiff = (suggestion: RefactorSuggestion) => {
+  const handleViewDiff = useCallback((suggestion: RefactorSuggestion) => {
     if (suggestion.snippetSuggested) {
       setCurrentDiff(suggestion.snippetSuggested);
       setShowDiffModal(true);
     } else {
       toast({ title: t('refactorProject.toast.noDiff.title' as TranslationKey), description: t('refactorProject.toast.noDiff.description' as TranslationKey) });
     }
-  };
+  }, [toast, t]);
 
-  const handleDiscardSuggestion = (id: string) => {
+  const handleDiscardSuggestion = useCallback((id: string) => {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'discarded' } : s));
     toast({ title: t('refactorProject.toast.suggestionDiscarded.title' as TranslationKey) });
-    addLog({source: 'RefactorizarProyectoPage', type: 'INFO', message: `Sugerencia ${id} descartada.`, flowName: 'handleDiscardSuggestion'});
-  };
+    addDebugLog({ source: 'RefactorizarProyectoPage', type: 'INFO', message: `Sugerencia ${id} descartada.`, flowName: 'handleDiscardSuggestion' });
+  }, [setSuggestions, t, toast, addDebugLog]);
 
-  const handleApplyAll = () => {
+  const handleApplyAll = useCallback(() => {
     setSuggestions(prev => prev.map(s => s.status === 'pending' ? { ...s, status: 'applied' } : s));
     toast({ title: t('refactorProject.toast.allApplied.title' as TranslationKey), description: t('refactorProject.toast.allApplied.description' as TranslationKey) });
-    addLog({source: 'RefactorizarProyectoPage', type: 'INFO', message: "Todas las sugerencias pendientes marcadas como aplicadas.", flowName: 'handleApplyAll'});
-  };
+    addDebugLog({ source: 'RefactorizarProyectoPage', type: 'INFO', message: "Todas las sugerencias pendientes marcadas como aplicadas.", flowName: 'handleApplyAll' });
+  }, [setSuggestions, t, toast, addDebugLog]);
 
-  const handleRedefineGoals = async () => {
-    if (!refactorGoals.trim()) {
-      toast({ variant: 'destructive', title: t('common.toast.redefineEmpty.title' as TranslationKey), description: t('common.toast.redefineEmpty.description' as TranslationKey) });
-      return;
-    }
-    setIsRedefiningGoals(true);
-    addLog({ source: 'RefactorizarProyectoPage', type: 'INFO', message: `Redefiniendo metas. Original (inicio): ${refactorGoals.substring(0, 100)}...` });
-    toast({ title: t('common.toast.redefining.title' as TranslationKey), description: t('common.toast.redefining.description' as TranslationKey) });
-    try {
-      const resultOutput = await callRedefinePrompt({ originalPrompt: refactorGoals });
-      setRefactorGoals(resultOutput.redefinedPrompt);
-      toast({ title: t('common.toast.redefinedSuccess.title' as TranslationKey), description: t('common.toast.redefinedSuccess.description' as TranslationKey) });
-      addLog({ source: 'RefactorizarProyectoPage', type: 'SUCCESS', message: `'metas' redefinidas. Nueva (inicio): ${resultOutput.redefinedPrompt.substring(0, 100)}...` });
-    } catch (e: any) {
-      addLog({ source: 'RefactorizarProyectoPage', type: 'ERROR', message: `Fallo al redefinir 'metas'.`, errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage });
-      if (e instanceof AppError) {
-        setError(e.friendlyMessage);
-        toast({ variant: 'destructive', title: t('common.toast.redefineError.title' as TranslationKey), description: e.friendlyMessage });
-        if (e.redirectTo) router.push(e.redirectTo);
-      } else {
-        const errorMsg = (e as Error).message || t('common.toast.redefineError.description' as TranslationKey);
-        setError(errorMsg);
-        toast({ variant: 'destructive', title: t('common.toast.redefineError.title' as TranslationKey), description: errorMsg });
-      }
-    } finally {
-      setIsRedefiningGoals(false);
-    }
-  };
-
-  const handleRedefineFocusArea = async () => {
-    if (!focusArea.trim()) {
-      toast({ variant: 'destructive', title: t('common.toast.redefineEmpty.title' as TranslationKey), description: t('common.toast.redefineEmpty.description' as TranslationKey) });
-      return;
-    }
-    setIsRedefiningFocusArea(true);
-    addLog({ source: 'RefactorizarProyectoPage', type: 'INFO', message: `Redefiniendo campo de enfoque. Original (inicio): ${focusArea.substring(0, 100)}...` });
-    toast({ title: t('common.toast.redefining.title' as TranslationKey), description: t('common.toast.redefining.description' as TranslationKey) });
-    try {
-      const resultOutput = await callRedefinePrompt({ originalPrompt: focusArea });
-      setFocusArea(resultOutput.redefinedPrompt);
-      toast({ title: t('common.toast.redefinedSuccess.title' as TranslationKey), description: t('common.toast.redefinedSuccess.description' as TranslationKey) });
-      addLog({ source: 'RefactorizarProyectoPage', type: 'SUCCESS', message: `'campo de enfoque' redefinido. Nuevo (inicio): ${resultOutput.redefinedPrompt.substring(0, 100)}...` });
-    } catch (e: any) {
-      addLog({ source: 'RefactorizarProyectoPage', type: 'ERROR', message: `Fallo al redefinir 'campo de enfoque'.`, errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage });
-      if (e instanceof AppError) {
-        setError(e.friendlyMessage);
-        toast({ variant: 'destructive', title: t('common.toast.redefineError.title' as TranslationKey), description: e.friendlyMessage });
-        if (e.redirectTo) router.push(e.redirectTo);
-      } else {
-        const errorMsg = (e as Error).message || t('common.toast.redefineError.description' as TranslationKey);
-        setError(errorMsg);
-        toast({ variant: 'destructive', title: t('common.toast.redefineError.title' as TranslationKey), description: errorMsg });
-      }
-    } finally {
-      setIsRedefiningFocusArea(false);
-    }
-  };
-  
   const handleSaveRefactoredSnapshot = useCallback(() => {
     if (!analysisResult && !projectSourceString) {
       toast({ variant: "destructive", title: t('versions.toast.snapshotSaveError.title' as TranslationKey), description: t('versions.toast.snapshotSaveError.noContent' as TranslationKey, { section: t('sidebar.refactorProject' as TranslationKey) }) });
       return;
     }
-
+    const formData = getFormDataForAnalysis();
     let contentToSave: any = {};
     let snapshotNamePrefix = t('refactorProject.results.snapshotNamePrefix' as TranslationKey);
 
     if (analysisResult) {
       contentToSave.analysis = {
         projectOverview: analysisResult.projectOverview,
-        suggestionsSummary: suggestions.map(s => ({ area: s.area, description: s.description, priority: s.priority, status: s.status })),
+        suggestionsSummary: suggestions.map(s_ => ({ area: s_.area, description: s_.suggestion, priority: s_.priority, status: s_.status })),
       };
       if (suggestions.some(s => s.status === 'applied')) {
         snapshotNamePrefix = t('refactorProject.results.snapshotNameAppliedPrefix' as TranslationKey);
       }
     }
     if (projectSourceString) {
-      contentToSave.originalSourceHint = projectSourceType === 'git' 
-        ? `Git: ${gitUrl}` 
-        : `Subido: ${uploadedFile?.name || t('common.unknownFile' as TranslationKey) }`;
+      contentToSave.originalSourceHint = formData.projectSourceType === 'git'
+        ? `Git: ${formData.gitUrl}`
+        : `Subido: ${formData.uploadedFileName || t('common.unknownFile' as TranslationKey)}`;
     }
-    
+
     const snapshotName = `${snapshotNamePrefix} - ${new Date().toLocaleTimeString()}`;
+    const snapshotDataString = JSON.stringify(contentToSave, null, 2);
     addSnapshot({
       name: snapshotName,
-      code: JSON.stringify(contentToSave, null, 2),
-      source: 'refactored-project'
+      code: snapshotDataString,
+      source: 'refactored-project',
+      size: snapshotDataString.length,
     });
-    addLog({source: 'RefactorizarProyectoPage', type: 'INFO', message: `Snapshot de proyecto refactorizado guardado: ${snapshotName}`});
-  }, [analysisResult, projectSourceString, suggestions, projectSourceType, gitUrl, uploadedFile, addSnapshot, t, toast, addLog]); // Dependencies updated
+    addDebugLog({ source: 'RefactorizarProyectoPage', type: 'INFO', message: `Snapshot de proyecto refactorizado guardado: ${snapshotName}` });
+  }, [analysisResult, projectSourceString, suggestions, getFormDataForAnalysis, addSnapshot, t, toast, addDebugLog]);
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-      <Card className="lg:col-span-1"> {/* Card wrapper for config section */}
-        <RefactorProjectConfigSection
-          llmConfigSource={llmConfigSource}
-          onLlmConfigSourceChange={setLlmConfigSource}
-          projectSourceType={projectSourceType}
-          onProjectSourceTypeChange={setProjectSourceType}
-          uploadedFile={uploadedFile}
-          onFileChange={handleFileChange}
-          fileInputRef={fileInputRef}
-          gitUrl={gitUrl}
-          onGitUrlChange={setGitUrl}
-          refactorGoals={refactorGoals}
-          onRefactorGoalsChange={setRefactorGoals}
-          generalPriority={generalPriority}
-          onGeneralPriorityChange={setGeneralPriority}
-          searchDepth={searchDepth}
-          onSearchDepthChange={setSearchDepth}
-          focusArea={focusArea}
-          onFocusAreaChange={setFocusArea}
-          onAnalyze={handleAnalyze}
-          isLoading={isLoading}
-          loadingMessage={loadingMessage}
-          t={t}
-          isRedefiningGoals={isRedefiningGoals}
-          onRedefineGoals={handleRedefineGoals}
-          isRedefiningFocusArea={isRedefiningFocusArea}
-          onRedefineFocusArea={handleRedefineFocusArea}
-        />
-      </Card>
+      <RefactorProjectConfigSection
+        llmConfigSource={llmConfigSource}
+        onLlmConfigSourceChange={setLlmConfigSource}
+        // Pass states and handlers from useRefactorProjectForm
+        projectSourceType={projectSourceType}
+        onProjectSourceTypeChange={setProjectSourceType}
+        uploadedFile={uploadedFile} // This is fine, as the hook manages the File object
+        uploadedFileName={uploadedFileName}
+        onFileChange={handleFileChange}
+        fileInputRef={fileInputRef}
+        gitUrl={gitUrl}
+        onGitUrlChange={setGitUrl}
+        refactorGoals={refactorGoals}
+        onRefactorGoalsChange={setRefactorGoals}
+        generalPriority={generalPriority}
+        onGeneralPriorityChange={setGeneralPriority}
+        searchDepth={searchDepth}
+        onSearchDepthChange={setSearchDepth}
+        focusArea={focusArea}
+        onFocusAreaChange={setFocusArea}
+        isRedefiningGoals={isRedefiningGoals}
+        onRedefineGoals={handleRedefineGoals}
+        isRedefiningFocusArea={isRedefiningFocusArea}
+        onRedefineFocusArea={handleRedefineFocusArea}
+        // Pass page-level handlers
+        onAnalyze={handleAnalyze}
+        isLoading={isLoading}
+        loadingMessage={loadingMessage}
+        t={t}
+      />
       <div className="lg:col-span-2 space-y-6">
         <RefactorProjectResultsSection
           analysisResult={analysisResult}
@@ -362,18 +316,17 @@ export default function RefactorizarProyectoPage() {
           onViewDiff={handleViewDiff}
           onDiscardSuggestion={handleDiscardSuggestion}
           onApplyAll={handleApplyAll}
-          setSuggestions={setSuggestions} // Pass setSuggestions for revertState
+          setSuggestions={setSuggestions}
           showDiffModal={showDiffModal}
           onCloseDiffModal={() => setShowDiffModal(false)}
           currentDiff={currentDiff}
           t={t}
           onSaveSnapshot={handleSaveRefactoredSnapshot}
         />
-         {analysisResult?.groupLog && (
+        {analysisResult?.groupLog && (
           <LogsDisplay title={t('refactorProject.logs.groupLogTitle' as TranslationKey)} logs={analysisResult.groupLog} />
         )}
       </div>
     </div>
   );
 }
-

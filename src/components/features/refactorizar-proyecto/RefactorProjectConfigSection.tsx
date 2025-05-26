@@ -1,4 +1,3 @@
-
 // src/components/features/refactorizar-proyecto/RefactorProjectConfigSection.tsx
 "use client";
 
@@ -17,19 +16,22 @@ import { Separator } from "@/components/ui/separator";
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import type { TranslationKey } from '@/lib/i18n/translations';
 
-type ProjectSourceType = "upload" | "git" | "local"; // Asegurarse que "local" esté aquí
+// Import ProjectSourceType from the hook or define locally if preferred
+import type { ProjectSourceType } from '@/hooks/useRefactorProjectForm';
 
 interface RefactorProjectConfigSectionProps {
   llmConfigSource: LLMConfigSourceOption | undefined;
   onLlmConfigSourceChange: (value: LLMConfigSourceOption) => void;
+  
   projectSourceType: ProjectSourceType;
   onProjectSourceTypeChange: (value: ProjectSourceType) => void;
-  uploadedFile: File | null;
+  uploadedFile: File | null; // Still needed for display logic potentially
   uploadedFileName?: string | null;
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
   gitUrl: string;
   onGitUrlChange: (value: string) => void;
+  
   refactorGoals: string;
   onRefactorGoalsChange: (value: string) => void;
   generalPriority: GeneralPriority | typeof NINGUNA_PRIORITY_VALUE;
@@ -38,26 +40,34 @@ interface RefactorProjectConfigSectionProps {
   onSearchDepthChange: (value: string) => void;
   focusArea: string;
   onFocusAreaChange: (value: string) => void;
-  onAnalyze: () => void;
-  isLoading: boolean;
-  loadingMessage: string | null;
-  t: (key: TranslationKey, params?: Record<string, string | number>) => string;
+  
   isRedefiningGoals: boolean;
   onRedefineGoals: () => Promise<void>;
   isRedefiningFocusArea: boolean;
   onRedefineFocusArea: () => Promise<void>;
+
+  onAnalyze: () => void;
+  isLoading: boolean;
+  loadingMessage: string | null;
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string;
 }
 
 const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> = ({
-  llmConfigSource, onLlmConfigSourceChange, projectSourceType, onProjectSourceTypeChange,
-  uploadedFile, uploadedFileName, onFileChange, fileInputRef, gitUrl, onGitUrlChange,
-  refactorGoals, onRefactorGoalsChange, generalPriority, onGeneralPriorityChange,
-  searchDepth, onSearchDepthChange, focusArea, onFocusAreaChange, onAnalyze,
+  llmConfigSource, onLlmConfigSourceChange,
+  projectSourceType, onProjectSourceTypeChange,
+  uploadedFile, uploadedFileName, onFileChange, fileInputRef,
+  gitUrl, onGitUrlChange,
+  refactorGoals, onRefactorGoalsChange,
+  generalPriority, onGeneralPriorityChange,
+  searchDepth, onSearchDepthChange,
+  focusArea, onFocusAreaChange,
+  isRedefiningGoals, onRedefineGoals,
+  isRedefiningFocusArea, onRedefineFocusArea,
+  onAnalyze,
   isLoading, loadingMessage, t,
-  isRedefiningGoals, onRedefineGoals, isRedefiningFocusArea, onRedefineFocusArea,
 }) => {
   return (
-    <> 
+    <>
       <PageSectionHeader
         icon={GitPullRequestDraft}
         title={t('refactorProject.title')}
@@ -73,7 +83,7 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
             <SelectContent>
               <SelectItem value="upload">{t('refactorProject.sourceUpload')}</SelectItem>
               <SelectItem value="git">{t('refactorProject.sourceGit')}</SelectItem>
-              <SelectItem value="local">{t('refactorProject.sourceLocal')}</SelectItem> {/* ASEGURAR QUE ESTA LÍNEA ESTÉ PRESENTE */}
+              <SelectItem value="local">{t('refactorProject.sourceLocal')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -100,7 +110,6 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
             </p>
           </div>
         )}
-
 
         <Separator />
         <Label>{t('refactorProject.paramsLabel')}</Label>
@@ -168,7 +177,7 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
                 isLoading || 
                 isRedefiningGoals ||
                 isRedefiningFocusArea ||
-                (projectSourceType === 'upload' && !uploadedFile && !uploadedFileName) || // Permite si ya hay un uploadedFileName de localStorage
+                (projectSourceType === 'upload' && !uploadedFile && !uploadedFileName) ||
                 (projectSourceType === 'git' && !gitUrl.trim())
             } 
             className="w-full"
@@ -182,5 +191,3 @@ const RefactorProjectConfigSection: React.FC<RefactorProjectConfigSectionProps> 
 };
 
 export default RefactorProjectConfigSection;
-
-    
