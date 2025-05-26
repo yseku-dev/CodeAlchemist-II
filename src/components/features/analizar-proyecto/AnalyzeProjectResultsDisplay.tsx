@@ -1,22 +1,22 @@
-
 // src/components/features/analizar-proyecto/AnalyzeProjectResultsDisplay.tsx
 "use client";
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ListChecks, Info, MessageSquare, Bot, User, Loader2, Send, Wand2, Save, Download, ShieldAlert } from 'lucide-react';
+import { ListChecks, Info, MessageSquare, Bot, User, Loader2, Send, Wand2, Save, Download, ShieldAlert, Copy } from 'lucide-react';
 import PageSectionHeader from '@/components/layout/PageSectionHeader';
 import LogsDisplay from '@/components/logs-display';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { AnalyzeCodeOutput, ChatMessage, DetailedSuggestionForUI, AppSourceFile } from '@/types';
+import type { AnalyzeCodeOutput, DetailedSuggestionForUI, AppSourceFile } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
+import CodeBlock from '@/components/code-block'; // Import CodeBlock
+import { useToast } from '@/hooks/use-toast'; // Import useToast
 
 interface AnalyzeProjectResultsDisplayProps {
   result: AnalyzeCodeOutput | null;
@@ -33,13 +33,14 @@ interface AnalyzeProjectResultsDisplayProps {
   onRedefineModificationRequest: () => Promise<void>;
   onSaveSnapshot: () => void;
   onApplySelectedCheckboxSuggestions: () => void;
-  originalProjectFiles: AppSourceFile[] | null;
+  originalProjectFiles: AppSourceFile[] | null; // Necesario para 'canApplyAndDownload'
+  unifiedSuggestionsPrompt: string | null; // Nueva prop
 }
 
 /**
  * @fileOverview Component for displaying the results of a full project analysis.
  * Shows the AI's overall assessment, identified areas, specific suggestions (with selection for application),
- * general improvement ideas, and a section for suggesting further modifications.
+ * general improvement ideas, a section for suggesting further modifications, and a unified prompt.
  * Also displays group logs if applicable and allows saving a snapshot and downloading a modified ZIP.
  * All texts are internationalized.
  * @module AnalyzeProjectResultsDisplay
@@ -59,8 +60,11 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
   onRedefineModificationRequest,
   onSaveSnapshot,
   onApplySelectedCheckboxSuggestions,
-  originalProjectFiles,
+  originalProjectFiles, // Recibido para canApplyAndDownload
+  unifiedSuggestionsPrompt, // Nueva prop
 }) => {
+  const { toast } = useToast(); // Para el botón de copiar
+
   if (!result) {
     return null;
   }
@@ -76,7 +80,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
       <TooltipProvider>
         <Tooltip open={!canApplyAndDownload ? undefined : false}>
           <TooltipTrigger asChild>
-            <span tabIndex={0}>
+            <span tabIndex={0}> {/* Para accesibilidad del Tooltip cuando el botón está deshabilitado */}
               <Button
                 onClick={onDownloadProjectZip}
                 variant="outline"
@@ -98,6 +102,24 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
     </div>
   );
 
+  const handleCopyUnifiedPrompt = () => {
+    if (unifiedSuggestionsPrompt) {
+      navigator.clipboard.writeText(unifiedSuggestionsPrompt);
+      toast({
+        title: t('common.toast.copiedToClipboard.title'),
+        description: t('common.toast.copiedToClipboard.description'),
+      });
+    }
+  };
+
+  // Log para depurar por qué no aparecen los checkboxes
+  // console.log(`[AnalyzeProjectResultsDisplay] Render. canApplyAndDownload: ${canApplyAndDownload}`);
+  // suggestionsForUI.forEach(suggestion => {
+  //   console.log(
+  //     `[AnalyzeProjectResultsDisplay] Sugerencia ID: ${suggestion.id}, area: ${suggestion.area}, tieneSuggestedContent: ${!!suggestion.suggestedContent}, contenidoSugerido (inicio): '${(suggestion.suggestedContent || "").substring(0,50)}...'`
+  //   );
+  // });
+
   return (
     <div className="space-y-6">
       <Card className="mt-6 bg-background">
@@ -109,7 +131,9 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
         <CardContent className="space-y-4">
           <div>
             <h3 className="font-semibold text-lg mb-1">{t('analyzeProject.results.overallAssessmentLabel')}</h3>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.generalAssessment}</p>
+            <ScrollArea className="h-auto max-h-48 p-2 border rounded bg-muted/30">
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{result.generalAssessment}</p>
+            </ScrollArea>
           </div>
 
           {result.overallImprovementIdeas && result.overallImprovementIdeas.length > 0 && (
@@ -149,11 +173,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
               )}
               <ScrollArea className="h-60 border rounded-md p-2 bg-muted/30">
                 <ul className="space-y-3 text-sm">
-                  {suggestionsForUI.map((suggestion) => {
-                    console.log(
-                        `[AnalyzeProjectResultsDisplay] Sugerencia ID: ${suggestion.id}, area: ${suggestion.area}, canApplyAndDownload: ${canApplyAndDownload}, tieneSuggestedContent: ${!!suggestion.suggestedContent}, contenidoSugerido (inicio): '${(suggestion.suggestedContent || "").substring(0,50)}...'`
-                    );
-                    return (
+                  {suggestionsForUI.map((suggestion) => (
                     <li key={suggestion.id} className="p-2 border-b last:border-b-0">
                       <div className="flex items-start gap-2">
                         {suggestion.suggestedContent && canApplyAndDownload && (
@@ -182,8 +202,7 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
                         </div>
                       </div>
                     </li>
-                  );
-                })}
+                  ))}
                 </ul>
               </ScrollArea>
               {canApplyAndDownload && (
@@ -197,10 +216,27 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
               )}
             </div>
           )}
+          
+          {/* Unified Prompt Section */}
+          {unifiedSuggestionsPrompt && (
+            <div className="mt-6 pt-4 border-t">
+              <div className="flex justify-between items-center mb-2">
+                <Label htmlFor="unified-suggestions-prompt-display" className="text-lg font-semibold">
+                  {t('analyzeProject.results.unifiedSuggestionsPromptLabel')}
+                </Label>
+                <Button variant="outline" size="icon" onClick={handleCopyUnifiedPrompt} title={t('common.copy')}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <CodeBlock id="unified-suggestions-prompt-display" code={unifiedSuggestionsPrompt} language="plaintext" maxHeight="300px" />
+            </div>
+          )}
+
         </CardContent>
       </Card>
 
       <Separator className="my-8" />
+      
       <Card className="border-primary/50 shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -231,12 +267,12 @@ const AnalyzeProjectResultsDisplay: React.FC<AnalyzeProjectResultsDisplayProps> 
               rows={3}
               disabled={isProcessingModification || isRedefiningModificationPrompt}
             />
-             {!originalProjectFiles && <p className="text-xs text-muted-foreground mt-1">{t('analyzeProject.toast.modificationError.noBaseFiles')}</p>}
           </div>
           <Button
             onClick={onProcessModification}
-            disabled={isProcessingModification || isRedefiningModificationPrompt || (!modificationPrompt || !modificationPrompt.trim()) || !originalProjectFiles}
+            disabled={isProcessingModification || isRedefiningModificationPrompt || (!modificationPrompt || !modificationPrompt.trim()) || !canApplyAndDownload }
             className="w-full"
+            title={!canApplyAndDownload ? t('analyzeProject.toast.modificationError.noBaseFiles', {sourceType: ''}) : ''}
           >
             {isProcessingModification ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
