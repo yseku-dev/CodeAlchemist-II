@@ -4,7 +4,7 @@
 
 import React, { useEffect, useRef } from 'react'; 
 import { Button } from '@/components/ui/button';
-import { Download, Send, Wand2, Loader2, MessageSquare, Bot, User, Save, AlertTriangleIcon } from 'lucide-react';
+import { Download, Send, Wand2, Loader2, MessageSquare, Bot, User, Save, AlertTriangleIcon, Trash2 } from 'lucide-react'; // Added Trash2
 import FileTreeDisplay from '@/components/file-tree';
 import type { ProjectGenerationResult, ChatMessage } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
@@ -23,6 +23,7 @@ interface GenerateProjectResultsDisplayProps {
   currentModificationRequest: string;
   onCurrentModificationRequestChange: (value: string) => void;
   onSendModificationRequest: () => Promise<void>;
+  onClearModificationChat: () => void; // New prop
   isModifyingProject: boolean;
   isRedefiningModificationRequest: boolean;
   onRedefineModificationRequest: () => Promise<void>;
@@ -45,6 +46,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
   currentModificationRequest,
   onCurrentModificationRequestChange,
   onSendModificationRequest,
+  onClearModificationChat, // New prop
   isModifyingProject,
   isRedefiningModificationRequest,
   onRedefineModificationRequest,
@@ -57,15 +59,14 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
     }
   }, [chatHistory]);
 
-  // Debugging logs for button state - Keep this during development if issues persist
-  // useEffect(() => {
-  //   console.log('[GenerateProjectResultsDisplay EFFECT] Props actualizadas:', {
-  //     isModifyingProject,
-  //     isRedefiningModificationRequest,
-  //     currentModificationRequest,
-  //     chatHistoryLength: chatHistory.length,
-  //   });
-  // }, [isModifyingProject, isRedefiningModificationRequest, currentModificationRequest, chatHistory]);
+   // Debugging log
+   console.log('[GenerateProjectResultsDisplay] Props de estado:', {
+    isModifyingProject,
+    isRedefiningModificationRequest,
+    currentModificationRequestValue: currentModificationRequest,
+    hasTextInRequest: !!(currentModificationRequest && currentModificationRequest.trim()),
+    isSendButtonDisabled: isModifyingProject || isRedefiningModificationRequest || (!currentModificationRequest || !currentModificationRequest.trim())
+  });
 
 
   if (!result) {
@@ -104,11 +105,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
           {t('generateProject.results.saveSnapshotButton')}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground mt-1">
-        {t('generateProject.results.downloadNote')}
-      </p>
-
-      {/* Interactive Modification Section */}
+     
       <Separator className="my-8" />
       <Card className="border-primary/50 shadow-md">
         <CardHeader>
@@ -166,7 +163,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
                 <div className="flex justify-start">
                     <div className="max-w-[85%] p-2.5 rounded-lg bg-card text-card-foreground border flex items-center shadow-sm">
                     <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
-                    <span className="text-sm">{t('chat.thinking')}</span>
+                    <span className="text-sm">{t('chat.thinking' as TranslationKey)}</span>
                     </div>
                 </div>
               )}
@@ -196,18 +193,29 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
               onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSendModificationRequest(); }}}
             />
           </div>
-          <Button
-            onClick={onSendModificationRequest}
-            disabled={isModifyingProject || isRedefiningModificationRequest || (!currentModificationRequest || !currentModificationRequest.trim())}
-            className="w-full"
-          >
-            {isModifyingProject ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="mr-2 h-4 w-4" />
-            )}
-            {t('generateProject.results.sendModificationButton')}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={onSendModificationRequest}
+              disabled={isModifyingProject || isRedefiningModificationRequest || (!currentModificationRequest || !currentModificationRequest.trim())}
+              className="flex-grow"
+            >
+              {isModifyingProject ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              {t('generateProject.results.sendModificationButton')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onClearModificationChat}
+              disabled={isModifyingProject || isRedefiningModificationRequest || (chatHistory || []).length === 0}
+              title={t('generateProject.results.clearModificationChatButton')}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('generateProject.results.clearModificationChatButton')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -215,5 +223,3 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
 };
 
 export default GenerateProjectResultsDisplay;
-
-    

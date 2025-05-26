@@ -20,12 +20,13 @@ import type {
   CodeSnapshot,
   GeneratedFile,
   ModifyProjectStructureInput,
+  AppSourceFile, // Added AppSourceFile
 } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import LogsDisplay from '@/components/logs-display';
 import { useAppState } from '@/context/AppStateContext';
 import { AppError } from '@/utils/AppError';
-import { callGenerateProjectStructure, callRedefinePrompt, callModifyProjectStructure, callChatWithAgentOrGlobal } from '@/utils/apiClient';
+import { callGenerateProjectStructure, callRedefinePrompt, callModifyProjectStructure, callChatWithAgentOrGlobal, callAutoFixErrorWithGroup } from '@/utils/apiClient'; // Added callAutoFixErrorWithGroup
 import { useRouter } from 'next/navigation';
 import JSZip from 'jszip';
 import { useI18n } from '@/context/I18nContext';
@@ -40,13 +41,31 @@ import GenerateProjectHeader from '@/components/features/generar-proyecto/Genera
 import GenerateProjectForm from '@/components/features/generar-proyecto/GenerateProjectForm';
 import GenerateProjectResultsDisplay from '@/components/features/generar-proyecto/GenerateProjectResultsDisplay';
 
+const textFileExtensions = [ // For ZIP processing
+  '.mq5', '.mqh', '.mq4', '.ex5', '.ex4',
+  '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.c', '.cpp', '.h', '.hpp', '.cs', '.go', '.php', '.rb', '.rs', '.swift', '.kt', '.kts', '.lua', '.pl', '.dart', '.ex', '.exs', '.scala', '.clj', '.groovy', '.hs', '.erl', '.vb', '.xaml', '.r',
+  '.html', '.htm', '.css', '.scss', '.less', '.vue', '.svelte',
+  '.json', '.xml', '.yaml', '.yml', '.ini', '.cfg', '.toml', '.env', '.properties', '.conf', '.config',
+  '.sh', '.bash', '.bat', '.ps1',
+  '.sql', '.ddl', '.dml', '.graphql',
+  '.md', '.txt', '.text', '.rtf', '.log', '.tex', '.rst', '.asciidoc',
+  'makefile', 'dockerfile', '.dockerignore', 'gemfile', 'procfile', '.npmrc', '.editorconfig',
+  '.csproj', '.sln', '.vbproj', '.vcproj', '.gradle', '.sbt', '.mod', '.tf', '.hcl',
+  '.gitignore', '.gitattributes', '.gitmodules',
+  '.glsl', '.hlsl', '.metal', '.wgsl',
+  '.csv', '.tsv', '.ics', '.vcf',
+];
+const ignorePatternsSimple = ['node_modules/', '.git/', '.next/', 'dist/', 'build/', '__pycache__/', '.DS_Store', 'package-lock.json', 'yarn.lock', 'bun.lockb', '.env.local', '.env.development', '.env.production', '.env.test', '.idea/', '.vscode/', 'venv/', '.venv/'];
+const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.ico', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.woff', '.woff2', '.ttf', '.otf', '.eot', '.mp3', '.mp4', '.mov', '.avi', '.webm', '.webp', '.gz', '.tar', '.rar', '.7z', '.jar', '.war', '.ear', '.dll', '.exe', '.so', '.bin', '.img', '.iso', '.dmg', '.class', '.svg', '.deb', '.rpm', '.zip', '.tgz'];
+
 
 /**
  * @fileOverview Página para generar una estructura base de proyecto usando IA.
- * Permite al usuario describir un proyecto, seleccionar una fuente de IA (global, agente o grupo),
+ * Permite al usuario describir un proyecto, seleccionar una fuente de IA,
  * y generar una estructura de archivos. Incluye una sección de chat para modificar interactivamente
  * el proyecto generado y la opción de guardar el resultado como un snapshot.
  * El estado de los campos de entrada y los resultados se persiste en localStorage.
+ * Permite subir un proyecto ZIP existente para modificarlo.
  * @module GenerarProyectoPage
  */
 export default function GenerarProyectoPage() {
@@ -65,8 +84,8 @@ export default function GenerarProyectoPage() {
 
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isRedefining, setIsRedefining] = useState(false); // For main description redefine
-  const [isRedefiningInDialog, setIsRedefiningInDialog] = useState(false); // For redefine in confirm dialog
+  const [isRedefining, setIsRedefining] = useState(false);
+  const [isRedefiningInDialog, setIsRedefiningInDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
@@ -75,6 +94,7 @@ export default function GenerarProyectoPage() {
 
   const { addLog: addDebugLog } = useDebug();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!showConfirmDialog) {
@@ -109,41 +129,37 @@ export default function GenerarProyectoPage() {
     setChatHistory([]); 
     setModificationPrompt(''); 
 
-    const agentSystemPromptForFlow = getAgentSystemPromptForFlow();
-    const generationInput: GenerateProjectInput = { description: finalPrompt, agentSystemPrompt: agentSystemPromptForFlow };
-    const flowName = llmConfigSource?.type === 'Grupo' ? 'generateProjectStructure (Grupo)' : 'generateProjectStructure (Global/Agente)';
-
     addDebugLog({
       source: 'GenerarProyectoPage', type: 'INFO',
       message: `Iniciando generación de proyecto. Prompt (inicio): ${finalPrompt.substring(0, 100)}...`,
-      data: { config: llmConfigSource, agentSystemPromptProvided: !!agentSystemPromptForFlow, inputLength: finalPrompt.length },
-      flowName
+      data: { config: llmConfigSource, inputLength: finalPrompt.length },
     });
 
+    const agentSystemPromptForFlow = getAgentSystemPromptForFlow();
+    const generationInput: GenerateProjectInput = { description: finalPrompt, agentSystemPrompt: agentSystemPromptForFlow };
+    
     try {
       const aiResult = await callGenerateProjectStructure(generationInput);
       addDebugLog({ source: 'GenerarProyectoPage', type: 'DEBUG', message: 'Resultado crudo de callGenerateProjectStructure:', data: aiResult });
       
-      let groupLogForDisplay = aiResult.groupLog;
-
-      if (!groupLogForDisplay && llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
+      let groupLogText = aiResult.groupLog;
+      if (!groupLogText && llmConfigSource?.type === 'Grupo' && llmConfigSource.name && llmConfigSource.id) {
         const group = getGroupById(llmConfigSource.id);
-        // const orchestratorSystemPrompt = DEFAULT_AGENTS.find(a=>a.id === ORCHESTRATOR_AGENT_ID)?.systemPrompt; // No usar DEFAULT_AGENTS aquí, usar el del estado
         const orchestratorSystemPrompt = agents.find(a => a.id === ORCHESTRATOR_AGENT_ID)?.systemPrompt;
-        groupLogForDisplay = t('generateProject.logs.groupContextLog', {
+        groupLogText = t('generateProject.logs.groupContextLog', {
            groupName: llmConfigSource.name,
            groupTask: (group?.mainTask || 'N/A').substring(0,150),
            userInput: finalPrompt.substring(0,100),
            orchestratorContext: (orchestratorSystemPrompt || t('common.notAvailable' as TranslationKey)).substring(0, 200),
-           flowName,
+           flowName: 'generateProjectStructure (Grupo)',
          });
-      } else if (!groupLogForDisplay && llmConfigSource?.type === 'Agente' && llmConfigSource.name && llmConfigSource.id) {
+      } else if (!groupLogText && llmConfigSource?.type === 'Agente' && llmConfigSource.name && llmConfigSource.id) {
          const agent = getAgentById(llmConfigSource.id);
-         groupLogForDisplay = t('generateProject.logs.agentContextLog' as TranslationKey, {
+         groupLogText = t('generateProject.logs.agentContextLog', {
             agentName: agent?.name || llmConfigSource.name,
             userInput: finalPrompt.substring(0, 100),
             agentContext: (agentSystemPromptForFlow || t('common.notAvailable' as TranslationKey)).substring(0, 200),
-            flowName,
+            flowName: 'generateProjectStructure (Agente)',
           });
       }
       
@@ -151,7 +167,7 @@ export default function GenerarProyectoPage() {
           projectName: aiResult.projectName || t('generateProject.results.defaultProjectName' as TranslationKey),
           aiNotes: aiResult.aiNotes || t('generateProject.results.initialAiNotes' as TranslationKey),
           files: aiResult.files || [],
-          groupLog: groupLogForDisplay,
+          groupLog: groupLogText,
       };
 
       setResult(finalResultToSet);
@@ -165,18 +181,22 @@ export default function GenerarProyectoPage() {
       });
 
     } catch (e: any) {
-      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo en generación de proyecto (UI).", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
-      const errorFriendlyMessage = e.friendlyMessage || (e.message || t('generateProject.toast.generationError.description'));
-      const errorLog = `${t('generateProject.toast.generationError.title')}: ${errorFriendlyMessage}`;
+      const errorDetails = e.originalError || e;
+      let friendlyMessage = e.friendlyMessage || (e.message || t('generateProject.toast.generationError.descriptionDefault' as TranslationKey));
+      if (e instanceof AppError && e.originalError?.message?.includes("INVALID_ARGUMENT: Schema validation failed")) {
+        friendlyMessage = `${t('generateProject.toast.generationError.title' as TranslationKey)}: ${t('common.error' as TranslationKey)} - La IA no devolvió la estructura esperada. ${e.originalError.message}`;
+      }
+
+      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo en generación de proyecto (UI).", errorDetails: errorDetails, friendlyMessage: friendlyMessage });
       
       setResult({ 
           projectName: t('generateProject.results.defaultProjectName' as TranslationKey), 
-          aiNotes: `${t('generateProject.results.initialAiNotes' as TranslationKey)}\n\nERROR: ${errorFriendlyMessage}`, 
+          aiNotes: `${t('generateProject.results.initialAiNotes' as TranslationKey)}\n\nERROR: ${friendlyMessage}`, 
           files: [], 
-          groupLog: errorLog
+          groupLog: `${t('generateProject.toast.generationError.title')}: ${friendlyMessage}`
       });
-      setError(errorFriendlyMessage);
-      toast({ variant: "destructive", title: t('generateProject.toast.generationError.title'), description: errorFriendlyMessage });
+      setError(friendlyMessage);
+      toast({ variant: "destructive", title: t('generateProject.toast.generationError.title'), description: friendlyMessage });
       if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
     } finally {
       setIsLoading(false);
@@ -243,8 +263,8 @@ export default function GenerarProyectoPage() {
       });
       addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: `Proyecto "${result.projectName}" descargado como ${filename}.` });
     } catch (e: any) {
-      const errorMsg = (e as Error).message || t('generateProject.toast.zipDownloadError.descriptionGeneric');
-      toast({ variant: "destructive", title: t('generateProject.toast.zipDownloadError.title'), description: errorMsg });
+      const errorMsg = (e as Error).message || t('generateProject.toast.zipReadError.description');
+      toast({ variant: "destructive", title: t('generateProject.toast.zipReadError.title'), description: errorMsg });
       addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: `Fallo al generar/descargar ZIP: ${errorMsg}`, errorDetails: e });
     }
   }, [result, t, toast, addDebugLog]);
@@ -253,6 +273,16 @@ export default function GenerarProyectoPage() {
     const contextForAI = `${t('generateProject.autofixContext.projectPromptLabel' as TranslationKey)}: "${description}" ${modificationPrompt ? `${t('generateProject.autofixContext.lastModificationLabel' as TranslationKey)}: "${modificationPrompt}"` : '' }`;
     addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Intentando Auto-Fix para error: ${errorMsgToFix}`, data: { currentProjectPrompt: description, modificationRequest: modificationPrompt, contextForAI }, flowName: 'callAutoFixErrorWithGroup (GenerarProyecto)'});
     toast({ title: t('common.processing'), description: t('error.errorDisplay.toast.autofixAttempt.description' as TranslationKey) });
+    try {
+      const fixSuggestion = await callAutoFixErrorWithGroup({errorMessage: errorMsgToFix, codeContext: contextForAI});
+      // Further logic to display fixSuggestion in a modal would go here or be handled by ErrorDisplay itself
+      addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Sugerencia de Auto-Fix recibida:`, data: fixSuggestion});
+      // Usually ErrorDisplay component would handle showing the modal with fixSuggestion
+    } catch (e) {
+      const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('common.unknownError'));
+      toast({ variant: "destructive", title: t('error.errorDisplay.toast.autofixError.title' as TranslationKey), description: errorMsg });
+      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: `Fallo en Auto-Fix: ${errorMsg}`, errorDetails: e});
+    }
   }, [description, modificationPrompt, addDebugLog, t, toast]);
 
   const handleRedefineRequest = useCallback(async () => {
@@ -270,7 +300,7 @@ export default function GenerarProyectoPage() {
       toast({ title: t('common.toast.redefinedSuccess.title'), description: t('common.toast.redefinedSuccess.description') });
       addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: `Descripción de proyecto redefinida. Nueva (inicio): ${resultOutput.redefinedPrompt.substring(0, 100)}...` });
     } catch (e: any) {
-      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo al redefinir descripción.", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage });
+      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo al redefinir descripción.", errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage });
       const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('common.toast.redefineError.description'));
       setError(errorMsg);
       toast({ variant: "destructive", title: t('common.toast.redefineError.title'), description: errorMsg });
@@ -294,7 +324,7 @@ export default function GenerarProyectoPage() {
       toast({ title: t('common.toast.redefinedSuccess.title'), description: t('common.toast.redefinedSuccess.description') });
       addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: `Prompt en diálogo redefinido. Nuevo (inicio): ${resultOutput.redefinedPrompt.substring(0, 100)}...` });
     } catch (e: any) {
-      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo al redefinir prompt en diálogo.", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage });
+      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo al redefinir prompt en diálogo.", errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage });
       const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('common.toast.redefineError.description'));
       toast({ variant: "destructive", title: t('common.toast.redefineError.title'), description: errorMsg });
       if (e instanceof AppError && e.redirectTo) { setShowConfirmDialog(false); router.push(e.redirectTo); }
@@ -326,6 +356,8 @@ export default function GenerarProyectoPage() {
     const flowName = 'callModifyProjectStructure (GenerarProyecto)';
     addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Enviando petición de modificación: ${tempCurrentModificationRequest}`, data: { currentProjectName: result.projectName }, flowName });
 
+    setChatHistory(prev => [...prev, userMessage]);
+
     try {
       const inputForModification: ModifyProjectStructureInput = {
         currentProject: {
@@ -345,23 +377,24 @@ export default function GenerarProyectoPage() {
           groupLog: prevResult?.groupLog || modifiedProjectResult.groupLog 
       }));
       
+      const aiResponseMessage = modifiedProjectResult.aiNotes || t('generateProject.toast.modificationSuccess.description');
       const aiMessage: ChatMessage = {
         id: uuidv4(), role: 'assistant',
-        content: modifiedProjectResult.aiNotes || t('generateProject.toast.modificationSuccess.description'),
+        content: aiResponseMessage,
         timestamp: new Date().toISOString()
       };
-      setChatHistory(prev => [...prev, userMessage, aiMessage]); 
+      setChatHistory(prev => [...prev, aiMessage]); 
       
       toast({ title: t('generateProject.toast.modificationSuccess.title'), description: t('generateProject.toast.modificationSuccess.description') });
       addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: 'Modificación de proyecto exitosa.', data: { newNotesLength: modifiedProjectResult.aiNotes.length, newFilesCount: modifiedProjectResult.files.length }, flowName});
 
     } catch (e: any) {
-      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo en modificación de proyecto (UI).", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage, flowName });
+      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo en modificación de proyecto (UI).", errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage, flowName });
       const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('generateProject.toast.modificationError.description'));
       setError(errorMsg); 
       
-      const aiErrorMessage: ChatMessage = { id: uuidv4(), role: 'system', content: `${t('chat.systemMessage.errorPrefix')}${errorMsg}`, timestamp: new Date().toISOString() };
-      setChatHistory(prev => [...prev, userMessage, aiErrorMessage]);
+      const aiErrorMessage: ChatMessage = { id: uuidv4(), role: 'system', content: `${t('chat.systemMessage.errorPrefix' as TranslationKey)}${errorMsg}`, timestamp: new Date().toISOString() };
+      setChatHistory(prev => [...prev, aiErrorMessage]);
 
       toast({ variant: "destructive", title: t('generateProject.toast.modificationError.title'), description: errorMsg });
       if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
@@ -369,8 +402,9 @@ export default function GenerarProyectoPage() {
       setIsProcessingModification(false);
       addDebugLog({ source: 'GenerarProyectoPage', type: 'DEBUG', message: 'Seteando isProcessingModification a FALSE' });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    modificationPrompt, result, llmConfigSource, getAgentById, getGroupById, agents, 
+    modificationPrompt, result, llmConfigSource, agents, getAgentById, getGroupById, 
     t, toast, router, addDebugLog, setResult, setError, setModificationPrompt, 
     setChatHistory, getAgentSystemPromptForFlow, chatHistory 
   ]);
@@ -389,7 +423,7 @@ export default function GenerarProyectoPage() {
       toast({ title: t('common.toast.redefinedSuccess.title'), description: t('common.toast.redefinedSuccess.description') });
       addDebugLog({ source: 'GenerarProyectoPage', type: 'SUCCESS', message: `'modificationPrompt' redefinido. Nuevo (inicio): ${resultOutput.redefinedPrompt.substring(0, 100)}...` });
     } catch (e: any) {
-      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo al redefinir 'modificationPrompt'.", errorDetails: e.originalError || e, friendlyMessage: e.friendlyMessage });
+      addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: "Fallo al redefinir 'modificationPrompt'.", errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage });
       const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('common.toast.redefineError.description'));
       setError(errorMsg);
       toast({ variant: 'destructive', title: t('common.toast.redefineError.title'), description: errorMsg });
@@ -430,6 +464,84 @@ export default function GenerarProyectoPage() {
     });
   }, [result, addSnapshot, t, toast, addDebugLog]);
 
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        const fileNameLower = file.name.toLowerCase();
+        if (!fileNameLower.endsWith('.zip')) {
+            toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title' as TranslationKey), description: t('analyzeProject.toast.invalidFile.description' as TranslationKey) });
+            if(fileInputRef.current) fileInputRef.current.value = "";
+            return;
+        }
+        
+        setError(null);
+        setResult(null);
+        setChatHistory([]);
+        setModificationPrompt('');
+        setDescription(''); // Clear project description if uploading a ZIP
+
+        toast({ title: t('generateProject.toast.zipUpload.processing' as TranslationKey) });
+        addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Procesando ZIP subido: ${file.name}` });
+        try {
+            const jszip = new JSZip();
+            const zip = await jszip.loadAsync(file);
+            const extractedFiles: AppSourceFile[] = [];
+            const fileProcessingPromises: Promise<void>[] = [];
+
+            zip.forEach((relativePath, fileEntry) => {
+              const entryNameLower = fileEntry.name.toLowerCase();
+              const isIgnored = ignorePatternsSimple.some(pattern => entryNameLower.includes(pattern.replace('**', '')));
+              const extension = (entryNameLower.includes('.') ? '.' + entryNameLower.split('.').pop() : '');
+              const isBinary = binaryExtensions.some(ext => entryNameLower.endsWith(ext));
+              const isAllowedText = textFileExtensions.includes(extension) || (!entryNameLower.includes('.') && !isBinary && !entryNameLower.endsWith('/'));
+
+
+              if (!fileEntry.dir && !isIgnored && (!isBinary || isAllowedText)) {
+                fileProcessingPromises.push(
+                  fileEntry.async("string").then(content => {
+                    extractedFiles.push({ fileName: relativePath, content });
+                  }).catch(err => {
+                    addDebugLog({ source: 'GenerarProyectoPage', type: 'WARN', message: `No se pudo leer el archivo ${relativePath} del ZIP como texto: ${(err as Error).message}`});
+                  })
+                );
+              }
+            });
+            await Promise.all(fileProcessingPromises);
+
+            if (extractedFiles.length === 0) {
+              toast({ variant: "destructive", title: t('generateProject.toast.zipUpload.noValidFiles' as TranslationKey) });
+              addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: `ZIP ${file.name} no contenía archivos de texto válidos.`});
+            } else {
+              const projectNameFromZip = file.name.replace(/\.zip$/i, '');
+              const initialResult: ProjectGenerationResult = {
+                projectName: projectNameFromZip,
+                aiNotes: t('generateProject.results.projectFromZipNotes' as TranslationKey),
+                files: extractedFiles.map(ef => ({ path: ef.fileName, content: ef.content, isFolder: ef.fileName.endsWith('/') })),
+                groupLog: undefined,
+              };
+              setResult(initialResult);
+              toast({ title: t('generateProject.toast.zipUpload.success' as TranslationKey) });
+              addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: `Proyecto cargado desde ZIP ${file.name}. Archivos extraídos: ${extractedFiles.length}`});
+            }
+        } catch (zipError: any) {
+            toast({ variant: "destructive", title: t('generateProject.toast.zipUpload.error' as TranslationKey, {error: zipError.message }) });
+            addDebugLog({ source: 'GenerarProyectoPage', type: 'ERROR', message: `Error procesando ZIP: ${zipError.message}`, errorDetails: zipError });
+        } finally {
+             if(fileInputRef.current) fileInputRef.current.value = "";
+        }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ t, toast, addDebugLog, setResult, setChatHistory, setModificationPrompt, setDescription, textFileExtensions]);
+
+  const handleClearModificationChat = useCallback(() => {
+    setChatHistory([]);
+    toast({
+      title: t('generateProject.toast.modificationChatCleared.title' as TranslationKey),
+      description: t('generateProject.toast.modificationChatCleared.description' as TranslationKey)
+    });
+    addDebugLog({ source: 'GenerarProyectoPage', type: 'INFO', message: 'Chat de modificación limpiado.' });
+  }, [setChatHistory, t, toast, addDebugLog]);
+
 
   return (
     <Card className="max-w-4xl mx-auto">
@@ -444,6 +556,8 @@ export default function GenerarProyectoPage() {
             isLoading={isLoading || isRedefining}
             isRedefining={isRedefining}
             onRedefineRequest={handleRedefineRequest}
+            onFileUpload={handleFileUpload}
+            fileInputRef={fileInputRef}
             t={t}
         />
 
@@ -465,6 +579,7 @@ export default function GenerarProyectoPage() {
               currentModificationRequest={modificationPrompt}
               onCurrentModificationRequestChange={setModificationPrompt}
               onSendModificationRequest={handleProcessModification}
+              onClearModificationChat={handleClearModificationChat}
               isModifyingProject={isProcessingModification}
               isRedefiningModificationRequest={isRedefiningModificationPrompt}
               onRedefineModificationRequest={handleRedefineModificationPrompt}
@@ -524,4 +639,3 @@ export default function GenerarProyectoPage() {
   );
 }
 
-    

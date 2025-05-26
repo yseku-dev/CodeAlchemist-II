@@ -1,8 +1,9 @@
-
 {
   "title": "Generar Proyecto",
   "description": "Crea una estructura base para nuevos proyectos a partir de tus especificaciones.",
   "redefineRequestButton": "Redefinir Petición con IA",
+  "uploadExistingZipButton": "Subir Proyecto Existente (ZIP)",
+  "describeOrNewLabel": "O describe un proyecto nuevo:",
   "describeProjectLabel": "Describe tu proyecto",
   "describeProjectPlaceholder": "Ej: Un API REST con Node.js y Express, con rutas para usuarios y productos, y una base de datos PostgreSQL.",
   "generateButton": "Generar Proyecto",
@@ -12,7 +13,7 @@
     "aiNotesLabel": "Notas de la IA:",
     "generatedFilesLabel": "Archivos Generados:",
     "downloadButton": "Descargar Proyecto (ZIP)",
-    "downloadNote": "Nota: La descarga será un archivo JSON con la estructura y contenido del proyecto.",
+    "downloadNote": "Nota: La descarga será un archivo JSON con la estructura del proyecto.",
     "groupLogTitle": "Log Detallado del Grupo",
     "modifyProjectSectionTitle": "Modificar Proyecto con IA",
     "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
@@ -22,32 +23,35 @@
     "saveSnapshotButton": "Guardar Snapshot del Proyecto",
     "snapshotName": "Proyecto Generado - {name} - {time}",
     "chatInteractionLogPrefix": "Interacción de Chat ({time})",
-    "initialAiNotes": "Notas iniciales del proceso de generación."
+    "initialAiNotes": "Notas iniciales del proceso de generación.",
+    "projectFromZipNotes": "Proyecto cargado desde ZIP. Listo para modificaciones.",
+    "clearModificationChatButton": "Limpiar Chat de Modificación"
   },
   "autofixContext": {
     "projectPromptLabel": "Prompt del Proyecto",
     "lastModificationLabel": "Última Petición de Modificación"
   },
   "logs": {
-    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\\n------------------------------------\\nGrupo Seleccionado: {groupName}\\nTarea Principal del Grupo: {groupTask}\\nInput del Usuario: {userInput}\\nContexto del Orquestrador (usado para guiar a la IA):\\n\\\"{orchestratorContext}...\\\"\\n---\\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "groupContextLog": "Log de Contexto del Grupo de Trabajo:\n------------------------------------\nGrupo Seleccionado: {groupName}\nTarea Principal del Grupo: {groupTask}\nInput del Usuario: {userInput}\nContexto del Orquestrador (usado para guiar a la IA):\n\\\"{orchestratorContext}...\\\"\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del orquestrador del grupo seleccionado para guiar el proceso de la IA.",
+    "agentContextLog": "Log de Contexto del Agente:\n------------------------------------\nAgente Seleccionado: {agentName}\nInput del Usuario: {userInput}\nContexto del Agente (usado para guiar a la IA):\n\\\"{agentContext}...\\\"\\n---\nNota: El flujo Genkit ({flowName}) fue ejecutado utilizando el contexto del agente seleccionado para guiar el proceso de la IA.",
     "multiTurnLog": {
-      "processStart": "Iniciando generación de proyecto con grupo: {groupName}. Tarea: {taskDescription}",
+      "processStart": "Iniciando generación de proyecto con grupo: {groupName}. Tarea (inicio): {taskDescriptionStart}...",
       "orchestratorTurnStart": "Turno {turn} - Orquestador:",
-      "orchestratorReceiving": "Orquestador Recibiendo Tarea (Turno {turn}) (Longitud Prompt: {promptLength}):",
-      "orchestratorSendingPrompt": "Prompt para Orquestador (Turno {turn}, Longitud: {length}):",
-      "orchestratorRawResponse": "Respuesta JSON Cruda del Orquestador (Turno {turn}) (truncada):",
+      "orchestratorReceiving": "Orquestador Recibiendo Tarea (Turno {turn}):\n{task}",
+      "orchestratorSendingPrompt": "[LOG] Preparando prompt para Orquestador (Turno {turn}). Longitud: {length}",
+      "orchestratorRawResponse": "Respuesta JSON Cruda del Orquestador (Turno {turn}) (truncada): {response}",
       "orchestratorParsedDecision": "Decisión Parseada del Orquestador (Turno {turn}): Próximo Agente: {nextAgentId}, Instrucción (inicio): {instructionStart}..., Razonamiento (inicio): {reasoningStart}...",
-      "orchestratorDataAggregation": "Orquestador (Turno {turn}) - Agregando datos. Proyecto actual: {projectName}, Notas (inicio): {aiNotesStart}..., Archivos: {filesCount}",
+      "dataAggregation": "Orquestador (Turno {turn}) - Agregando datos. Proyecto actual: {projectName}, Notas (inicio): {aiNotesStart}..., Archivos: {filesCount}",
       "agentTurnStart": "Turno {turn} - Agente {agentName}:",
-      "agentReceivingInstruction": "Agente {agentName} (Turno {turn}) Recibiendo Instrucción:",
-      "agentSendingPrompt": "Prompt para Agente {agentName} (Turno {turn}, Longitud: {length}):",
-      "agentRawResponse": "Respuesta Cruda de Agente {agentName} (Turno {turn}) (truncada):",
+      "agentReceivingInstruction": "Agente {agentName} (Turno {turn}) Recibiendo Instrucción:\n{instruction}",
+      "agentSendingPrompt": "[LOG] Preparando prompt para Agente {agentName} (Turno {turn}). Longitud: {length}",
+      "agentRawResponse": "Respuesta Cruda de Agente {agentName} (Turno {turn}) (truncada): {response}",
       "processCompleted": "Orquestador (Turno {turn}) indica: TAREA COMPLETADA. Resultado Final (resumen): {finalSummary}",
       "maxTurnsReached": "\nSe alcanzó el límite máximo de {maxTurns} turnos. La generación del proyecto podría estar incompleta.",
       "errorTurn": "[ERROR] Turno {turn} ({actor}): {errorMessage}",
-      "errorParsingOrchestratorResponse": "[ERROR CRÍTICO] Turno {turn} - Orquestador no devolvió JSON válido o faltan campos clave. Respuesta cruda: {response}. Error de parseo: {parseError}",
-      "errorOrchestratorMissingFields": "[ERROR CRÍTICO] Turno {turn} - Respuesta del Orquestador incompleta. Faltan campos requeridos.",
-      "errorAgentNotFound": "[ERROR CRÍTICO] Turno {turn} - Agente con ID '{agentId}' no encontrado en la lista de agentes por defecto.",
+      "errorParsingOrchestratorResponse": "[ERROR CRÍTICO] Turno {turn} - Orquestador no devolvió JSON válido. Respuesta cruda: {response}. Error de parseo: {parseError}",
+      "errorOrchestratorMissingFields": "[ERROR CRÍTICO] Turno {turn} - Respuesta del Orquestador incompleta. Faltan campos requeridos ({missingFields}).",
+      "errorAgentNotFound": "[ERROR CRÍTICO] Turno {turn} - Agente con ID '{agentId}' no encontrado.",
       "errorCallingAgent": "[ERROR] Turno {turn} - Falló la llamada al agente {agentName}: {errorMessage}",
       "errorCallingOrchestrator": "[ERROR] Turno {turn} - Falló la llamada al orquestador: {errorMessage}",
       "finalProjectAssembly": "Ensamblando resultado final del proyecto a partir de datos acumulados...",
@@ -57,12 +61,9 @@
       "noAgentToCall": "Orquestador decidió delegar a '{agentIdToCall}' pero no se encontró un system prompt para este agente. Saltando llamada al agente.",
       "orchestratorDecisionInvalid": "La decisión del orquestador no es válida o está incompleta. No se puede proceder.",
       "orchestratorIndicatesCompletion": "El orquestador ha indicado que la tarea está completada. Intentando ensamblar el resultado final.",
-      "finalResultFromOrchestrator": "Resultado final obtenido directamente del payload del orquestador.",
+      "finalResultFromOrchestrator": "Resultado final obtenido directamente del data_payload del orquestador.",
       "assemblingResultFromAccumulatedData": "Ensamblando el resultado final a partir de los datos acumulados durante la orquestación.",
       "failedToParseFinalResult": "Error al parsear el resultado final del orquestador como ProjectGenerationResult. Payload: {payloadString}",
-      "generatedProjectName": "Nombre del Proyecto Sugerido por IA",
-      "generatedAINotes": "Notas de la IA sobre el Proyecto Generado",
-      "generatedFileStructure": "Estructura de Archivos y Carpetas Generada",
       "noSpecificAgentResponse": "El agente {agentName} no devolvió una respuesta de texto específica, o la respuesta estaba vacía.",
       "orchestratorResponseNotJSON": "La respuesta del orquestador no fue un JSON válido o no pudo ser parseada.",
       "orchestratorResponseMissingFields": "La respuesta del orquestador no contiene los campos necesarios (next_agent_id o instruction_for_next_agent)."
@@ -86,19 +87,26 @@
     },
     "generationError": {
       "title": "Error de Generación",
-      "description": "Ocurrió un error al generar el proyecto."
+      "description": "Ocurrió un error al generar el proyecto.",
+      "descriptionDefault": "Ocurrió un error desconocido al generar el proyecto."
     },
     "downloadError": {
       "title": "Error al Descargar",
       "descriptionNoFiles": "No hay estructura de proyecto para descargar."
     },
     "zipDownloadSuccess": {
-      "title": "Proyecto Descargado (ZIP)",
-      "description": "Se ha descargado un archivo ZIP ({filename}) con la estructura y contenido del proyecto \"{projectName}\"."
+      "title": "Proyecto Descargado (JSON)",
+      "description": "Se ha descargado un archivo JSON ({filename}) con la estructura y contenido del proyecto \"{projectName}\". Puedes usarlo para crear los archivos manualmente o con un script. La generación directa de ZIP no es soportada por esta función en el navegador."
     },
     "zipReadError": {
       "title": "Error al Leer ZIP",
       "description": "No se pudo leer el archivo ZIP: {error}"
+    },
+    "zipUpload": {
+      "processing": "Procesando archivo ZIP...",
+      "success": "Archivo ZIP procesado. Proyecto cargado para modificación.",
+      "noValidFiles": "El ZIP subido no contiene archivos de texto/código válidos o está vacío.",
+      "error": "Error al procesar el archivo ZIP: {error}"
     },
     "modificationSent": {
       "title": "Modificación Enviada",
@@ -112,14 +120,18 @@
       "title": "Modificación Procesada",
       "description": "La IA ha procesado tu solicitud. Por favor, revisa los cambios."
     },
+    "modificationChatCleared": {
+      "title": "Chat Limpiado",
+      "description": "El historial de chat de modificación ha sido limpiado."
+    },
     "emptyModificationRequest": {
       "title": "Petición Vacía",
       "description": "Por favor, describe la modificación que deseas realizar."
     },
-    "noProjectToModify": "No hay un proyecto generado para modificar.",
+    "noProjectToModify": "No hay un proyecto generado o cargado para modificar.",
     "noProjectToSave": "No hay un proyecto generado para guardar como snapshot."
   },
   "downloads": {
-    "zipFilename": "proyecto_{projectName}.zip"
+    "zipFilename": "proyecto_{projectName}.json"
   }
 }
