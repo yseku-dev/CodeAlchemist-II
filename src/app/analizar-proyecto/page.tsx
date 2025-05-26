@@ -59,14 +59,10 @@ export default function AnalizarProyectoPage() {
   const { addLog: addDebugLog } = useDebug();
   const { toast } = useToast();
 
-  const projectSourceManager = useProjectSourceManager(
-    'codealchemist-ap-hook-v1',
-    "upload"
-  );
-
   const [llmConfigSource, setLlmConfigSource] = useLocalStorage<LLMConfigSourceOption | undefined>(
     'codealchemist-ap-llmConfigSource', { type: 'Ajustes Globales' }
   );
+  
   const [searchDepth, setSearchDepth] = useLocalStorage<string>('codealchemist-ap-searchDepth', '');
   const [focusArea, setFocusArea] = useLocalStorage<string>('codealchemist-ap-focusArea', '');
 
@@ -76,6 +72,7 @@ export default function AnalizarProyectoPage() {
 
   const [result, setResult] = useLocalStorage<AnalyzeCodeOutput | null>('codealchemist-ap-result', null);
   const [suggestionsForUI, setSuggestionsForUI] = useLocalStorage<DetailedSuggestionForUI[]>('codealchemist-ap-suggestionsForUI', []);
+  
   const [originalProjectFiles, setOriginalProjectFiles] = useLocalStorage<AppSourceFile[] | null>('codealchemist-ap-originalProjectFiles', null);
 
   const [modificationPrompt, setModificationPrompt] = useLocalStorage<string>('codealchemist-ap-modificationPrompt', '');
@@ -85,22 +82,26 @@ export default function AnalizarProyectoPage() {
   
   const [unifiedSuggestionsPrompt, setUnifiedSuggestionsPrompt] = useLocalStorage<string | null>('codealchemist-ap-unifiedSuggestionsPrompt', null);
 
-  const handleFileProcessingDoneInPage = useCallback(
-    (processedFiles: AppSourceFile[] | null, processingError?: string) => {
-      addDebugLog({ source: 'AnalizarProyectoPage', type: 'CALLBACK', message: 'Callback de onFileProcessed ejecutado por hook', data: { hasFiles: !!processedFiles, processingError } });
-      if (processingError) {
-        setError(processingError);
-        setOriginalProjectFiles(null);
-        setResult(null);
-        setSuggestionsForUI([]);
-        setModificationPrompt('');
-        toast({ variant: "destructive", title: t('analyzeProject.toast.zipReadError.title' as TranslationKey), description: processingError });
-      } else if (processedFiles) {
-        setOriginalProjectFiles(processedFiles);
-        setError(null); 
-      }
-    },
-    [t, toast, addDebugLog, setError, setOriginalProjectFiles, setResult, setSuggestionsForUI, setModificationPrompt]
+  const handleFileChangeCallback = useCallback((files: AppSourceFile[] | null, processingError?: string) => {
+    addDebugLog({ source: 'AnalizarProyectoPage', type: 'CALLBACK', message: 'Callback onFileProcessed ejecutado por hook', data: { hasFiles: !!files, processingError } });
+    if (processingError) {
+      setError(processingError);
+      setOriginalProjectFiles(null);
+      setResult(null);
+      setSuggestionsForUI([]);
+      setModificationPrompt('');
+      toast({ variant: "destructive", title: t('analyzeProject.toast.zipReadError.title' as TranslationKey), description: processingError });
+    } else if (files) {
+      setOriginalProjectFiles(files);
+      setError(null); 
+      toast({ title: t('analyzeProject.toast.zipProcessed.title' as TranslationKey), description: t('analyzeProject.toast.zipProcessed.description' as TranslationKey, { count: files.length })});
+    }
+  }, [t, toast, addDebugLog, setError, setOriginalProjectFiles, setResult, setSuggestionsForUI, setModificationPrompt]);
+
+  const projectSourceManager = useProjectSourceManager(
+    'codealchemist-ap-hook-v1',
+    "upload",
+    handleFileChangeCallback
   );
 
   useEffect(() => {
@@ -174,23 +175,7 @@ export default function AnalizarProyectoPage() {
     setSuggestionsForUI([]);
     setModificationPrompt('');
     setUnifiedSuggestionsPrompt(null);
-
-    // If source is not 'git', originalProjectFiles might have been set by handleFileChange (for ZIP)
-    // or will be set by getApplicationSourceBundle (for 'local').
-    // If it's 'git', prepareProjectSourceForAnalysis will fetch and set it.
-    if (projectSourceManager.projectSourceType !== 'git') {
-      // For local or upload (non-git), ensure originalProjectFiles is cleared
-      // if it wasn't populated by handleFileChange (for ZIP).
-      // For 'local', getApplicationSourceBundle will be called inside prepareProjectSourceForAnalysis.
-      // For 'upload' (JSON), originalProjectFiles will remain null, which is correct.
-      if (projectSourceManager.projectSourceType === 'local' || 
-          (projectSourceManager.projectSourceType === 'upload' && !projectSourceManager.uploadedFileName?.toLowerCase().endsWith('.zip'))
-      ) {
-         setOriginalProjectFiles(null);
-      }
-    }
-
-
+    
     const preparationResult = await projectSourceManager.prepareProjectSourceForAnalysis();
     
     if (preparationResult.error || !preparationResult.projectContentStringForAI) {
@@ -199,16 +184,10 @@ export default function AnalizarProyectoPage() {
       toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title'as TranslationKey), description: errorMsg });
       setIsLoadingAnalysis(false);
       setLoadingMessage(null);
-      if (projectSourceManager.projectSourceType === 'git') { // If git fetch failed, clear original files
-        setOriginalProjectFiles(null);
-      }
       return;
     }
-    // Sync originalProjectFiles from the hook if it was populated (e.g., by Git or Local source in prepare)
-    if (projectSourceManager.originalProjectFiles) {
-        setOriginalProjectFiles(projectSourceManager.originalProjectFiles);
-    }
-
+    
+    setOriginalProjectFiles(projectSourceManager.originalProjectFiles);
 
     let agentSystemPrompt: string | undefined;
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
@@ -221,7 +200,7 @@ export default function AnalizarProyectoPage() {
 
     const analysisInputForFlow: AnalyzeCodeInput = {
         projectContent: preparationResult.projectContentStringForAI,
-        sourceCodeLocation: preparationResult.sourceCodeLocationForAI as "Local" | "Git" | "UploadedString", // Cast for safety
+        sourceCodeLocation: preparationResult.sourceCodeLocationForAI,
         gitRepoUrl: projectSourceManager.projectSourceType === 'git' ? projectSourceManager.gitUrl : undefined,
         focusArea: focusArea || undefined,
         analysisPreferences: focusArea || undefined, 
@@ -264,7 +243,7 @@ export default function AnalizarProyectoPage() {
     setIsProcessingModification(true);
     setError(null);
     const tempCurrentModificationRequest = modificationPrompt;
-
+    
     let agentSystemPromptForModification: string | undefined;
     if (llmConfigSource?.type === 'Agente' && llmConfigSource.id) {
         const agent = getAgentById(llmConfigSource.id);
@@ -278,7 +257,7 @@ export default function AnalizarProyectoPage() {
     }
 
     const filesForModificationFlow = (originalProjectFiles || []).map(f => ({
-        path: f.fileName,
+        path: f.fileName, 
         content: f.content,
         isFolder: f.fileName.endsWith('/'),
     }));
@@ -314,7 +293,7 @@ export default function AnalizarProyectoPage() {
                 detailedSuggestions: base.detailedSuggestions.map(s => ({ ...s, id: s.id || uuidv4() })), 
             };
          });
-         toast({ title: t('analyzeProject.toast.modificationSuccess.title' as TranslationKey), description: t('analyzeProject.toast.modificationSuccess.consultationDescription' as TranslationKey) });
+         toast({ title: t('analyzeProject.toast.modificationSuccess.title' as TranslationKey) });
          setModificationPrompt(''); 
       } else {
         const errorDetail = t('analyzeProject.toast.modificationError.invalidResponse' as TranslationKey);
@@ -338,10 +317,10 @@ export default function AnalizarProyectoPage() {
   }, [
       modificationPrompt, result, llmConfigSource, getAgentById, getGroupById, originalProjectFiles, t, toast, router, addDebugLog,
       setModificationPrompt, setError, setIsProcessingModification, setResult, projectSourceManager.projectSourceType,
-      projectSourceManager.uploadedFileName, projectSourceManager.gitUrl, settings.llmConfig, setOriginalProjectFiles,
+      projectSourceManager.uploadedFileName, projectSourceManager.gitUrl, settings.llmConfig, setOriginalProjectFiles
   ]);
 
-  const handleRedefineFocusArea = useCallback(async () => {
+  const handleRedefineFocusArea = useCallback(async () => { 
     if (!focusArea.trim()) {
       toast({ variant: 'destructive', title: t('common.toast.redefineEmpty.title' as TranslationKey), description: t('common.toast.redefineEmpty.description' as TranslationKey) });
       return;
@@ -524,16 +503,21 @@ export default function AnalizarProyectoPage() {
     const sourceTypeTranslationKey = `analyzeProject.source${capitalizedType}` as TranslationKey;
     const translatedSourceType = t(sourceTypeTranslationKey);
 
-    let modificationContext = "";
+    let modificationContextPart = "";
     if (modificationPrompt) {
         const modificationLabel = t('analyzeProject.results.lastModificationLabel' as TranslationKey);
         const escapedModificationPrompt = modificationPrompt
-          .replace(/\\/g, '\\\\') 
-          .replace(/"/g, '\\"')  
-          .replace(/\n/g, '\\n'); 
-        modificationContext = ` ${modificationLabel}: "${escapedModificationPrompt}"`;
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n');
+        modificationContextPart = ` ${modificationLabel}: "${escapedModificationPrompt}"`;
     }
-    const contextForAI = `${t('analyzeProject.results.modificationContextPrefix' as TranslationKey, { focusArea: focusArea || "N/A", sourceType: translatedSourceType, sourceName: projectSourceManager.uploadedFileName || projectSourceManager.gitUrl || "Local" })}${modificationContext}`;
+    const prefixContext = t('analyzeProject.results.modificationContextPrefix' as TranslationKey, { 
+        focusArea: focusArea || "N/A", 
+        sourceType: translatedSourceType, 
+        sourceName: projectSourceManager.uploadedFileName || projectSourceManager.gitUrl || "Local" 
+    });
+    const contextForAI = `${prefixContext}${modificationContextPart}`;
 
 
     addDebugLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Intentando Auto-Fix para error: ${errorToFix}`, data: { contextForAI }, flowName: 'callAutoFixErrorWithGroup (AnalizarProyecto)'});
@@ -560,8 +544,7 @@ export default function AnalizarProyectoPage() {
   ]);
 
   const isLoadingOverall = projectSourceManager.isLoadingSource || isLoadingAnalysis || isProcessingModification || isRedefiningFocusArea || isRedefiningModificationPrompt;
-  const canApplyAndDownloadOverall = !!originalProjectFiles && originalProjectFiles.length > 0;
-
+  
   return (
     <Card className="max-w-7xl mx-auto">
       <AnalyzeProjectHeader />
@@ -572,7 +555,7 @@ export default function AnalizarProyectoPage() {
           projectSourceType={projectSourceManager.projectSourceType}
           onProjectSourceTypeChange={(value) => projectSourceManager.setProjectSourceType(value as HookProjectSourceType)} 
           uploadedFileName={projectSourceManager.uploadedFileName}
-          onFileChange={(e) => projectSourceManager.handleFileChange(e, handleFileProcessingDoneInPage)}
+          onFileChange={(e) => projectSourceManager.handleFileChange(e, handleFileChangeCallback)}
           fileInputRef={projectSourceManager.fileInputRef}
           gitUrl={projectSourceManager.gitUrl}
           onGitUrlChange={projectSourceManager.setGitUrl}
@@ -608,7 +591,7 @@ export default function AnalizarProyectoPage() {
               suggestionsForUI={suggestionsForUI}
               onToggleSuggestionSelection={handleToggleSuggestionSelection}
               onDownloadProjectZip={handleDownloadProjectZip}
-              canApplyAndDownload={canApplyAndDownloadOverall}
+              canApplyAndDownload={!!originalProjectFiles}
               modificationPrompt={modificationPrompt}
               onModificationPromptChange={setModificationPrompt}
               onProcessModification={handleProcessModification}
@@ -625,4 +608,3 @@ export default function AnalizarProyectoPage() {
     </Card>
   );
 }
-```
