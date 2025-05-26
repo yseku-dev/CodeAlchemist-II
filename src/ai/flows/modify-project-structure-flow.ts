@@ -71,44 +71,39 @@ const ChatMessageSchemaInternal = z.object({
 });
 
 const ModifyProjectStructureInputSchemaInternal = z.object({
-  currentProject: z.object({
-      projectName: z.string(),
-      aiNotes: z.string().optional(),
-      // files no se pasa directamente aquí, se usa currentProjectFilesString
-  }),
-  modificationRequest: z.string(),
-  chatHistory: z.array(ChatMessageSchemaInternal).optional(),
-  agentSystemPrompt: z.string().optional(),
+  currentProject: ProjectGenerationResultSchemaForFlowInternal.describe("El objeto ProjectGenerationResult actual, representando el estado actual del proyecto."),
+  modificationRequest: z.string().describe("La petición del usuario en lenguaje natural sobre cómo modificar el proyecto."),
+  chatHistory: z.array(ChatMessageSchemaInternal).optional().describe("Historial de la conversación de modificación, si existe."),
+  agentSystemPrompt: z.string().optional().describe("El prompt de sistema de un agente, si la modificación es impulsada por un agente específico o un contexto de grupo."),
   currentProjectFilesString: z.string().optional().describe('La estructura de archivos actual del proyecto como una cadena JSON.'),
 });
 export type ModifyProjectStructureInternalInput = z.infer<typeof ModifyProjectStructureInputSchemaInternal>;
 
-
-// Instrucciones detalladas para el LLM sobre el formato de salida JSON
 const systemPromptInstructions = `
 **INSTRUCCIONES CRÍTICAS PARA TU RESPUESTA JSON - ¡NO OMITIR NINGÚN CAMPO REQUERIDO!**
 Tu respuesta DEBE ser un único objeto JSON.
-Este objeto JSON DEBE tener las siguientes propiedades OBLIGATORIAS: \`projectName\` (string), \`aiNotes\` (string), y \`files\` (array).
+Este objeto JSON DEBE tener las siguientes propiedades OBLIGATORIAS: \\\`projectName\\\` (string), \\\`aiNotes\\\` (string), y \\\`files\\\` (array).
 LA AUSENCIA DE CUALQUIERA DE ESTOS CAMPOS O UN FORMATO INCORRECTO HARÁ QUE TU RESPUESTA SEA INVÁLIDA.
-Si no estás seguro de cómo realizar una modificación o si la petición es ambigua, es PREFERIBLE que devuelvas la estructura de archivos original sin cambios en la propiedad \`files\`, y expliques la situación en \`aiNotes\`.
+Si no estás seguro de cómo realizar una modificación o si la petición es ambigua, es PREFERIBLE que devuelvas la estructura de archivos original sin cambios en la propiedad \\\`files\\\`, y expliques la situación en \\\`aiNotes\\\`.
+Si la \\\`modificationRequest\\\` es demasiado compleja, ambigua, o requeriría cambios en demasiados archivos, es PREFERIBLE que respondas indicándolo en \\\`aiNotes\\\` y devuelvas la estructura de \\\`files\\\` original sin modificar, en lugar de intentar una modificación parcial o incorrecta que pueda corromper el proyecto.
 
 **Lista de Verificación de Salida JSON OBLIGATORIA:**
 1.  **\\\`projectName\\\` (string, OBLIGATORIO, NO SE PUEDE OMITIR):** El nombre del proyecto. DEBE estar presente. Si la modificación no afecta el nombre, DEBES devolver el nombre del proyecto actual que se te proporcionó en 'input.currentProject.projectName'. Si por alguna razón no puedes determinarlo, usa el valor 'nombre-proyecto-indefinido'. ¡LA AUSENCIA DE ESTE CAMPO INVALIDARÁ TODA TU RESPUESTA!
 2.  **\\\`aiNotes\\\` (string, OBLIGATORIO, NO SE PUEDE OMITIR):** Comentarios sobre los cambios realizados. Describe qué hiciste, por qué, y cualquier problema encontrado durante la modificación. Si la petición del usuario es ambigua o irrealizable, explícalo claramente aquí y devuelve la estructura del proyecto SIN cambios significativos en 'files' (pero actualiza 'aiNotes'). Si no hay notas nuevas o específicas, incluye un mensaje como "Modificación procesada según lo solicitado." ¡NO OMITIR ESTE CAMPO!
 3.  **\\\`files\\\` (array de objetos GeneratedFile, OBLIGATORIO Y CRUCIALMENTE IMPORTANTE):** DEBES devolver la lista COMPLETA de TODOS los archivos y carpetas del proyecto DESPUÉS de tu modificación.
-    *   **CRÍTICO: Si NO realizas NINGÚN cambio en la estructura o contenido de los archivos porque la petición de modificación no es clara, es demasiado compleja, o no aplica, DEBES DEVOLVER LA LISTA DE ARCHIVOS ORIGINAL COMPLETA (la que se te proporcionó en \`input.currentProjectFilesString\`) SIN NINGÚN CAMBIO EN ELLOS.**
+    *   **CRÍTICO: Si NO realizas NINGÚN cambio en la estructura o contenido de los archivos porque la petición de modificación no es clara, es demasiado compleja, o no aplica, DEBES DEVOLVER LA LISTA DE ARCHIVOS ORIGINAL COMPLETA (la que se te proporcionó en \\\`input.currentProject.files\\\` [accesible a través de \\\`input.currentProjectFilesString\\\`]) SIN NINGÚN CAMBIO EN ELLOS.**
     *   No omitas esta propiedad \\\`files\\\`. No devuelvas un array \\\`files\\\` vacío a menos que la petición explícita sea 'eliminar todos los archivos y confirmas que es seguro hacerlo'.
     *   Cada objeto \\\`GeneratedFile\\\` DENTRO del array \\\`files\\\` DEBE tener las propiedades \\\`path\\\` (string) y \\\`content\\\` (string). \\\`isFolder\\\` (boolean) es opcional.
     *   **Para añadir un archivo:** Inclúyelo en el array \\\`files\\\` con su \\\`path\\\` y \\\`content\\\`.
     *   **Para modificar un archivo:** Incluye el archivo con su \\\`path\\\` existente y el nuevo \\\`content\\\` completo.
     *   **Para eliminar un archivo:** Simplemente no lo incluyas en el nuevo array \\\`files\\\`.
     *   **Archivos no afectados:** TODOS los archivos del proyecto original que NO fueron afectados por la petición del usuario DEBEN ser incluidos en el array \\\`files\\\` exactamente como estaban, con su \\\`path\\\` y \\\`content\\\` originales.
-    *   **Carpetas:** Si creas un archivo dentro de una nueva carpeta (ej. \\\`src/utils/newFile.js\\\` y \\\`src/utils/\\\` no existía), asegúrate de que la carpeta también esté declarada como un objeto \\\`GeneratedFile\\\` con su \\\`path\\\` terminando en \\\`/\` (ej. \\\`{ "path": "src/utils/", "content": "", "isFolder": true }\\\`).
+    *   **Carpetas:** Si creas un archivo dentro de una nueva carpeta (ej. \\\`src/utils/newFile.js\\\` y la carpeta \\\`src/utils/\\\` no existía), asegúrate de que la carpeta también esté declarada como un objeto \\\`GeneratedFile\\\` con su \\\`path\\\` terminando en \\\`/\` (ej. \\\`{ "path": "src/utils/", "content": "", "isFolder": true }\\\`).
     *   El contenido de los archivos debe ser lo más completo y funcional posible.
-    *   Si la \`modificationRequest\` es general (ej. 'hacerlo más modular', 'revisar errores'), enfócate en identificar **1 o 2 áreas específicas** donde puedas proponer un cambio concreto y aplicable. Describe estas áreas y los cambios en \`aiNotes\`. Si puedes aplicar directamente un cambio pequeño y seguro a un archivo, hazlo y actualiza su contenido en \`files\`. Si no, describe la refactorización mayor en \`aiNotes\` y devuelve la lista de \`files\` original.
+    *   Si la \\\`modificationRequest\\\` es general (ej. 'hacerlo más modular', 'revisar errores'), enfócate en identificar **1 o 2 áreas específicas** donde puedas proponer un cambio concreto y aplicable. Describe estas áreas y los cambios en \\\`aiNotes\\\`. Si puedes aplicar directamente un cambio pequeño y seguro a un archivo, hazlo y actualiza su contenido en \\\`files\\\`. Si no, describe la refactorización mayor en \\\`aiNotes\\\` y devuelve la lista de \\\`files\\\` original.
 
 Toda la salida debe estar en castellano.
-Es ABSOLUTAMENTE CRUCIAL que incluyas las propiedades \`projectName\`, \`aiNotes\`, y \`files\` en tu respuesta JSON.
+Es ABSOLUTAMENTE CRUCIAL que incluyas las propiedades \\\`projectName\\\`, \\\`aiNotes\\\`, y \\\`files\\\` en tu respuesta JSON.
 
 Tu respuesta DEBE SER ÚNICAMENTE el objeto JSON válido y completo que se adhiera a esta estructura. No incluyas ningún otro texto explicativo fuera del objeto JSON.
 `;
@@ -138,7 +133,7 @@ Historial de Conversación de Modificación Previa (el último mensaje es el má
 Petición de Modificación del Usuario (esta es la tarea principal que debes realizar sobre la estructura actual, objeto \\\`input.modificationRequest\\\`):
 "{{{input.modificationRequest}}}"
 
-${systemPromptInstructions}
+\n${systemPromptInstructions}\n
 `;
 
 
@@ -149,12 +144,6 @@ const prompt = ai.definePrompt({
   prompt: mainPromptTemplate,
 });
 
-/**
- * Wrapper function for the Genkit flow \`modifyProjectStructureFlowGenkit\`.
- * This function is exported and can be called from server components or other server-side logic.
- * @param {ModifyInputTypeFromTypes} flowInput - The input for modifying the project structure.
- * @returns {Promise<ProjectGenerationResult>} The modified project structure.
- */
 export async function modifyProjectStructure(
   flowInput: ModifyInputTypeFromTypes
 ): Promise<ProjectGenerationResult> {
@@ -163,44 +152,50 @@ export async function modifyProjectStructure(
   return modifyProjectStructureFlowGenkit(flowInput);
 }
 
-/**
- * Genkit flow for modifying a project structure.
- * Takes the current project state and a modification request, then calls an LLM
- * to get a new project structure. It handles potential errors and ensures
- * the output tries to conform to the ProjectGenerationResult schema.
- */
 const modifyProjectStructureFlowGenkit = ai.defineFlow(
   {
     name: 'modifyProjectStructureFlowInternal',
-    inputSchema: z.custom<ModifyInputTypeFromTypes>(),
+    inputSchema: z.custom<ModifyInputTypeFromTypes>(), 
     outputSchema: ProjectGenerationResultSchemaForFlowInternal,
   },
   async (flowInput: ModifyInputTypeFromTypes): Promise<ProjectGenerationResult> => {
     const flowName = 'modifyProjectStructureFlowInternal';
     let accumulatedAiNotes = flowInput.currentProject.aiNotes || "Notas iniciales del proyecto.";
-    let schemaValidationErrorMsg = "";
+    let schemaValidationErrorMsg = ""; 
+    let llmCallSucceeded = false;
+    let llmResponseFromPrompt: any; 
+    let outputFromLlm: z.infer<typeof ProjectGenerationResultSchemaForFlowInternal> | undefined;
+    let criticalLlmInteractionError: any = null; 
 
-    console.log(`[Flow: ${flowName}] Input recibido:`, {
-      projectName: flowInput.currentProject.projectName,
-      modificationRequest: flowInput.modificationRequest.substring(0, 100) + "...",
-      numCurrentFiles: flowInput.currentProject.files?.length,
-      agentSystemPromptProvided: !!flowInput.agentSystemPrompt,
-      chatHistoryLength: flowInput.chatHistory?.length || 0,
-    });
+    console.log(`[Flow: ${flowName}] Input recibido. ProjectName: ${flowInput.currentProject.projectName}, RequestLength: ${flowInput.modificationRequest.length}, NumFiles: ${flowInput.currentProject.files?.length}`);
 
-    let currentProjectFilesString = JSON.stringify(flowInput.currentProject.files || [], null, 2);
-    const MAX_FILES_STRING_LENGTH = 30000; // Umbral experimental
+    let currentProjectFilesString = "[]";
+    try {
+      const filesToSerialize = Array.isArray(flowInput.currentProject.files) ? flowInput.currentProject.files : [];
+      currentProjectFilesString = JSON.stringify(filesToSerialize, null, 2);
+    } catch (e: any) {
+      console.error(`[Flow: ${flowName}] Error CRÍTICO al serializar flowInput.currentProject.files: `, e);
+      accumulatedAiNotes += "[ERROR CRÍTICO INTERNO: No se pudieron serializar los archivos del proyecto actual para enviar a la IA. La modificación no es posible.]\n";
+      return {
+        projectName: flowInput.currentProject.projectName,
+        aiNotes: accumulatedAiNotes,
+        files: flowInput.currentProject.files.map(f => ({ path: f.path, content: f.content ?? '', isFolder: f.isFolder ?? f.path.endsWith('/') })),
+        groupLog: flowInput.currentProject.groupLog
+      };
+    }
+    
+    const MAX_FILES_STRING_LENGTH = 35000; 
     if (currentProjectFilesString.length > MAX_FILES_STRING_LENGTH) {
       currentProjectFilesString = currentProjectFilesString.substring(0, MAX_FILES_STRING_LENGTH) + '\\n... (Archivos truncados por longitud)...';
-      accumulatedAiNotes += "[ADVERTENCIA: El contexto de los archivos del proyecto era demasiado largo y fue truncado antes de enviarlo a la IA. La modificación podría ser incompleta o basarse en información parcial.]\\n";
-      console.warn(`[Flow: ${flowName}] currentProjectFilesString truncado a ${MAX_FILES_STRING_LENGTH} caracteres.`);
+      accumulatedAiNotes += "[ADVERTENCIA: El contexto de los archivos del proyecto era demasiado largo y fue truncado. La modificación podría ser incompleta.]\n";
+      console.warn(`[Flow: ${flowName}] currentProjectFilesString truncado a ${MAX_FILES_STRING_LENGTH} chars.`);
     }
 
-
-    const promptInputForHandlebars: ModifyProjectStructureInternalInput = {
+    const promptInputForHandlebars = {
       currentProject: {
           projectName: flowInput.currentProject.projectName,
-          aiNotes: flowInput.currentProject.aiNotes
+          aiNotes: flowInput.currentProject.aiNotes,
+          files: [], 
       },
       modificationRequest: flowInput.modificationRequest,
       chatHistory: flowInput.chatHistory || [],
@@ -208,151 +203,143 @@ const modifyProjectStructureFlowGenkit = ai.defineFlow(
       currentProjectFilesString: currentProjectFilesString,
     };
     
-    // Logging del prompt que se enviará (aproximado)
-    let approxFinalPromptForLog = mainPromptTemplate
-      .replace("{{{input.currentProjectFilesString}}}", currentProjectFilesString)
-      .replace("{{{input.modificationRequest}}}", flowInput.modificationRequest)
-      .replace("{{input.currentProject.projectName}}", flowInput.currentProject.projectName)
-      .replace("{{input.currentProject.aiNotes}}", flowInput.currentProject.aiNotes || "");
-    if(flowInput.agentSystemPrompt) {
-        approxFinalPromptForLog = approxFinalPromptForLog.replace("{{{input.agentSystemPrompt}}}", flowInput.agentSystemPrompt);
-    }
-    approxFinalPromptForLog = approxFinalPromptForLog.replace("${systemPromptInstructions}", systemPromptInstructions); // Asegurar que esta interpolación también se simule
-    console.log(`[Flow: ${flowName}] DEBUG: Prompt aproximado que se enviará al LLM (longitud: ${approxFinalPromptForLog.length}). Inicio (primeros 300 chars): ${approxFinalPromptForLog.substring(0, 300)}... Fin (últimos 200 chars): ...${approxFinalPromptForLog.substring(approxFinalPromptForLog.length - 200)}`);
-
-
+    console.log(`[Flow: ${flowName}] DEBUG: Longitud de currentProjectFilesString para prompt: ${currentProjectFilesString.length}`);
+    
+    // Nested try-catch for critical LLM interaction
     try {
-      console.log(`[Flow: ${flowName}] Intentando llamada al prompt con input preparado.`);
-      
-      const llmResponse = await prompt(promptInputForHandlebars);
-      const output = llmResponse.output;
+      console.log(`[Flow: ${flowName}] Intentando llamada a prompt()...`);
+      llmResponseFromPrompt = await prompt(promptInputForHandlebars); // Genkit prompt function call
+      outputFromLlm = llmResponseFromPrompt.output; // Genkit attempts to parse to ProjectGenerationResultSchemaForFlowInternal
+      llmCallSucceeded = true; // Mark that the call itself (network, etc.) seemed to succeed
 
-      let rawLLMOutputForLog = 'N/A (Respuesta cruda no disponible o error al stringify)';
-      if (llmResponse.raw?.candidates?.[0]?.output) {
+      let rawLLMOutputForLog = 'N/A';
+      if (llmResponseFromPrompt.raw?.candidates?.[0]?.output) {
           try {
-              const tempString = JSON.stringify(llmResponse.raw.candidates[0].output);
+              const tempString = JSON.stringify(llmResponseFromPrompt.raw.candidates[0].output);
               rawLLMOutputForLog = tempString.substring(0, 500) + (tempString.length > 500 ? '...' : '');
           } catch (stringifyError: any) {
-              rawLLMOutputForLog = `[Error al stringify la respuesta cruda del LLM: ${stringifyError.message}]`;
-              console.error(`[Flow: ${flowName}] Error al stringify la respuesta cruda del LLM para logging:`, stringifyError);
+              rawLLMOutputForLog = `[Error al stringify la respuesta cruda: ${stringifyError.message}]`;
           }
       }
-      console.log(`[Flow: ${flowName}] LLM output parseado por Genkit (truncado): ${output ? JSON.stringify(output).substring(0,500)+'...' : 'undefined'}. Respuesta cruda (truncada): ${rawLLMOutputForLog}`);
+      console.log(`[Flow: ${flowName}] LLM output (parseado por Genkit): ${outputFromLlm ? JSON.stringify(outputFromLlm).substring(0,200)+'...' : 'undefined'}. Raw (truncado): ${rawLLMOutputForLog}`);
 
-
-      if (llmResponse.usage?.promptInvalid) {
+      if (llmResponseFromPrompt.usage?.promptInvalid) {
           try {
-              schemaValidationErrorMsg = ` Detalles de validación de schema de Genkit: ${JSON.stringify(llmResponse.usage.promptInvalid).substring(0, 300)}`;
-          } catch { schemaValidationErrorMsg = ` (Detalles de validación de Genkit no pudieron ser serializados).`; }
-          console.warn(`[Flow: ${flowName}] Genkit schema validation info:`, llmResponse.usage.promptInvalid);
+              schemaValidationErrorMsg = ` Detalles de validación de schema (Genkit): ${JSON.stringify(llmResponseFromPrompt.usage.promptInvalid).substring(0, 200)}`;
+          } catch { schemaValidationErrorMsg = ` (Detalles de validación de Genkit no serializables).`; }
+          console.warn(`[Flow: ${flowName}] Genkit schema validation info:`, llmResponseFromPrompt.usage.promptInvalid);
       }
       
-      if (!output) {
-        const errorMsg = `La IA no devolvió una estructura válida (output nulo/undefined después del parseo de Genkit).${schemaValidationErrorMsg}`;
-        console.error(`[Flow: ${flowName}] ${errorMsg}`, llmResponse.usage);
-        throw new AppError( errorMsg, { genkitUsage: llmResponse.usage, inputSent: promptInputForHandlebars }, 'ai' );
+      if (!outputFromLlm && llmCallSucceeded) { 
+        const errorDetail = `La IA no devolvió una estructura válida (output nulo/undefined después del parseo de Genkit).${schemaValidationErrorMsg}`;
+        console.error(`[Flow: ${flowName}] ${errorDetail}`, llmResponseFromPrompt.usage);
+        accumulatedAiNotes += `\n[ERROR CRÍTICO DE IA: ${errorDetail}]`;
       }
-
-      // Fallbacks agresivos para asegurar que el objeto devuelto tenga la estructura esperada
-      let finalProjectName = flowInput.currentProject.projectName;
-      if (output.projectName && typeof output.projectName === 'string' && output.projectName.trim() !== '') {
-        finalProjectName = output.projectName;
-      } else {
-        accumulatedAiNotes += `[ADVERTENCIA IA CRÍTICA: 'projectName' NO fue proporcionado por la IA o era inválido. Se ha utilizado el nombre del proyecto original: '${finalProjectName}'. Respuesta de IA para projectName: '${String(output.projectName)}'.]\n`;
-      }
-
-      let finalAiNotes = accumulatedAiNotes.trim();
-      if (output.aiNotes && typeof output.aiNotes === 'string') {
-        finalAiNotes = (finalAiNotes ? finalAiNotes + "\n" : "") + output.aiNotes;
-      } else if (output.aiNotes !== undefined){
-         finalAiNotes += (finalAiNotes ? "\n" : "") + `[ADVERTENCIA IA: 'aiNotes' fue proporcionado por la IA pero no era un string válido: '${String(output.aiNotes)}'.]`;
-      } else {
-         finalAiNotes += (finalAiNotes ? "\n" : "") + `[ADVERTENCIA IA: 'aiNotes' NO fue proporcionado por la IA.]`;
-      }
-      
-      let finalFiles: GeneratedFileTypeFromTypes[];
-      if (Array.isArray(output.files) && output.files.length > 0) {
-          finalFiles = output.files.map((file: Partial<GeneratedFileInternal>, index: number) => {
-            let filePath = file.path;
-            let fileContent = file.content;
-            if (!filePath || typeof filePath !== 'string' || filePath.trim() === '') {
-              filePath = `archivo-generado-sin-ruta-${index}-${Date.now()}.txt`;
-              finalAiNotes += (finalAiNotes ? "\n" : "") + `[ADVERTENCIA IA - Archivo ${index + 1}]: Ruta de archivo faltante o inválida en la respuesta de la IA. Se usó: '${filePath}'. Path original de IA: '${String(file.path)}'.`;
-            }
-            if (typeof fileContent !== 'string') {
-              fileContent = `// Contenido no proporcionado o inválido por la IA para ${filePath}`;
-              finalAiNotes += (finalAiNotes ? "\n" : "") + `[ADVERTENCIA IA - Archivo ${filePath}]: Contenido no era string en la respuesta de la IA. Se usó placeholder. Contenido original de IA: '${String(file.content)}'.`;
-            }
-            return {
-              path: filePath.trim(),
-              content: fileContent ?? '', 
-              isFolder: typeof file.isFolder === 'boolean' ? file.isFolder : filePath.trim().endsWith('/'),
-            } as GeneratedFileTypeFromTypes;
-          });
-      } else { 
-          finalFiles = flowInput.currentProject.files.map(f => ({ path: f.path, content: f.content ?? '', isFolder: f.isFolder ?? f.path.endsWith('/') })); // Devolver los archivos originales
-          finalAiNotes += (finalAiNotes.trim() ? "\n" : "") + "[ERROR CRÍTICO DE IA: La IA no devolvió una lista de archivos válida ('files') o devolvió una lista vacía sin una instrucción explícita para eliminar todos los archivos. La modificación solicitada NO se aplicó a los archivos. Se ha MANTENIDO la estructura de archivos previa a esta solicitud de modificación.]";
-          console.warn(`[Flow: ${flowName}] La IA no devolvió un array 'files' válido o estaba vacío. Se devuelven los archivos originales del input. Output.files recibido:`, output?.files);
-      }
-      
-      const validatedOutput: ProjectGenerationResult = {
-        projectName: finalProjectName,
-        aiNotes: finalAiNotes.trim() || "Notas no proporcionadas.",
-        files: finalFiles,
-        groupLog: output.groupLog, 
-      };
-            
-      console.log(`[Flow: ${flowName}] Modificación procesada (o restaurada a original si hubo error IA). Devolviendo output. Proyecto: ${validatedOutput.projectName}, Archivos: ${validatedOutput.files.length}, Notas (inicio): ${(validatedOutput.aiNotes || "").substring(0,100)}`);
-      return validatedOutput;
-
-    } catch (error: any) {
-      const originalErrorMessage = error?.message ? String(error.message) : 'Error desconocido en el flujo de modificación.';
-      console.error(`[Flow: ${flowName}] Error ORIGINAL CAPTURADO (mensaje): ${originalErrorMessage}`);
-      if (error instanceof Error && error.stack) {
-        console.error(`[Flow: ${flowName}] Stack del error original (primeras 1000 chars):\n`, error.stack.substring(0, 1000));
-      }
-      // console.error(`[Flow: ${flowName}] Detalles adicionales del error original (inspección limitada):`, inspect(error, { depth: 2, maxStringLength: 500 }));
-
-
-      let genkitValidationInfo = "";
-      if (error?.llmUsage?.promptInvalid) {
-          try {
-              genkitValidationInfo = ` Detalles de validación de Genkit: ${JSON.stringify(error.llmUsage.promptInvalid).substring(0,300)}`;
-          } catch { genkitValidationInfo = " (Detalles de validación de Genkit no serializables)"; }
-      } else if (error?.name === 'ZodError' && error.errors) {
-          try {
-              genkitValidationInfo = ` Error de validación Zod: ${JSON.stringify(error.errors).substring(0, 300)}...`;
-          } catch {
-              genkitValidationInfo = ` Error de validación Zod (no pudo ser serializado). Primer error: ${error.errors[0]?.message || 'Múltiples errores.'}`;
-          }
-      }
-      schemaValidationErrorMsg = genkitValidationInfo || schemaValidationErrorMsg; // Reutilizar la variable global
-      
-      const detailsForUser = originalErrorMessage.substring(0, 150) + (originalErrorMessage.length > 150 ? '...' : '');
-
-      const errorDetailsForAppError: any = {
-          message: originalErrorMessage.substring(0, 500) + (originalErrorMessage.length > 500 ? '...' : ''),
-          name: error?.name,
-          genkitValidationInfo: schemaValidationErrorMsg || undefined,
-      };
-      
-      if (process.env.NODE_ENV === 'development' && error instanceof Error && error.stack) {
-          errorDetailsForAppError.stackHint = error.stack.substring(0, 500) + "... (ver logs completos del servidor)";
-      }
-      
-      if (error instanceof AppError) { // Si ya es un AppError (ej. lanzado por validación de !output)
-        error.friendlyMessage = `${error.friendlyMessage}${schemaValidationErrorMsg}`;
-        error.originalError = { ...(error.originalError || {}), moreDetails: errorDetailsForAppError };
-        throw error;
-      }
-
-      throw new AppError(
-        `FALLO_EN_FLUJO_MODIFY_PROJECT: ${detailsForUser}${schemaValidationErrorMsg}`,
-        errorDetailsForAppError, 
-        'ai'
-      );
+    } catch (innerError: any) { 
+        console.error(`[Flow: ${flowName}] Error CRÍTICO en llamada a prompt() o acceso a output (ej. Max Call Stack):`, innerError.message, innerError.name);
+        if(innerError.stack) console.error(`[Flow: ${flowName}] Stack del error crítico interno:\n`, innerError.stack.substring(0, 500));
+        criticalLlmInteractionError = innerError; 
+        const errorMsg = innerError.message ? innerError.message.substring(0,100) : "Error desconocido en interacción con IA";
+        accumulatedAiNotes += `\n[ERROR INTERNO GRAVE DEL FLUJO: Falló la comunicación con la IA (${errorMsg}). Se mantendrá la estructura original.]`;
+        llmCallSucceeded = false; 
     }
+
+    // Construct validatedOutput using fallbacks
+    let finalProjectName = flowInput.currentProject.projectName;
+    if (outputFromLlm && typeof outputFromLlm.projectName === 'string' && outputFromLlm.projectName.trim() !== '') {
+      finalProjectName = outputFromLlm.projectName;
+    } else if (llmCallSucceeded) { 
+      accumulatedAiNotes += `[ADVERTENCIA IA: 'projectName' faltante o inválido. Usando original: '${finalProjectName}'. IA proveyó: '${String(outputFromLlm?.projectName)}'.]\n`;
+    }
+
+    let finalAiNotes = accumulatedAiNotes.trim();
+    if (outputFromLlm && typeof outputFromLlm.aiNotes === 'string') {
+      finalAiNotes = (finalAiNotes ? finalAiNotes + "\n" : "") + outputFromLlm.aiNotes;
+    } else if (llmCallSucceeded && outputFromLlm && outputFromLlm.aiNotes !== undefined ) {
+       finalAiNotes += (finalAiNotes ? "\n" : "") + `[ADVERTENCIA IA: 'aiNotes' no era un string válido. Recibido: '${String(outputFromLlm.aiNotes)}'.]`;
+    } else if (llmCallSucceeded) {
+       finalAiNotes += (finalAiNotes ? "\n" : "") + `[ADVERTENCIA IA: 'aiNotes' NO fue proporcionado por la IA.]`;
+    }
+    
+    let finalFiles: GeneratedFileTypeFromTypes[];
+    if (llmCallSucceeded && outputFromLlm && Array.isArray(outputFromLlm.files) && outputFromLlm.files.length >= 0) { // Allow empty array if IA intends to delete all
+        finalFiles = outputFromLlm.files.map((file: Partial<GeneratedFileInternal>, index: number) => {
+          let filePath = file.path;
+          let fileContent = file.content;
+          if (!filePath || typeof filePath !== 'string' || filePath.trim() === '') {
+            filePath = `archivo-generado-sin-ruta-${index}-${Date.now()}.txt`;
+            finalAiNotes += (finalAiNotes ? "\n" : "") + `[ADVERTENCIA IA - Archivo ${index + 1}]: Ruta faltante. Usada: '${filePath}'. Original: '${String(file.path)}'.`;
+          }
+          if (typeof fileContent !== 'string') {
+            fileContent = `// Contenido no proporcionado/inválido por IA para ${filePath}`;
+            finalAiNotes += (finalAiNotes ? "\n" : "") + `[ADVERTENCIA IA - Archivo ${filePath}]: Contenido no string. Original: '${String(file.content)}'.`;
+          }
+          return {
+            path: filePath.trim(),
+            content: fileContent ?? '', 
+            isFolder: typeof file.isFolder === 'boolean' ? file.isFolder : filePath.trim().endsWith('/'),
+          } as GeneratedFileTypeFromTypes;
+        });
+         if (outputFromLlm.files.length === 0 && flowInput.currentProject.files.length > 0 && !flowInput.modificationRequest.toLowerCase().includes("eliminar todos los archivos")) {
+            finalAiNotes += (finalAiNotes.trim() ? "\n\n" : "") + "[ADVERTENCIA IA: La IA devolvió una lista de archivos vacía sin una instrucción explícita de eliminar todo. Podría ser un error. La modificación solicitada podría no haberse aplicado o haber resultado en la eliminación de todos los archivos.]";
+        }
+    } else { 
+        finalFiles = flowInput.currentProject.files.map(f => ({ path: f.path, content: f.content ?? '', isFolder: f.isFolder ?? f.path.endsWith('/') })); 
+        if (llmCallSucceeded) { 
+          finalAiNotes += (finalAiNotes.trim() ? "\n\n" : "") + "[ERROR CRÍTICO DE IA: La IA no devolvió una lista de archivos válida (`files`). La modificación solicitada NO se aplicó. Se MANTIENE la estructura de archivos previa.]";
+        }
+        console.warn(`[Flow: ${flowName}] 'files' inválido o llamada LLM falló. Usando archivos originales. Output.files:`, outputFromLlm?.files);
+    }
+      
+    const validatedOutput: ProjectGenerationResult = {
+      projectName: finalProjectName,
+      aiNotes: finalAiNotes.trim() || (criticalLlmInteractionError ? `Error en llamada a IA: ${criticalLlmInteractionError.message || "Error desconocido"}` : "Notas no proporcionadas."),
+      files: finalFiles,
+      groupLog: outputFromLlm?.groupLog, 
+    };
+              
+    if (criticalLlmInteractionError) {
+        console.error(`[Flow: ${flowName}] Relanzando error crítico (${criticalLlmInteractionError.name || 'Error desconocido'}) de interacción con LLM después de construir fallback.`);
+        throw criticalLlmInteractionError; 
+    }
+            
+    console.log(`[Flow: ${flowName}] Modificación procesada. Devolviendo output. Proyecto: ${validatedOutput.projectName}, Archivos: ${validatedOutput.files.length}`);
+    return validatedOutput;
+
+  } catch (error: any) { 
+    const originalErrorMessage = error?.message ? String(error.message) : 'Error desconocido en el flujo de modificación.';
+    
+    console.error(`[Flow: ${flowName}] Error ORIGINAL CAPTURADO en el catch principal (mensaje): ${originalErrorMessage}`);
+    if (error instanceof Error && error.stack) {
+      console.error(`[Flow: ${flowName}] Stack del error original (catch principal):\n`, error.stack.substring(0, 1000));
+    }
+    
+    let genkitValidationInfo = schemaValidationErrorMsg; 
+    if (!genkitValidationInfo && error?.name === 'ZodError' && error.errors) {
+        genkitValidationInfo = ` Error de validación Zod: ${error.errors[0]?.message || 'Múltiples errores.'}`;
+    } else if (!genkitValidationInfo && error?.code === 'INVALID_ARGUMENT' && error?.message?.includes('Schema validation failed')) {
+        genkitValidationInfo = ` ${error.message.substring(0, 200)}`;
+    }
+    
+    const detailsForUser = originalErrorMessage.substring(0, 100) + (originalErrorMessage.length > 100 ? '...' : '');
+
+    const errorDetailsForAppError: any = {
+        message: originalErrorMessage.substring(0, 500) + (originalErrorMessage.length > 500 ? '...' : ''),
+        name: error?.name,
+        genkitValidationInfo: genkitValidationInfo || undefined,
+    };
+    
+    if (process.env.NODE_ENV === 'development' && error instanceof Error && error.stack) {
+        errorDetailsForAppError.stackHint = error.stack.substring(0, 300) + "...";
+    }
+    
+    if (error instanceof AppError && error.message.startsWith('FALLO_EN_FLUJO_MODIFY_PROJECT:')) {
+        throw error; 
+    }
+    throw new AppError(
+      `FALLO_EN_FLUJO_MODIFY_PROJECT: ${detailsForUser}${genkitValidationInfo}`,
+      errorDetailsForAppError, 
+      'ai'
+    );
   }
 );
-
-    
