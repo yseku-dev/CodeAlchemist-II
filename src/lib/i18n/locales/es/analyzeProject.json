@@ -31,16 +31,16 @@
     "modificationInputLabel": "Describe la modificación que deseas aplicar al proyecto:",
     "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
-    "applyAndDownloadButton": "Descargar Proyecto Modificado (ZIP)",
-    "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente original fue Git o un ZIP procesado exitosamente que generó archivos base.",
+    "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados",
+    "downloadProjectZipButton": "Descargar Proyecto Modificado (ZIP)",
+    "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente original fue Git o un ZIP procesado que generó archivos base.",
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) que se usarán para la descarga ZIP o futuras modificaciones IA.",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
     "snapshotName": "Análisis de Proyecto - {name} - {time}",
-    "chatInteractionLogPrefix": "Interacción de Chat sobre el Análisis ({time})",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
-    "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área: {area}",
-    "sendModificationButton": "Enviar Modificación",
-    "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados"
+    "modificationContextPrefix": "Contexto del error para Auto-Fix (Análisis de Proyecto). Campo de enfoque: {focusArea}. Tipo de fuente: {sourceType}. Nombre del archivo/URL: {sourceName}.",
+    "uploadedFileFallback": "Archivo subido",
+    "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área: {area}"
   },
   "autofixContext": {
     "projectPromptLabel": "Prompt del Proyecto",
@@ -98,7 +98,8 @@
       "description": "No se pudo procesar tu petición de modificación.",
       "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
       "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP fue procesado exitosamente (generando archivos base).",
-      "consultationError": "Ocurrió un error al consultar a la IA sobre el análisis."
+      "consultationError": "Ocurrió un error al consultar a la IA sobre el análisis.",
+      "gitOrZipSourceRequired": "La modificación de archivos solo es posible si la fuente original fue una URL de Git o un archivo ZIP procesado."
     },
     "modificationSuccess": {
       "title": "Modificación Procesada",
