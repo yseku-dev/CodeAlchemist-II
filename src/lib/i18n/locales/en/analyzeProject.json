@@ -36,13 +36,10 @@
     "applyInfoText": "Select the suggestions you wish to apply. This will modify the base files (if source was Git or a processed ZIP) which will be used for the ZIP download or further AI modifications.",
     "saveSnapshotButton": "Save Analysis Snapshot",
     "snapshotName": "Project Analysis - {name} - {time}",
-    "modificationContextPrefix": "Context of the current analysis being queried/modified: Focus on {focusArea}, Source Type: {sourceType}",
-    "lastModificationRequestLabel": "Last modification request",
+    "chatInteractionLogPrefix": "Chat Interaction about Analysis ({time})",
     "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
     "selectSuggestionCheckboxAria": "Select suggestion for area: {area}",
     "sendModificationButton": "Send Modification",
-    "chatInteractionLogPrefix": "Chat Interaction ({time})",
-    "uploadedFileFallback": "Uploaded File",
     "applySelectedSuggestionsButton": "Apply Selected Changes"
   },
   "autofixContext": {
@@ -66,6 +63,9 @@
     "zipProcessed": {
       "title": "ZIP Processed",
       "description": "{count} text/code files extracted from ZIP for analysis."
+    },
+    "zipUpload": {
+      "processing": "Processing ZIP file..."
     },
     "unsupportedFileType": {
       "title": "Unsupported File Type",
@@ -97,7 +97,7 @@
       "title": "Modification Error",
       "description": "Could not process your modification request.",
       "emptyModificationRequest": "Please describe the modification you want to make.",
-      "noBaseFiles": "File modification is only possible if the original source was Git or a ZIP was processed successfully (generating base files). Current source type: {sourceType}.",
+      "noBaseFiles": "File modification is only possible if the original source was Git or a ZIP was processed successfully (generating base files).",
       "consultationError": "An error occurred while consulting the AI about the analysis."
     },
     "modificationSuccess": {

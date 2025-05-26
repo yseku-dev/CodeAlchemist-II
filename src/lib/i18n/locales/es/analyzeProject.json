@@ -36,13 +36,10 @@
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) que se usarán para la descarga ZIP o futuras modificaciones IA.",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
     "snapshotName": "Análisis de Proyecto - {name} - {time}",
-    "modificationContextPrefix": "Contexto del análisis actual que se está consultando/modificando: Foco en {focusArea}, Tipo de Fuente: {sourceType}",
-    "lastModificationRequestLabel": "Última petición de modificación",
+    "chatInteractionLogPrefix": "Interacción de Chat sobre el Análisis ({time})",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
     "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área: {area}",
     "sendModificationButton": "Enviar Modificación",
-    "chatInteractionLogPrefix": "Interacción de Chat ({time})",
-    "uploadedFileFallback": "Archivo Subido",
     "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados"
   },
   "autofixContext": {
@@ -66,6 +63,9 @@
     "zipProcessed": {
       "title": "ZIP Procesado",
       "description": "{count} archivos de texto/código extraídos del ZIP para análisis."
+    },
+    "zipUpload": {
+      "processing": "Procesando archivo ZIP..."
     },
     "unsupportedFileType": {
       "title": "Tipo de Archivo no Soportado",
@@ -97,7 +97,7 @@
       "title": "Error en Modificación",
       "description": "No se pudo procesar tu petición de modificación.",
       "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
-      "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP fue procesado exitosamente (generando archivos base). Tipo de fuente actual: {sourceType}.",
+      "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP fue procesado exitosamente (generando archivos base).",
       "consultationError": "Ocurrió un error al consultar a la IA sobre el análisis."
     },
     "modificationSuccess": {
