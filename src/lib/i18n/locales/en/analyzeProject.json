@@ -1,3 +1,4 @@
+
 {
   "title": "Analyze Full Project",
   "description": "Perform a holistic analysis of an entire project, uploaded or from Git.",
@@ -31,17 +32,17 @@
     "modificationInputPlaceholder": "E.g.: Add a 'logger.js' file in the 'src/utils' folder.",
     "processModificationButton": "Process Modification with AI",
     "applySelectedSuggestionsButton": "Apply Selected Changes",
-    "applyAndDownloadButton": "Apply Selected & Download Project (ZIP)",
-    "downloadProjectZipButton": "Download Modified Project (ZIP)",
+    "applyAndDownloadButton": "Download Modified Project (ZIP)",
     "downloadProjectZipTooltipDisabled": "ZIP download of the modified project is only available if the original source was Git or a processed ZIP that generated base files.",
     "applyInfoText": "Select the suggestions you wish to apply. This will modify the base files (if source was Git or a processed ZIP) which will be used for the ZIP download or further AI modifications.",
     "saveSnapshotButton": "Save Analysis Snapshot",
     "snapshotName": "Project Analysis - {name} - {time}",
     "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
     "modificationContextPrefix": "Context for Auto-Fix (Project Analysis). Focus area: {focusArea}. Source type: {sourceType}. File/URL name: {sourceName}.",
-    "uploadedFileFallback": "Uploaded file",
     "selectSuggestionCheckboxAria": "Select suggestion for area: {area}",
-    "chatInteractionLogPrefix": "Chat Interaction ({time})"
+    "unifiedSuggestionsPromptLabel": "Unified Prompt to Implement Suggestions:",
+    "promptHeaderForArea": "START: Prompt to improve: {area}",
+    "promptFooterForArea": "END: Prompt to improve: {area}"
   },
   "autofixContext": {
     "projectPromptLabel": "Project Prompt",
@@ -74,7 +75,7 @@
     },
     "sourceRequired": {
       "title": "Project Source Required",
-      "description": "Upload a file or provide a Git URL."
+      "description": "Upload a file, provide a Git URL, or select 'Local'."
     },
     "analysisComplete": {
       "title": "Analysis Complete",
@@ -100,7 +101,8 @@
       "emptyModificationRequest": "Please describe the modification you want to make.",
       "noBaseFiles": "File modification is only possible if the original source was Git or a ZIP was processed successfully (generating base files).",
       "consultationError": "An error occurred while consulting the AI about the analysis.",
-      "gitOrZipSourceRequired": "File modification is only possible if the original source was a Git URL or a processed ZIP file."
+      "gitOrZipSourceRequired": "File modification is only possible if the original source was a Git URL or a processed ZIP file.",
+      "invalidResponse": "The AI did not return a valid project structure after modification."
     },
     "modificationSuccess": {
       "title": "Modification Processed",
@@ -128,6 +130,6 @@
     "applyingAndZipping": "Applying suggestions and generating ZIP..."
   },
   "downloads": {
-    "zipFilename": "project_{projectName}"
+    "zipFilename": "project_{projectName}.zip"
   }
 }

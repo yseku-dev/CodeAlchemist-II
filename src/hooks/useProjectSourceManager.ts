@@ -10,7 +10,7 @@ import { useDebug } from '@/context/DebugContext';
 import type { AppSourceFile } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
 import JSZip from 'jszip';
-import { fetchRemoteGitRepository, getApplicationSourceBundle } from '@/app/autoupdate/actions'; // Suponiendo que estas son las Server Actions
+import { fetchRemoteGitRepository, getApplicationSourceBundle } from '@/app/autoupdate/actions';
 
 export type ProjectSourceType = "upload" | "git" | "local";
 
@@ -32,7 +32,10 @@ const ignorePatternsSimple: string[] = [
   'node_modules/', '.git/', '.next/', 'dist/', 'build/', '__pycache__/',
   '.DS_Store', 'package-lock.json', 'yarn.lock', 'bun.lockb', '.env.local',
   '.env.development', '.env.production', '.env.test', '.idea/', '.vscode/',
-  'venv/', '.venv/',
+  'venv/', '.venv/', 'target/', // Added target for Java/Maven/Rust
+  '*.class', '*.jar', '*.war', '*.ear', // Java compiled
+  '*.o', '*.a', '*.so', '*.dll', '*.exe', // C/C++ compiled
+  '*.pyc', '*.egg-info/', // Python compiled/metadata
 ];
 const binaryExtensions: string[] = [
   '.png', '.jpg', '.jpeg', '.gif', '.ico', '.pdf', '.doc', '.docx', '.xls',
@@ -47,7 +50,7 @@ interface UseProjectSourceManagerReturn {
   setProjectSourceType: (value: ProjectSourceType) => void;
   uploadedFile: File | null;
   uploadedFileName: string | null;
-  handleFileChange: (event: React.ChangeEvent<HTMLInputElement>, 
+  handleFileChange: (event: React.ChangeEvent<HTMLInputElement>,
                      onProcessingDone: (files: AppSourceFile[] | null, error?: string) => void
                     ) => Promise<void>;
   gitUrl: string;
@@ -65,11 +68,14 @@ interface UseProjectSourceManagerReturn {
 }
 
 /**
- * @fileOverview Custom hook to manage the state and logic for selecting and processing project sources
+ * Custom hook to manage the state and logic for selecting and processing project sources
  * (upload, Git, local) for analysis or refactoring.
+ * @param localStoragePrefix - A prefix for localStorage keys to ensure uniqueness per page/feature.
+ * @param initialSourceType - The initial source type to default to.
+ * @returns {UseProjectSourceManagerReturn} An object containing states and handlers.
  */
 export function useProjectSourceManager(
-  localStoragePrefix: string, // e.g., 'codealchemist-ap' for Analizar Proyecto
+  localStoragePrefix: string,
   initialSourceType: ProjectSourceType = "upload"
 ): UseProjectSourceManagerReturn {
   const { t } = useI18n();
@@ -95,14 +101,14 @@ export function useProjectSourceManager(
 
       zip.forEach((relativePath, fileEntry) => {
         const entryNameLower = fileEntry.name.toLowerCase();
-        const isIgnored = ignorePatternsSimple.some(pattern => entryNameLower.includes(pattern.replace('**', '')));
+        const isIgnoredByPattern = ignorePatternsSimple.some(pattern => entryNameLower.includes(pattern.replace('**', '')));
         const extension = (entryNameLower.includes('.') ? '.' + entryNameLower.split('.').pop() : '');
-        const isBinary = binaryExtensions.some(ext => entryNameLower.endsWith(ext));
-        const isAllowedText = textFileExtensions.includes(extension) || (!entryNameLower.includes('.') && !isBinary && !entryNameLower.endsWith('/'));
+        const isBinaryByExtension = binaryExtensions.some(ext => entryNameLower.endsWith(ext));
+        const isAllowedTextByExtension = textFileExtensions.includes(extension) || (!entryNameLower.includes('.') && !isBinaryByExtension && !entryNameLower.endsWith('/'));
         
-        addDebugLog({ source: `useProjectSourceManager:${localStoragePrefix}:ZIP_Detail`, type: 'DEBUG', message: `ZIP Entry: ${relativePath}, IsDir: ${fileEntry.dir}, Ignored: ${isIgnored}, Bin: ${isBinary}, TxtOK: ${isAllowedText}` });
+        addDebugLog({ source: `useProjectSourceManager:${localStoragePrefix}:ZIP_Detail`, type: 'DEBUG', message: `ZIP Entry: ${relativePath}, IsDir: ${fileEntry.dir}, IgnoredByPattern: ${isIgnoredByPattern}, IsBinary: ${isBinaryByExtension}, IsAllowedText: ${isAllowedTextByExtension}` });
 
-        if (!fileEntry.dir && !isIgnored && isAllowedText) {
+        if (!fileEntry.dir && !isIgnoredByPattern && isAllowedTextByExtension && !isBinaryByExtension) {
           fileProcessingPromises.push(
             fileEntry.async("string").then(content => {
               extractedFiles.push({ fileName: relativePath, content });
@@ -110,6 +116,8 @@ export function useProjectSourceManager(
               addDebugLog({ source: `useProjectSourceManager:${localStoragePrefix}:ZIP_Detail`, type: 'WARN', message: `No se pudo leer ${relativePath} como texto: ${(err as Error).message}`});
             })
           );
+        } else {
+            addDebugLog({ source: `useProjectSourceManager:${localStoragePrefix}:ZIP_Detail`, type: 'DEBUG', message: `Omitido del ZIP (directorio, ignorado, binario, o no permitido texto): ${relativePath}`});
         }
       });
       await Promise.all(fileProcessingPromises);
@@ -137,37 +145,48 @@ export function useProjectSourceManager(
     if (file) {
       const fileNameLower = file.name.toLowerCase();
       const isZip = fileNameLower.endsWith('.zip');
-      const isJson = fileNameLower.endsWith('.json'); // Assuming JSON can also be a project source
+      const isJson = fileNameLower.endsWith('.json');
       const isValidSize = file.size <= 25 * 1024 * 1024; // 25MB
 
       setUploadedFile(file);
       setUploadedFileName(file.name);
-      setOriginalProjectFiles(null); // Reset previous files
+      setOriginalProjectFiles(null);
 
-      if ((isZip || isJson) && isValidSize) {
-        if (isZip) {
-          toast({ title: t('analyzeProject.toast.zipUpload.processing' as TranslationKey) });
-          const zipResult = await _processUploadedZipForAnalysis(file);
-          setOriginalProjectFiles(zipResult.files || null);
-          onProcessingDone(zipResult.files || null, zipResult.error);
-          if (zipResult.error) {
-            toast({ variant: "destructive", title: t('analyzeProject.toast.zipReadError.title' as TranslationKey), description: zipResult.error });
-          } else if (zipResult.files) {
-            toast({ title: t('analyzeProject.toast.zipProcessed.title' as TranslationKey), description: t('analyzeProject.toast.zipProcessed.description' as TranslationKey, { count: zipResult.files.length })});
-          }
-        } else if (isJson) {
-          // For JSON, we might pass its content directly or parse it if it represents a file structure
-          // For now, assume it's a single content file for analysis
+      if (!isValidSize) {
+        const errorMsg = t('analyzeProject.toast.invalidFile.description' as TranslationKey); // Assuming this key covers size too
+        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title' as TranslationKey), description: errorMsg });
+        onProcessingDone(null, errorMsg);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        setUploadedFile(null); 
+        setUploadedFileName(null);
+        return;
+      }
+
+      if (isZip) {
+        toast({ title: t('analyzeProject.toast.zipUpload.processing' as TranslationKey) });
+        const zipResult = await _processUploadedZipForAnalysis(file);
+        setOriginalProjectFiles(zipResult.files || null);
+        onProcessingDone(zipResult.files || null, zipResult.error);
+        if (zipResult.error) {
+          toast({ variant: "destructive", title: t('analyzeProject.toast.zipReadError.title' as TranslationKey), description: zipResult.error });
+        } else if (zipResult.files) {
+          toast({ title: t('analyzeProject.toast.zipProcessed.title' as TranslationKey), description: t('analyzeProject.toast.zipProcessed.description' as TranslationKey, { count: zipResult.files.length })});
+        }
+      } else if (isJson) {
+        try {
           const jsonContent = await file.text();
           const pseudoFile: AppSourceFile = { fileName: file.name, content: jsonContent };
           setOriginalProjectFiles([pseudoFile]);
           onProcessingDone([pseudoFile]);
-           toast({ title: t('analyzeProject.toast.jsonProcessed.title' as TranslationKey), description: t('analyzeProject.toast.jsonProcessed.description' as TranslationKey, { name: file.name}) });
+          toast({ title: t('analyzeProject.toast.jsonProcessed.title' as TranslationKey), description: t('analyzeProject.toast.jsonProcessed.description' as TranslationKey, { name: file.name}) });
+        } catch (readError: any) {
+            const errorMsg = t('analyzeProject.toast.readError.description' as TranslationKey, { error: readError.message });
+            toast({ variant: "destructive", title: t('analyzeProject.toast.readError.title' as TranslationKey), description: errorMsg });
+            onProcessingDone(null, errorMsg);
         }
       } else {
         const errorMsg = t('analyzeProject.toast.invalidFile.description' as TranslationKey);
-        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title'as TranslationKey), description: errorMsg });
-        setOriginalProjectFiles(null);
+        toast({ variant: "destructive", title: t('analyzeProject.toast.invalidFile.title' as TranslationKey), description: errorMsg });
         onProcessingDone(null, errorMsg);
       }
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -178,18 +197,14 @@ export function useProjectSourceManager(
     setProjectSourceTypeState(value);
     if (value !== 'upload') {
       setUploadedFile(null);
-      // setUploadedFileName(null); // Keep filename if user switches back and forth? Maybe.
-      // setOriginalProjectFiles(null); // Don't clear original files if they were from Git/Local and user might switch back
     }
-    if (value !== 'git') {
-      // setGitUrl(''); // Keep gitUrl if user switches back?
-    }
+    // No limpiar originalProjectFiles aquí para permitir cambiar entre Git/Local y mantener los archivos cargados
   }, [setProjectSourceTypeState, setUploadedFile]);
 
   const prepareProjectSourceForAnalysis = useCallback(async (): Promise<{
     projectContentStringForAI: string | undefined;
     sourceCodeLocation: "UploadedString" | "Git" | "Local";
-    sourceName: string; // Filename for upload, Git URL, or "Local Source"
+    sourceName: string;
     error?: string;
   }> => {
     setIsLoadingSource(true);
@@ -197,19 +212,17 @@ export function useProjectSourceManager(
     let sourceName = '';
     let filesForAnalysis: AppSourceFile[] | null = null;
     let errorMsg: string | undefined;
+    let serverLogs: string[] = [];
 
     if (projectSourceType === "upload") {
-      if (originalProjectFiles) { // Files already processed from ZIP/JSON
+      if (originalProjectFiles) {
         filesForAnalysis = originalProjectFiles;
-        sourceName = uploadedFileName || "archivo_subido";
-      } else if (uploadedFile) { // File selected but not yet processed (e.g. if onProcessingDone was async)
-        const processResult = uploadedFile.name.toLowerCase().endsWith('.zip')
-          ? await _processUploadedZipForAnalysis(uploadedFile)
-          : { files: [{ fileName: uploadedFile.name, content: await uploadedFile.text() }] };
-        
+        sourceName = uploadedFileName || "archivo_subido_procesado";
+      } else if (uploadedFile) { // Si hay un archivo subido pero no se procesó aún
+        const processResult = await _processUploadedZipForAnalysis(uploadedFile);
         if (processResult.files) {
           filesForAnalysis = processResult.files;
-          setOriginalProjectFiles(filesForAnalysis);
+          setOriginalProjectFiles(filesForAnalysis); // Guardar los procesados
         } else {
           errorMsg = processResult.error || t('analyzeProject.toast.fileReadError.title' as TranslationKey);
         }
@@ -221,7 +234,7 @@ export function useProjectSourceManager(
       sourceName = gitUrl;
       addDebugLog({ source: `useProjectSourceManager:${localStoragePrefix}`, type: 'INFO', message: `Obteniendo de Git: ${gitUrl}` });
       const gitResult = await fetchRemoteGitRepository(gitUrl);
-      if (gitResult.logsBuilt) gitResult.logsBuilt.forEach(log => addDebugLog({ source: 'SERVER_FETCH_GIT', type: 'INFO', message: log }));
+      serverLogs = gitResult.logsBuilt || [];
       if (gitResult.success && gitResult.files) {
         filesForAnalysis = gitResult.files;
         setOriginalProjectFiles(filesForAnalysis);
@@ -232,7 +245,7 @@ export function useProjectSourceManager(
       sourceName = t('analyzeProject.sourceLocal' as TranslationKey);
       addDebugLog({ source: `useProjectSourceManager:${localStoragePrefix}`, type: 'INFO', message: `Obteniendo código local...` });
       const bundleResult = await getApplicationSourceBundle(false);
-      if (bundleResult.logsBuilt) bundleResult.logsBuilt.forEach(log => addDebugLog({ source: 'SERVER_GET_BUNDLE', type: 'INFO', message: log }));
+      serverLogs = bundleResult.logsBuilt || [];
       if (bundleResult.success && bundleResult.files) {
         filesForAnalysis = bundleResult.files;
         setOriginalProjectFiles(filesForAnalysis);
@@ -250,6 +263,8 @@ export function useProjectSourceManager(
     } else if (!errorMsg) {
         errorMsg = t('analyzeProject.toast.noContentToAnalyze.description' as TranslationKey);
     }
+    
+    serverLogs.forEach(log => addDebugLog({source: 'SERVER_ACTION_LOG', type: 'INFO', message: log}));
 
     setIsLoadingSource(false);
     return {
@@ -273,4 +288,8 @@ export function useProjectSourceManager(
     setGitUrl,
     originalProjectFiles,
     setOriginalProjectFiles,
-    isLoadingSource
+    isLoadingSource,
+    prepareProjectSourceForAnalysis,
+    fileInputRef,
+  };
+}

@@ -1,3 +1,4 @@
+
 {
   "title": "Análisis de Proyecto Completo",
   "description": "Realiza un análisis holístico de un proyecto entero, subido o desde Git.",
@@ -17,7 +18,7 @@
   "analyzeButton": "Analizar Proyecto",
   "results": {
     "analyzing": "Analizando proyecto...",
-    "noResults": "Aún no hay resultados. Realiza un análisis para comenzar.",
+    "noResults": "No hay resultados aún. Realiza un análisis para comenzar.",
     "overallAssessmentLabel": "Evaluación General:",
     "improvementIdeasLabel": "Ideas Generales de Mejora:",
     "identifiedAreasLabel": "Áreas Identificadas:",
@@ -31,17 +32,17 @@
     "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
     "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados",
-    "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
-    "downloadProjectZipButton": "Descargar Proyecto Modificado (ZIP)",
+    "applyAndDownloadButton": "Descargar Proyecto Modificado (ZIP)",
     "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente original fue Git o un ZIP procesado que generó archivos base.",
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) que se usarán para la descarga ZIP o futuras modificaciones IA.",
     "saveSnapshotButton": "Guardar Snapshot del Análisis",
     "snapshotName": "Análisis de Proyecto - {name} - {time}",
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
     "modificationContextPrefix": "Contexto del error para Auto-Fix (Análisis de Proyecto). Campo de enfoque: {focusArea}. Tipo de fuente: {sourceType}. Nombre del archivo/URL: {sourceName}.",
-    "uploadedFileFallback": "Archivo subido",
     "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área: {area}",
-    "chatInteractionLogPrefix": "Interacción de Chat ({time})"
+    "unifiedSuggestionsPromptLabel": "Prompt Unificado para Implementar Sugerencias:",
+    "promptHeaderForArea": "INICIO: Prompt para mejorar: {area}",
+    "promptFooterForArea": "FIN: Prompt para mejorar: {area}"
   },
   "autofixContext": {
     "projectPromptLabel": "Prompt del Proyecto",
@@ -70,11 +71,11 @@
     },
     "unsupportedFileType": {
       "title": "Tipo de Archivo no Soportado",
-      "description": "El análisis de este tipo de archivo no está completamente implementado."
+      "description": "El análisis de este tipo de archivo no está totalmente implementado."
     },
     "sourceRequired": {
       "title": "Fuente del Proyecto Requerida",
-      "description": "Sube un archivo o proporciona una URL de Git."
+      "description": "Sube un archivo, proporciona una URL de Git, o selecciona 'Local'."
     },
     "analysisComplete": {
       "title": "Análisis Completado",
@@ -100,7 +101,8 @@
       "emptyModificationRequest": "Por favor, describe la modificación que deseas realizar.",
       "noBaseFiles": "La modificación de archivos solo es posible si la fuente original fue Git o un ZIP fue procesado exitosamente (generando archivos base).",
       "consultationError": "Ocurrió un error al consultar a la IA sobre el análisis.",
-      "gitOrZipSourceRequired": "La modificación de archivos solo es posible si la fuente original fue una URL de Git o un archivo ZIP procesado."
+      "gitOrZipSourceRequired": "La modificación de archivos solo es posible si la fuente original fue una URL de Git o un archivo ZIP procesado.",
+      "invalidResponse": "La IA no devolvió una estructura de proyecto válida después de la modificación."
     },
     "modificationSuccess": {
       "title": "Modificación Procesada",
@@ -115,7 +117,7 @@
     },
     "selectedSuggestionsApplied": {
       "title": "Cambios Seleccionados Aplicados",
-      "description": "Las sugerencias de checkbox seleccionadas han sido aplicadas en memoria. Ahora puedes descargar el ZIP modificado o continuar sugiriendo cambios a la IA."
+      "description": "Las sugerencias seleccionadas han sido aplicadas en memoria. Ahora puedes descargar el ZIP modificado o continuar sugiriendo cambios a la IA."
     },
     "noSuggestionsToApply": {
       "title": "Sin Sugerencias para Aplicar",
@@ -128,6 +130,6 @@
     "applyingAndZipping": "Aplicando sugerencias y generando ZIP..."
   },
   "downloads": {
-    "zipFilename": "proyecto_{projectName}"
+    "zipFilename": "proyecto_{projectName}.zip"
   }
 }
