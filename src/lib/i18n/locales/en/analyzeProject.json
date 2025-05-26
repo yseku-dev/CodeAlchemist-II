@@ -1,4 +1,3 @@
-
 {
   "title": "Analyze Full Project",
   "description": "Perform a holistic analysis of an entire project, uploaded or from Git.",
@@ -32,6 +31,7 @@
     "modificationInputPlaceholder": "E.g.: Add a 'logger.js' file in the 'src/utils' folder.",
     "processModificationButton": "Process Modification with AI",
     "applySelectedSuggestionsButton": "Apply Selected Changes",
+    "applyAndDownloadButton": "Apply Selected & Download Project (ZIP)",
     "downloadProjectZipButton": "Download Modified Project (ZIP)",
     "downloadProjectZipTooltipDisabled": "ZIP download of the modified project is only available if the original source was Git or a processed ZIP that generated base files.",
     "applyInfoText": "Select the suggestions you wish to apply. This will modify the base files (if source was Git or a processed ZIP) which will be used for the ZIP download or further AI modifications.",
@@ -40,7 +40,8 @@
     "defaultChatContextSystemPrompt": "You are an AI assistant expert in code analysis. The user will ask questions or request modifications about the previously generated project analysis. Respond concisely and helpfully in English.",
     "modificationContextPrefix": "Context for Auto-Fix (Project Analysis). Focus area: {focusArea}. Source type: {sourceType}. File/URL name: {sourceName}.",
     "uploadedFileFallback": "Uploaded file",
-    "selectSuggestionCheckboxAria": "Select suggestion for area: {area}"
+    "selectSuggestionCheckboxAria": "Select suggestion for area: {area}",
+    "chatInteractionLogPrefix": "Chat Interaction ({time})"
   },
   "autofixContext": {
     "projectPromptLabel": "Project Prompt",

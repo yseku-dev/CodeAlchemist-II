@@ -1,4 +1,3 @@
-
 {
   "title": "Análisis de Proyecto Completo",
   "description": "Realiza un análisis holístico de un proyecto entero, subido o desde Git.",
@@ -32,6 +31,7 @@
     "modificationInputPlaceholder": "Ej: Añade un 'logger.js' file en la carpeta 'src/utils'.",
     "processModificationButton": "Procesar Modificación con IA",
     "applySelectedSuggestionsButton": "Aplicar Cambios Seleccionados",
+    "applyAndDownloadButton": "Aplicar Seleccionadas y Descargar Proyecto (ZIP)",
     "downloadProjectZipButton": "Descargar Proyecto Modificado (ZIP)",
     "downloadProjectZipTooltipDisabled": "La descarga ZIP del proyecto modificado solo está disponible si la fuente original fue Git o un ZIP procesado que generó archivos base.",
     "applyInfoText": "Selecciona las sugerencias que deseas aplicar. Esto modificará los archivos base (si la fuente fue Git o un ZIP procesado) que se usarán para la descarga ZIP o futuras modificaciones IA.",
@@ -40,7 +40,8 @@
     "defaultChatContextSystemPrompt": "Eres un asistente IA experto en análisis de código. El usuario te hará preguntas o solicitará modificaciones sobre el análisis de proyecto previamente generado. Responde de forma concisa y útil en castellano.",
     "modificationContextPrefix": "Contexto del error para Auto-Fix (Análisis de Proyecto). Campo de enfoque: {focusArea}. Tipo de fuente: {sourceType}. Nombre del archivo/URL: {sourceName}.",
     "uploadedFileFallback": "Archivo subido",
-    "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área: {area}"
+    "selectSuggestionCheckboxAria": "Seleccionar sugerencia para el área: {area}",
+    "chatInteractionLogPrefix": "Interacción de Chat ({time})"
   },
   "autofixContext": {
     "projectPromptLabel": "Prompt del Proyecto",
