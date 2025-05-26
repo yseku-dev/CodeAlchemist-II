@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useProjectSourceManager, type ProjectSourceType as HookProjectSourceType } from '@/hooks/useProjectSourceManager';
 import { useAppState } from '@/context/AppStateContext';
 import type {
   LLMConfigSourceOption,
@@ -33,16 +34,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DEFAULT_AGENTS, ORCHESTRATOR_AGENT_ID } from '@/lib/constants';
 import { useDebug } from '@/context/DebugContext';
 import { useToast } from '@/hooks/use-toast';
-import { useProjectSourceManager, type ProjectSourceType as HookProjectSourceType } from '@/hooks/useProjectSourceManager';
+import JSZip from 'jszip';
 import { v4 as uuidv4 } from 'uuid';
-import { getApplicationSourceBundle } from '@/app/autoupdate/actions'; // Import for local source
 
 import AnalyzeProjectHeader from '@/components/features/analizar-proyecto/AnalyzeProjectHeader';
 import AnalyzeProjectForm from '@/components/features/analizar-proyecto/AnalyzeProjectForm';
 import AnalyzeProjectResultsDisplay from '@/components/features/analizar-proyecto/AnalyzeProjectResultsDisplay';
 import ErrorDisplay from '@/components/error-display';
 import { Loader2 } from 'lucide-react';
-import JSZip from 'jszip'; // Ensure JSZip is imported if used directly here, though likely in the hook
 
 /**
  * @fileOverview Page component for full project analysis.
@@ -61,17 +60,9 @@ export default function AnalizarProyectoPage() {
   const { toast } = useToast();
 
   const projectSourceManager = useProjectSourceManager(
-    'codealchemist-ap-page-v3',
+    'codealchemist-ap-hook-v1',
     "upload"
   );
-  const {
-    // uploadedFile and uploadedFileName are now managed by the hook for its internal logic
-    // but we get them back for display or other direct uses if needed.
-    uploadedFileName,
-    originalProjectFiles, // This will hold AppSourceFile[] from ZIP, Git, or Local
-    setOriginalProjectFiles, // To update from hook's processing
-  } = projectSourceManager;
-
 
   const [llmConfigSource, setLlmConfigSource] = useLocalStorage<LLMConfigSourceOption | undefined>(
     'codealchemist-ap-llmConfigSource', { type: 'Ajustes Globales' }
@@ -85,33 +76,32 @@ export default function AnalizarProyectoPage() {
 
   const [result, setResult] = useLocalStorage<AnalyzeCodeOutput | null>('codealchemist-ap-result', null);
   const [suggestionsForUI, setSuggestionsForUI] = useLocalStorage<DetailedSuggestionForUI[]>('codealchemist-ap-suggestionsForUI', []);
+  const [originalProjectFiles, setOriginalProjectFiles] = useLocalStorage<AppSourceFile[] | null>('codealchemist-ap-originalProjectFiles', null);
 
   const [modificationPrompt, setModificationPrompt] = useLocalStorage<string>('codealchemist-ap-modificationPrompt', '');
   const [isProcessingModification, setIsProcessingModification] = useState(false);
   const [isRedefiningFocusArea, setIsRedefiningFocusArea] = useState(false);
   const [isRedefiningModificationPrompt, setIsRedefiningModificationPrompt] = useState(false);
+  
   const [unifiedSuggestionsPrompt, setUnifiedSuggestionsPrompt] = useLocalStorage<string | null>('codealchemist-ap-unifiedSuggestionsPrompt', null);
 
-  // Callback for when the project source manager's file processing is done
-  const handleFileProcessingDone = useCallback(
+  const handleFileProcessingDoneInPage = useCallback(
     (processedFiles: AppSourceFile[] | null, processingError?: string) => {
-      addDebugLog({ source: 'AnalizarProyectoPage', type: 'CALLBACK', message: 'Callback de handleFileProcessingDone ejecutado por hook', data: { hasFiles: !!processedFiles, processingError } });
+      addDebugLog({ source: 'AnalizarProyectoPage', type: 'CALLBACK', message: 'Callback de onFileProcessed ejecutado por hook', data: { hasFiles: !!processedFiles, processingError } });
       if (processingError) {
         setError(processingError);
-        setOriginalProjectFiles(null); // Ensure page state is also cleared
+        setOriginalProjectFiles(null);
         setResult(null);
         setSuggestionsForUI([]);
         setModificationPrompt('');
         toast({ variant: "destructive", title: t('analyzeProject.toast.zipReadError.title' as TranslationKey), description: processingError });
       } else if (processedFiles) {
-        setOriginalProjectFiles(processedFiles); // Update page state
-        setError(null);
-        toast({ title: t('analyzeProject.toast.zipProcessed.title' as TranslationKey), description: t('analyzeProject.toast.zipProcessed.description' as TranslationKey, { count: processedFiles.length }) });
+        setOriginalProjectFiles(processedFiles);
+        setError(null); 
       }
     },
-    [setError, setOriginalProjectFiles, setResult, setSuggestionsForUI, setModificationPrompt, t, toast, addDebugLog]
+    [t, toast, addDebugLog, setError, setOriginalProjectFiles, setResult, setSuggestionsForUI, setModificationPrompt]
   );
-
 
   useEffect(() => {
     if (suggestionsForUI && suggestionsForUI.length > 0) {
@@ -126,7 +116,6 @@ export default function AnalizarProyectoPage() {
       setUnifiedSuggestionsPrompt(null);
     }
   }, [suggestionsForUI, t, setUnifiedSuggestionsPrompt]);
-
 
   const executeAnalysis = useCallback(async (analysisInputForFlow: AnalyzeCodeInput) => {
     const flowName = 'callAnalyzeSelfCode (AnalizarProyecto)';
@@ -175,8 +164,7 @@ export default function AnalizarProyectoPage() {
       setIsLoadingAnalysis(false);
       setLoadingMessage(null);
     }
-  }, [llmConfigSource, getGroupById, getAgentById, t, toast, addDebugLog, router, setResult, setSuggestionsForUI, setIsLoadingAnalysis, setLoadingMessage, setError]);
-
+  }, [llmConfigSource, getGroupById, getAgentById, t, toast, addDebugLog, router, setResult, setSuggestionsForUI, setError, setIsLoadingAnalysis, setLoadingMessage]);
 
   const handleAnalyze = useCallback(async () => {
     setIsLoadingAnalysis(true);
@@ -186,24 +174,37 @@ export default function AnalizarProyectoPage() {
     setSuggestionsForUI([]);
     setModificationPrompt('');
     setUnifiedSuggestionsPrompt(null);
-    // We don't clear originalProjectFiles here, as it might have been set by a ZIP upload
-    // and the user might want to analyze it without re-uploading.
-    // prepareProjectSourceForAnalysis will handle getting the correct source.
+
+    // If source is not 'git', originalProjectFiles might have been set by handleFileChange (for ZIP)
+    // or will be set by getApplicationSourceBundle (for 'local').
+    // If it's 'git', prepareProjectSourceForAnalysis will fetch and set it.
+    if (projectSourceManager.projectSourceType !== 'git') {
+      // For local or upload (non-git), ensure originalProjectFiles is cleared
+      // if it wasn't populated by handleFileChange (for ZIP).
+      // For 'local', getApplicationSourceBundle will be called inside prepareProjectSourceForAnalysis.
+      // For 'upload' (JSON), originalProjectFiles will remain null, which is correct.
+      if (projectSourceManager.projectSourceType === 'local' || 
+          (projectSourceManager.projectSourceType === 'upload' && !projectSourceManager.uploadedFileName?.toLowerCase().endsWith('.zip'))
+      ) {
+         setOriginalProjectFiles(null);
+      }
+    }
+
+
+    const preparationResult = await projectSourceManager.prepareProjectSourceForAnalysis();
     
-    const sourcePreparationResult = await projectSourceManager.prepareProjectSourceForAnalysis();
-    
-    if (sourcePreparationResult.error || !sourcePreparationResult.projectContentStringForAI) {
-      const errorMsg = sourcePreparationResult.error || t('analyzeProject.toast.noContentToAnalyze.description' as TranslationKey);
+    if (preparationResult.error || !preparationResult.projectContentStringForAI) {
+      const errorMsg = preparationResult.error || t('analyzeProject.toast.noContentToAnalyze.description'as TranslationKey);
       setError(errorMsg);
-      toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title' as TranslationKey), description: errorMsg });
+      toast({ variant: "destructive", title: t('analyzeProject.toast.analysisError.title'as TranslationKey), description: errorMsg });
       setIsLoadingAnalysis(false);
       setLoadingMessage(null);
-      // If source prep failed, ensure originalProjectFiles reflects what the manager has (or null if it failed)
-      setOriginalProjectFiles(projectSourceManager.originalProjectFiles);
+      if (projectSourceManager.projectSourceType === 'git') { // If git fetch failed, clear original files
+        setOriginalProjectFiles(null);
+      }
       return;
     }
-    
-    // Sync originalProjectFiles state on successful preparation by the hook
+    // Sync originalProjectFiles from the hook if it was populated (e.g., by Git or Local source in prepare)
     if (projectSourceManager.originalProjectFiles) {
         setOriginalProjectFiles(projectSourceManager.originalProjectFiles);
     }
@@ -219,11 +220,11 @@ export default function AnalizarProyectoPage() {
     }
 
     const analysisInputForFlow: AnalyzeCodeInput = {
-        projectContent: sourcePreparationResult.projectContentStringForAI,
-        sourceCodeLocation: sourcePreparationResult.sourceCodeLocationForAI,
+        projectContent: preparationResult.projectContentStringForAI,
+        sourceCodeLocation: preparationResult.sourceCodeLocationForAI as "Local" | "Git" | "UploadedString", // Cast for safety
         gitRepoUrl: projectSourceManager.projectSourceType === 'git' ? projectSourceManager.gitUrl : undefined,
         focusArea: focusArea || undefined,
-        analysisPreferences: focusArea || undefined, // analysisPreferences is deprecated, using focusArea
+        analysisPreferences: focusArea || undefined, 
         searchDepth: searchDepth ? parseInt(searchDepth, 10) : undefined,
         agentSystemPrompt: agentSystemPrompt
     };
@@ -233,10 +234,9 @@ export default function AnalizarProyectoPage() {
   }, [
       projectSourceManager, focusArea, searchDepth, llmConfigSource,
       getAgentById, getGroupById, executeAnalysis, t, toast,
-      setResult, setSuggestionsForUI, setError, setLoadingMessage, setIsLoadingAnalysis, setModificationPrompt,
-      setUnifiedSuggestionsPrompt, setOriginalProjectFiles
+      setLoadingMessage, setIsLoadingAnalysis, setError, setResult, setSuggestionsForUI, 
+      setModificationPrompt, setUnifiedSuggestionsPrompt, setOriginalProjectFiles
   ]);
-
 
   const handleToggleSuggestionSelection = useCallback((suggestionId: string) => {
     setSuggestionsForUI(prev =>
@@ -247,6 +247,7 @@ export default function AnalizarProyectoPage() {
   }, [setSuggestionsForUI]);
 
   const handleProcessModification = useCallback(async () => {
+    const flowName = 'callModifyProjectStructure (AnalizarProyecto)';
     addDebugLog({ source: 'AnalizarProyectoPage', type: 'INFO', message: 'handleProcessModification INVOCADO', data: { modificationPromptVal: modificationPrompt, originalFilesExist: !!originalProjectFiles } });
 
     if (!modificationPrompt.trim()) {
@@ -256,13 +257,12 @@ export default function AnalizarProyectoPage() {
 
     if (!originalProjectFiles) {
       toast({ variant: "destructive", title: t('analyzeProject.toast.modificationError.title' as TranslationKey), description: t('analyzeProject.toast.modificationError.noBaseFiles' as TranslationKey, {sourceType: t(`analyzeProject.source${projectSourceManager.projectSourceType.charAt(0).toUpperCase() + projectSourceManager.projectSourceType.slice(1)}` as TranslationKey)}) });
-      addDebugLog({ source: 'AnalizarProyectoPage', type: 'WARN', message: 'Modificación solicitada pero no hay originalProjectFiles (base para modificar).', data: { projectSourceType: projectSourceManager.projectSourceType } });
+      addDebugLog({ source: 'AnalizarProyectoPage', type: 'WARN', message: 'Modificación solicitada pero no hay originalProjectFiles.', data: { projectSourceType: projectSourceManager.projectSourceType } });
       return;
     }
     
     setIsProcessingModification(true);
     setError(null);
-    const flowName = 'callModifyProjectStructure (AnalizarProyecto)';
     const tempCurrentModificationRequest = modificationPrompt;
 
     let agentSystemPromptForModification: string | undefined;
@@ -285,7 +285,7 @@ export default function AnalizarProyectoPage() {
 
     const inputForModification: ModifyProjectStructureInput = {
       currentProject: {
-        projectName: result?.analysisTitle || projectSourceManager.uploadedFileName || t('generateProject.results.snapshotName', { name: 'Modificado', time: '' }).split(' - ')[2] || 'ProyectoModificado',
+        projectName: result?.analysisTitle || projectSourceManager.uploadedFileName || t('analyzeProject.results.snapshotName', { name: 'Modificado', time: '' }).split(' - ')[2] || 'ProyectoModificado',
         aiNotes: result?.generalAssessment || "",
         files: filesForModificationFlow,
       },
@@ -301,6 +301,7 @@ export default function AnalizarProyectoPage() {
 
       if (modifiedProjectResult && Array.isArray(modifiedProjectResult.files)) {
          setOriginalProjectFiles(modifiedProjectResult.files.map(f => ({ fileName: f.path, content: f.content ?? '' })));
+         
          const newAiNotes = modifiedProjectResult.aiNotes || result?.generalAssessment || t('analyzeProject.toast.modificationSuccess.noSpecificNotes' as TranslationKey);
          const newProjectName = modifiedProjectResult.projectName || result?.analysisTitle || projectSourceManager.uploadedFileName || 'ProyectoModificado';
 
@@ -313,8 +314,8 @@ export default function AnalizarProyectoPage() {
                 detailedSuggestions: base.detailedSuggestions.map(s => ({ ...s, id: s.id || uuidv4() })), 
             };
          });
-         toast({ title: t('analyzeProject.toast.modificationSuccess.title' as TranslationKey) });
-         setModificationPrompt('');
+         toast({ title: t('analyzeProject.toast.modificationSuccess.title' as TranslationKey), description: t('analyzeProject.toast.modificationSuccess.consultationDescription' as TranslationKey) });
+         setModificationPrompt(''); 
       } else {
         const errorDetail = t('analyzeProject.toast.modificationError.invalidResponse' as TranslationKey);
         addDebugLog({ source: 'AnalizarProyectoPage', type: 'ERROR', message: errorDetail, data: { modifiedProjectResult }, flowName });
@@ -325,7 +326,7 @@ export default function AnalizarProyectoPage() {
       const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('analyzeProject.toast.modificationError.description' as TranslationKey));
       setError(errorMsg);
       
-      setResult(prev => {
+      setResult(prev => { 
           const base = prev || { analysisTitle: '', identifiedAreas: [], detailedSuggestions: [], generalAssessment: '', overallImprovementIdeas: [] };
           return { ...base, generalAssessment: `${base.generalAssessment || ''}\n\n[${t('common.error' as TranslationKey).toUpperCase()} ${t('analyzeProject.toast.modificationError.title' as TranslationKey)}]: ${errorMsg}`};
       });
@@ -334,12 +335,10 @@ export default function AnalizarProyectoPage() {
     } finally {
       setIsProcessingModification(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
       modificationPrompt, result, llmConfigSource, getAgentById, getGroupById, originalProjectFiles, t, toast, router, addDebugLog,
       setModificationPrompt, setError, setIsProcessingModification, setResult, projectSourceManager.projectSourceType,
       projectSourceManager.uploadedFileName, projectSourceManager.gitUrl, settings.llmConfig, setOriginalProjectFiles,
-      suggestionsForUI
   ]);
 
   const handleRedefineFocusArea = useCallback(async () => {
@@ -358,7 +357,7 @@ export default function AnalizarProyectoPage() {
     } catch (e: any) {
       addDebugLog({ source: 'AnalizarProyectoPage', type: 'ERROR', message: `Fallo al redefinir 'focusArea'.`, errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage });
       const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('common.toast.redefineError.description' as TranslationKey));
-      setError(errorMsg);
+      setError(errorMsg); 
       toast({ variant: 'destructive', title: t('common.toast.redefineError.title' as TranslationKey), description: errorMsg });
       if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
     } finally {
@@ -382,7 +381,7 @@ export default function AnalizarProyectoPage() {
     } catch (e: any) {
       addDebugLog({ source: 'AnalizarProyectoPage', type: 'ERROR', message: `Fallo al redefinir 'modificationPrompt'.`, errorDetails: e.originalError || e, friendlyMessage: (e as AppError).friendlyMessage });
       const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('common.toast.redefineError.description' as TranslationKey));
-      setError(errorMsg);
+      setError(errorMsg); 
       toast({ variant: 'destructive', title: t('common.toast.redefineError.title' as TranslationKey), description: errorMsg });
       if (e instanceof AppError && e.redirectTo) router.push(e.redirectTo);
     } finally {
@@ -398,9 +397,9 @@ export default function AnalizarProyectoPage() {
     const snapshotName = t('analyzeProject.results.snapshotName' as TranslationKey, { name: (result?.analysisTitle || projectSourceManager.uploadedFileName || "Analisis").substring(0,30), time: new Date().toLocaleTimeString() });
 
     const dataToSave: Record<string, any> = {
-        analysisResult: result,
-        currentOriginalFiles: originalProjectFiles || undefined,
-        suggestionsWithSelection: suggestionsForUI,
+        analysisResult: result, 
+        currentOriginalFiles: originalProjectFiles || undefined, 
+        suggestionsWithSelection: suggestionsForUI, 
         sourceDetails: {
             type: projectSourceManager.projectSourceType,
             gitUrl: projectSourceManager.projectSourceType === 'git' ? projectSourceManager.gitUrl : undefined,
@@ -411,7 +410,7 @@ export default function AnalizarProyectoPage() {
     const snapshotJsonString = JSON.stringify(dataToSave, null, 2);
     const stringLength = snapshotJsonString.length;
 
-    if (stringLength > 4.5 * 1024 * 1024) {
+    if (stringLength > 4.5 * 1024 * 1024) { 
       toast({
         variant: "destructive",
         title: t('versions.toast.snapshotSaveError.title' as TranslationKey),
@@ -433,6 +432,7 @@ export default function AnalizarProyectoPage() {
         hasProjectFiles: !!originalProjectFiles,
       }
     });
+    toast({title: t('versions.toast.snapshotSaved.title' as TranslationKey), description: t('versions.toast.snapshotSaved.description' as TranslationKey, {name: snapshotName}) });
   }, [result, suggestionsForUI, projectSourceManager, addSnapshot, t, toast, originalProjectFiles ]);
 
   const handleDownloadProjectZip = useCallback(async () => {
@@ -446,17 +446,16 @@ export default function AnalizarProyectoPage() {
 
     try {
       let filesToZip = originalProjectFiles.map(f => ({...f}));
-
       const filesMap = new Map<string, AppSourceFile>(filesToZip.map(f => [f.fileName, f]));
 
       suggestionsForUI.filter(s => s.isSelected && s.suggestedContent && s.area).forEach(suggestion => {
-        if (suggestion.area && suggestion.suggestedContent) {
+        if (suggestion.area && suggestion.suggestedContent) { 
             if (filesMap.has(suggestion.area)) {
-                 filesMap.get(suggestion.area)!.content = suggestion.suggestedContent;
+                 filesMap.get(suggestion.area)!.content = suggestion.suggestedContent; 
             } else {
-                filesMap.set(suggestion.area, { fileName: suggestion.area, content: suggestion.suggestedContent });
+                filesMap.set(suggestion.area, { fileName: suggestion.area, content: suggestion.suggestedContent }); 
             }
-            addDebugLog({ source: 'AnalizarProyectoPage', type: 'INFO', message: `Aplicando sugerencia de checkbox a: ${suggestion.area} para ZIP.` });
+             addDebugLog({ source: 'AnalizarProyectoPage', type: 'INFO', message: `Aplicando sugerencia de checkbox a: ${suggestion.area} para ZIP.` });
         }
       });
       filesToZip = Array.from(filesMap.values());
@@ -466,7 +465,7 @@ export default function AnalizarProyectoPage() {
         let cleanPath = file.fileName;
         if (cleanPath.startsWith('./')) cleanPath = cleanPath.substring(2);
         if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
-        if (cleanPath.trim() !== "") {
+        if (cleanPath.trim() !== "") { 
             zip.file(cleanPath, file.content);
         }
       });
@@ -503,9 +502,9 @@ export default function AnalizarProyectoPage() {
         return;
     }
 
-    const filesMap = new Map<string, AppSourceFile>(originalProjectFiles.map(f => [f.fileName, {...f}]));
+    const filesMap = new Map<string, AppSourceFile>(originalProjectFiles.map(f => [f.fileName, {...f}])); 
     applicableSuggestions.forEach(suggestion => {
-        if (suggestion.area && suggestion.suggestedContent) {
+        if (suggestion.area && suggestion.suggestedContent) { 
             if (filesMap.has(suggestion.area)) {
                 filesMap.get(suggestion.area)!.content = suggestion.suggestedContent;
             } else {
@@ -523,29 +522,18 @@ export default function AnalizarProyectoPage() {
     const type = projectSourceManager.projectSourceType;
     const capitalizedType = type.charAt(0).toUpperCase() + type.slice(1);
     const sourceTypeTranslationKey = `analyzeProject.source${capitalizedType}` as TranslationKey;
-    let translatedSourceType: string;
-    try {
-      translatedSourceType = t(sourceTypeTranslationKey);
-    } catch {
-      translatedSourceType = capitalizedType;
-    }
+    const translatedSourceType = t(sourceTypeTranslationKey);
 
-    const prefixContext = t('analyzeProject.results.modificationContextPrefix' as TranslationKey, {
-      focusArea: focusArea || "N/A",
-      sourceType: translatedSourceType,
-      sourceName: projectSourceManager.uploadedFileName || projectSourceManager.gitUrl || "Local"
-    });
-
-    let modificationContextPart = "";
+    let modificationContext = "";
     if (modificationPrompt) {
-      const modificationLabel = t('analyzeProject.results.lastModificationLabel' as TranslationKey);
-      const escapedModificationPrompt = modificationPrompt
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n');
-      modificationContextPart = ` ${modificationLabel}: "${escapedModificationPrompt}"`;
+        const modificationLabel = t('analyzeProject.results.lastModificationLabel' as TranslationKey);
+        const escapedModificationPrompt = modificationPrompt
+          .replace(/\\/g, '\\\\') 
+          .replace(/"/g, '\\"')  
+          .replace(/\n/g, '\\n'); 
+        modificationContext = ` ${modificationLabel}: "${escapedModificationPrompt}"`;
     }
-    const contextForAI = `${prefixContext}${modificationContextPart}`;
+    const contextForAI = `${t('analyzeProject.results.modificationContextPrefix' as TranslationKey, { focusArea: focusArea || "N/A", sourceType: translatedSourceType, sourceName: projectSourceManager.uploadedFileName || projectSourceManager.gitUrl || "Local" })}${modificationContext}`;
 
 
     addDebugLog({source: 'AnalizarProyectoPage', type: 'INFO', message: `Intentando Auto-Fix para error: ${errorToFix}`, data: { contextForAI }, flowName: 'callAutoFixErrorWithGroup (AnalizarProyecto)'});
@@ -561,16 +549,14 @@ export default function AnalizarProyectoPage() {
       });
       addDebugLog({ source: 'AnalizarProyectoPage', type: 'INFO', message: `Sugerencia de Auto-Fix recibida`, data: fixSuggestion});
       toast({ title: t('error.errorDisplay.toast.autofixSuggestionReceived.title' as TranslationKey), description: t('error.errorDisplay.toast.autofixSuggestionReceived.description'as TranslationKey) });
-      // Display fixSuggestion in a modal - This logic should be in ErrorDisplay or triggered from there
     } catch (e: any) {
       const errorMsg = e instanceof AppError ? e.friendlyMessage : ((e as Error).message || t('common.unknownError' as TranslationKey));
       toast({ variant: "destructive", title: t('error.errorDisplay.toast.autofixError.title' as TranslationKey), description: errorMsg });
       addDebugLog({ source: 'AnalizarProyectoPage', type: 'ERROR', message: `Fallo en Auto-Fix: ${errorMsg}`, errorDetails: e});
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    t, focusArea, projectSourceManager.projectSourceType, projectSourceManager.uploadedFileName, projectSourceManager.gitUrl,
-    modificationPrompt, addDebugLog, toast, error, settings.llmConfig
+    projectSourceManager.projectSourceType, projectSourceManager.uploadedFileName, projectSourceManager.gitUrl,
+    focusArea, modificationPrompt, addDebugLog, toast, error, settings.llmConfig, t,
   ]);
 
   const isLoadingOverall = projectSourceManager.isLoadingSource || isLoadingAnalysis || isProcessingModification || isRedefiningFocusArea || isRedefiningModificationPrompt;
@@ -584,10 +570,9 @@ export default function AnalizarProyectoPage() {
           llmConfigSource={llmConfigSource}
           onLlmConfigSourceChange={setLlmConfigSource}
           projectSourceType={projectSourceManager.projectSourceType}
-          onProjectSourceTypeChange={(value) => projectSourceManager.setProjectSourceType(value as HookProjectSourceType)}
-          // Pass hook's uploadedFileName for display in form
+          onProjectSourceTypeChange={(value) => projectSourceManager.setProjectSourceType(value as HookProjectSourceType)} 
           uploadedFileName={projectSourceManager.uploadedFileName}
-          onFileChange={(e) => projectSourceManager.handleFileChange(e, handleFileProcessingDone)}
+          onFileChange={(e) => projectSourceManager.handleFileChange(e, handleFileProcessingDoneInPage)}
           fileInputRef={projectSourceManager.fileInputRef}
           gitUrl={projectSourceManager.gitUrl}
           onGitUrlChange={projectSourceManager.setGitUrl}
@@ -606,6 +591,7 @@ export default function AnalizarProyectoPage() {
         {error && <ErrorDisplay
                     error={error}
                     onAutoFix={() => handleAutoFixError(error || t('common.unknownError' as TranslationKey))}
+                    context={`${t('analyzeProject.autofixContext.projectPromptLabel' as TranslationKey)}: "${focusArea || 'N/A'}"`}
                   />}
 
         {isLoadingAnalysis && !result && !error && (
@@ -639,6 +625,4 @@ export default function AnalizarProyectoPage() {
     </Card>
   );
 }
-
 ```
-No he podido aplicar los cambios, el error es exactamente el mismo y ya estaba corregido
