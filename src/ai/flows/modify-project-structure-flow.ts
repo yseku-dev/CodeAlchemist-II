@@ -18,18 +18,17 @@ import type {
 } from '@/types';
 import { AppError } from '@/utils/AppError';
 
-// Local Zod schemas for this flow to avoid potential circular dependencies with types.ts
-// if types.ts were to import from flows. These are simplified versions.
+// Local Zod schemas for this flow
 const GeneratedFileSchemaInternal = z.object({
   path: z
     .string()
     .describe(
-      'Ruta relativa del archivo o carpeta. Las carpetas deben terminar con /'
+      'Ruta relativa del archivo o carpeta. Las carpetas deben terminar con /. Es OBLIGATORIO.'
     ),
   content: z
     .string()
     .describe(
-      'Contenido COMPLETO y funcional del archivo. Vacío para carpetas.'
+      'Contenido COMPLETO y funcional del archivo. Vacío para carpetas. Es OBLIGATORIO.'
     ),
   isFolder: z.boolean().optional().describe('Indica si es una carpeta.'),
 });
@@ -46,26 +45,30 @@ const ProjectGenerationResultSchemaForFlowInternal = z.object({
   projectName: z
     .string()
     .describe(
-      'Un nombre sugerido para el proyecto (ej. mi-proyecto-genial, ProyectoAsombroso).'
+      'Un nombre para el proyecto. DEBE estar presente. Generalmente el mismo que el proyecto actual, a menos que se pida cambiarlo.'
     ),
   aiNotes: z
     .string()
     .describe(
-      'Comentarios o notas de la IA sobre la estructura generada, posibles próximos pasos, o dependencias a instalar.'
+      'Comentarios o notas de la IA sobre los cambios realizados o problemas encontrados. DEBE estar presente.'
     ),
   files: z
     .array(GeneratedFileSchemaInternal)
     .describe(
-      'Una lista de archivos y carpetas generados, cada uno con su ruta y contenido.'
+      'Una lista de archivos y carpetas que representan la ESTRUCTURA COMPLETA DEL PROYECTO DESPUÉS DE LA MODIFICACIÓN. DEBE estar presente (puede ser un array vacío [] si se eliminan todos los archivos).'
     ),
   groupLog: z
     .string()
     .optional()
-    .describe('Log de ejecución si la generación fue coordinada por un grupo.'),
+    .describe('Log de ejecución si la modificación fue coordinada por un grupo.'),
 });
 
 const ModifyProjectStructureInputSchemaInternal = z.object({
-  currentProject: ProjectGenerationResultSchemaForFlowInternal.describe(
+  currentProject: z.object({ // Simplified for the prompt, full schema is ProjectGenerationResultSchemaForFlowInternal
+      projectName: z.string(),
+      aiNotes: z.string(),
+      files: z.array(GeneratedFileSchemaInternal)
+  }).describe(
     'El objeto ProjectGenerationResult actual, representando el estado actual del proyecto.'
   ),
   modificationRequest: z
@@ -85,7 +88,6 @@ const ModifyProjectStructureInputSchemaInternal = z.object({
     .describe(
       'El prompt de sistema de un agente, si la modificación es impulsada por un agente específico o un contexto de grupo.'
     ),
-  // Nueva propiedad para la cadena JSON
   currentProjectFilesString: z.string().optional().describe('La estructura de archivos actual del proyecto como una cadena JSON.'),
 });
 export type ModifyProjectStructureInternalInput = z.infer<typeof ModifyProjectStructureInputSchemaInternal>;
@@ -104,23 +106,23 @@ export async function modifyProjectStructure(
 ): Promise<ProjectGenerationResult> {
   // Cast to internal Zod type for flow processing
   return modifyProjectStructureFlowGenkit(
-    input as unknown as ModifyProjectStructureInternalInput // Adjust casting if ModifyInputType is significantly different
+    input as unknown as ModifyProjectStructureInternalInput
   );
 }
 
 const prompt = ai.definePrompt({
   name: 'modifyProjectStructurePrompt',
   input: { schema: ModifyProjectStructureInputSchemaInternal },
-  output: { schema: ProjectGenerationResultSchemaForFlowInternal },
+  output: { schema: ProjectGenerationResultSchemaForFlowInternal, format: 'json' },
   prompt: `{{#if agentSystemPrompt}}
 {{{agentSystemPrompt}}}
 
-Considerando tu rol y especialización, y basado en la siguiente estructura de proyecto actual y la petición de modificación del usuario, actualiza la estructura del proyecto. Tu respuesta DEBE ser un único objeto JSON que se adhiera al schema especificado.
+Considerando tu rol y especialización, y basado en la siguiente estructura de proyecto actual y la petición de modificación del usuario, actualiza la estructura del proyecto. Tu respuesta DEBE ser un único objeto JSON que se adhiera al schema ProjectGenerationResultSchemaForFlowInternal (ver abajo).
 {{else}}
-Eres un desarrollador de software experto. Tu tarea es modificar una estructura de proyecto existente (archivos y carpetas) basándote en la petición del usuario. Tu respuesta DEBE ser un único objeto JSON que se adhiera al schema especificado.
+Eres un desarrollador de software experto. Tu tarea es modificar una estructura de proyecto existente (archivos y carpetas) basándote en la petición del usuario. Tu respuesta DEBE ser un único objeto JSON que se adhiera al schema ProjectGenerationResultSchemaForFlowInternal (ver abajo).
 {{/if}}
 
-Estructura Actual del Proyecto (Nombre: "{{currentProject.projectName}}", Notas Actuales: "{{currentProject.aiNotes}}", Lista de Archivos JSON):
+Estructura Actual del Proyecto (Nombre: "{{currentProject.projectName}}", Notas Actuales de IA: "{{currentProject.aiNotes}}", Lista de Archivos JSON):
 \`\`\`json
 {{{currentProjectFilesString}}}
 \`\`\`
@@ -134,67 +136,93 @@ Historial de Conversación de Modificación Previa:
 Petición de Modificación del Usuario:
 "{{{modificationRequest}}}"
 
-Instrucciones Detalladas:
-1.  Analiza cuidadosamente la estructura actual del proyecto y la petición de modificación.
-2.  Aplica los cambios solicitados a la lista de archivos. Esto puede implicar:
-    *   **Añadir nuevos archivos/carpetas:** Especifica su 'path' y 'content' completo y funcional. Si creas un archivo dentro de una nueva carpeta, asegúrate de que la carpeta también esté declarada explícitamente con 'isFolder: true' y 'content: ""' o sin la propiedad 'content'. Las rutas de carpeta DEBEN terminar con '/'. El 'content' debe ser el código completo y funcional.
-    *   **Modificar archivos existentes:** Actualiza el 'content' del archivo correspondiente en la lista. Asegúrate de que el contenido sea completo y funcional.
-    *   **Eliminar archivos/carpetas:** Omite el archivo/carpeta de la nueva lista de 'files'.
-3.  **IMPORTANTE: Mantén todos los archivos no afectados por la petición del usuario exactamente sin cambios en la nueva lista de 'files'.** Si un archivo no se menciona explícita o implícitamente para ser modificado o eliminado, debe estar presente en la salida con su contenido original.
-4.  El 'projectName' generalmente debe mantenerse igual al de 'currentProject.projectName', a menos que la petición de modificación lo cambie explícitamente.
-5.  Actualiza el campo 'aiNotes' para describir los cambios realizados, cualquier problema encontrado durante la modificación, o sugerencias adicionales. Si la petición del usuario es ambigua, irrealizable o incompleta, explícalo claramente en 'aiNotes' y devuelve la estructura del proyecto SIN cambios significativos en 'files' pero actualizando 'aiNotes'.
-6.  Tu respuesta DEBE ser un único objeto JSON que se adhiera estrictamente al schema de salida especificado (ProjectGenerationResultSchemaForFlowInternal), incluyendo 'projectName', 'aiNotes', y la nueva lista completa de 'files'.
-7.  Toda la salida (nombres de archivo, contenido, notas) debe estar en castellano.
+Instrucciones Detalladas para tu respuesta JSON (Schema: ProjectGenerationResultSchemaForFlowInternal):
+1.  **`projectName` (string, OBLIGATORIO):** El nombre del proyecto. Generalmente debe mantenerse igual al de 'currentProject.projectName', a menos que la petición de modificación lo cambie explícitamente. ¡NO OMITIR ESTE CAMPO!
+2.  **`aiNotes` (string, OBLIGATORIO):** Comentarios o notas de la IA sobre los cambios realizados, cualquier problema encontrado durante la modificación, o sugerencias adicionales. Si la petición del usuario es ambigua o irrealizable, explícalo claramente aquí y devuelve la estructura del proyecto SIN cambios significativos en 'files' (pero actualiza 'aiNotes'). ¡NO OMITIR ESTE CAMPO!
+3.  **`files` (array de objetos GeneratedFile, OBLIGATORIO):** Una lista de TODOS los archivos y carpetas que representan la estructura COMPLETA del proyecto DESPUÉS de la modificación. ¡NO OMITIR ESTE CAMPO! Puede ser un array vacío \`[]\` si se eliminan todos los archivos.
+    *   Cada objeto `GeneratedFile` DEBE tener:
+        *   **`path` (string, OBLIGATORIO):** Ruta relativa del archivo/carpeta (ej. "src/components/Button.tsx", "README.md", "public/"). Las carpetas DEBEN terminar con \`/\`.
+        *   **`content` (string, OBLIGATORIO):** Contenido COMPLETO y FUNCIONAL del archivo. Vacío (\`""\`) para carpetas. No uses placeholders en lugar de código real.
+        *   **`isFolder` (boolean, opcional):** \`true\` si es una carpeta. Si \`path\` termina en \`/\`, se asume carpeta.
+    *   **Acciones de Modificación:**
+        *   **Añadir nuevos archivos/carpetas:** Inclúyelos en la lista de 'files' con su 'path' y 'content' completo. Si creas un archivo dentro de una nueva carpeta, asegúrate de que la carpeta también esté declarada.
+        *   **Modificar archivos existentes:** Actualiza el 'content' del archivo correspondiente en la lista.
+        *   **Eliminar archivos/carpetas:** Simplemente omite el archivo/carpeta de la nueva lista de 'files'.
+    *   **IMPORTANTE: Mantén todos los archivos no afectados por la petición del usuario exactamente sin cambios en la nueva lista de 'files'.**
+4.  **`groupLog` (string, opcional):** Si esta modificación es parte de una ejecución de grupo, este campo puede contener logs. Generalmente, no necesitas generarlo tú mismo a menos que estés actuando como orquestador principal.
 
-Ejemplo de un objeto 'file' para una carpeta: \`{ "path": "src/", "content": "", "isFolder": true }\`
-Ejemplo de un objeto 'file' para un archivo: \`{ "path": "src/index.js", "content": "console.log(\\"Hola Mundo\\");" }\`
-Asegúrate de que el JSON de salida sea válido y completo.
+Toda la salida (nombres de archivo, contenido, notas) debe estar en castellano.
+Tu respuesta DEBE SER ÚNICAMENTE el objeto JSON válido y completo que se adhiera a esta estructura. No incluyas ningún otro texto explicativo fuera del objeto JSON.
 `,
-  // No helpers needed here anymore
 });
 
 const modifyProjectStructureFlowGenkit = ai.defineFlow(
   {
     name: 'modifyProjectStructureFlowInternal',
-    inputSchema: ModifyProjectStructureInputSchemaInternal, // Use the internal schema that will receive the stringified files
+    inputSchema: ModifyProjectStructureInputSchemaInternal,
     outputSchema: ProjectGenerationResultSchemaForFlowInternal,
   },
-  async (input) => {
+  async (input: ModifyProjectStructureInternalInput): Promise<ProjectGenerationResult> => {
     const flowName = 'modifyProjectStructureFlow';
-    let originalErrorForAppError: any = null; // Variable to store the error for AppError
+    let originalErrorForAppError: any = null;
 
     try {
-      // Stringify files here and prepare the input for the prompt
       const currentProjectFilesString = JSON.stringify(input.currentProject.files, null, 2);
       const promptInput = {
         ...input,
         currentProjectFilesString: currentProjectFilesString,
       };
 
+      console.log(`[Flow: ${flowName}] Input para el prompt (truncado):`, {
+        ...promptInput,
+        currentProjectFilesString: currentProjectFilesString.substring(0, 200) + (currentProjectFilesString.length > 200 ? '...' : ''),
+        agentSystemPrompt: input.agentSystemPrompt ? input.agentSystemPrompt.substring(0,100) + '...' : undefined
+      });
+
       const llmResponse = await prompt(promptInput);
       const output = llmResponse.output;
-      console.log(`[Flow: ${flowName}] LLM output recibido (truncado):`, JSON.stringify(output, null, 2)?.substring(0, 1000) + '...');
+      
+      console.log(`[Flow: ${flowName}] LLM output recibido (antes de validaciones internas):`, JSON.stringify(output, null, 2)?.substring(0, 1000) + '...');
 
       if (!output) {
-        originalErrorForAppError = 'No output from LLM';
-        console.error(`[Flow: ${flowName}] ${originalErrorForAppError}`);
-        throw new Error(String(originalErrorForAppError)); // Throw a generic error to be caught below
+        originalErrorForAppError = { message: 'No output from LLM', llmUsage: llmResponse.usage };
+        console.error(`[Flow: ${flowName}] ${originalErrorForAppError.message}. Usage:`, originalErrorForAppError.llmUsage);
+        throw new AppError(
+            `La IA no pudo modificar la estructura del proyecto (sin salida). ${llmResponse.usage?.promptInvalid ? 'Detalles de validación de schema de Genkit: ' + JSON.stringify(llmResponse.usage.promptInvalid) : ''}`.trim(),
+            originalErrorForAppError,
+            'ai'
+        );
+      }
+
+      // Ensure required fields are present, even if schema validation from Genkit passes (which it should if output is not null)
+      // Genkit's schema validation is the primary guard. These are fallbacks or for more specific error messages.
+      const validatedOutput: ProjectGenerationResult = {
+        projectName: output.projectName || input.currentProject.projectName || "proyecto-modificado",
+        aiNotes: output.aiNotes || "Modificación procesada. Revisa los archivos.",
+        files: (output.files && Array.isArray(output.files)) ? output.files.map((file: any) => ({ // Cast file to any temporarily
+          path: file.path || 'ruta/desconocida/error.txt',
+          content: typeof file.content === 'string' ? file.content : '',
+          isFolder: typeof file.isFolder === 'boolean' ? file.isFolder : (file.path || '').endsWith('/'),
+        })) : [],
+        groupLog: output.groupLog,
+      };
+      
+      if (!output.projectName) {
+        validatedOutput.aiNotes = `[ADVERTENCIA: La IA no proporcionó 'projectName'. Usando por defecto.] ${validatedOutput.aiNotes}`;
+        console.warn(`[Flow: ${flowName}] La IA no proporcionó 'projectName'.`);
       }
       if (!output.files || !Array.isArray(output.files)) {
-        originalErrorForAppError = { message: 'Output.files no es un array o está indefinido', llmOutput: output };
-        console.error(`[Flow: ${flowName}] ${originalErrorForAppError.message}. Output:`, output);
-        throw new Error(String(originalErrorForAppError.message)); // Throw a generic error
+         validatedOutput.aiNotes = `[ADVERTENCIA: La IA no proporcionó una lista 'files' válida. Se devolvió una lista vacía.] ${validatedOutput.aiNotes}`;
+         console.warn(`[Flow: ${flowName}] La IA no proporcionó una lista 'files' válida.`);
       }
+      
+      console.log(`[Flow: ${flowName}] Output validado/normalizado:`, JSON.stringify(validatedOutput, null, 2)?.substring(0, 500) + '...');
+      return validatedOutput as ProjectGenerationResult;
 
-      const processedFiles = output.files.map((file: GeneratedFileInternal) => ({
-        path: file.path || 'ruta/desconocida/por/defecto',
-        content: file.content ?? '',
-        isFolder: file.isFolder ?? file.path?.endsWith('/') ?? false,
-      }));
-
-      return { ...output, files: processedFiles as GeneratedFileTypeFromTypes[] };
     } catch (error: any) {
       const originalErrorMessage = error?.message ? String(error.message) : 'Detalles del error no disponibles';
+      const schemaValidationError = error?.originalError?.llmUsage?.promptInvalid || error?.llmUsage?.promptInvalid;
+
       console.error(`[Flow: ${flowName}] Error ORIGINAL capturado antes de lanzar AppError:`, error);
       if (error.stack) {
         console.error(`[Flow: ${flowName}] Stack del error original:`, error.stack);
@@ -210,14 +238,19 @@ const modifyProjectStructureFlowGenkit = ai.defineFlow(
         throw error;
       }
 
-      const detailsForUser = originalErrorMessage.substring(0, 150) + (originalErrorMessage.length > 150 ? '...' : '');
+      let detailsForUser = originalErrorMessage;
+      if (schemaValidationError) {
+        detailsForUser = `INVALID_ARGUMENT: Schema validation failed. Parse Errors: ${JSON.stringify(schemaValidationError)}`;
+      }
+      detailsForUser = detailsForUser.substring(0, 150) + (detailsForUser.length > 150 ? '...' : '');
 
       throw new AppError(
-        `Ocurrió un error en el flujo de modificación de estructura de proyecto. Causa: ${detailsForUser}`,
-        originalErrorForAppError || error, // Pass the more specific error if available
+        `FALLO_EN_FLUJO_MODIFY_PROJECT: ${detailsForUser}`,
+        error, 
         'ai'
       );
     }
   }
 );
 
+    
