@@ -2,9 +2,9 @@
 // src/components/features/generar-proyecto/GenerateProjectResultsDisplay.tsx
 "use client";
 
-import React, { useEffect } from 'react'; // Import useEffect
+import React, { useEffect, useRef } from 'react'; 
 import { Button } from '@/components/ui/button';
-import { Download, Send, Wand2, Loader2, MessageSquare, Bot, User, Save } from 'lucide-react';
+import { Download, Send, Wand2, Loader2, MessageSquare, Bot, User, Save, AlertTriangleIcon } from 'lucide-react';
 import FileTreeDisplay from '@/components/file-tree';
 import type { ProjectGenerationResult, ChatMessage } from '@/types';
 import type { TranslationKey } from '@/lib/i18n/translations';
@@ -19,21 +19,20 @@ interface GenerateProjectResultsDisplayProps {
   t: (key: TranslationKey, params?: Record<string, string | number>) => string;
   onDownloadProject: () => void;
   onSaveSnapshot: () => void;
-  chatHistory?: ChatMessage[];
+  chatHistory: ChatMessage[]; 
   currentModificationRequest: string;
   onCurrentModificationRequestChange: (value: string) => void;
   onSendModificationRequest: () => Promise<void>;
   isModifyingProject: boolean;
   isRedefiningModificationRequest: boolean;
   onRedefineModificationRequest: () => Promise<void>;
-  // scrollAreaRefChat: React.RefObject<HTMLDivElement>; // No se usa aquí
 }
 
 /**
  * @fileOverview Component for displaying the results of a project generation.
  * Shows the suggested project name, AI notes, a file tree of generated files,
  * a download button, and group logs if applicable.
- * Also includes a new section for interactively modifying the generated project via chat.
+ * Also includes a section for interactively modifying the generated project via chat.
  * All texts are internationalized.
  * @module GenerateProjectResultsDisplay
  */
@@ -42,7 +41,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
   t,
   onDownloadProject,
   onSaveSnapshot,
-  chatHistory = [],
+  chatHistory = [], 
   currentModificationRequest,
   onCurrentModificationRequestChange,
   onSendModificationRequest,
@@ -50,24 +49,23 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
   isRedefiningModificationRequest,
   onRedefineModificationRequest,
 }) => {
-
-  // Log props for debugging button state
-  console.log('[GenerateProjectResultsDisplay] Render. Props de estado:', {
-    isModifyingProject,
-    isRedefiningModificationRequest,
-    currentModificationRequestValue: currentModificationRequest,
-    hasTextInRequest: !!(currentModificationRequest && currentModificationRequest.trim()),
-    isSendButtonDisabled: isModifyingProject || isRedefiningModificationRequest || (!currentModificationRequest || !currentModificationRequest.trim()),
-    isRedefineButtonDisabled: (!currentModificationRequest || !currentModificationRequest.trim()) || isRedefiningModificationRequest || isModifyingProject,
-  });
+  const scrollAreaRefChat = useRef<HTMLDivElement>(null); 
 
   useEffect(() => {
-    console.log('[GenerateProjectResultsDisplay EFFECT] Props actualizadas:', {
-      isModifyingProject,
-      isRedefiningModificationRequest,
-      currentModificationRequest,
-    });
-  }, [isModifyingProject, isRedefiningModificationRequest, currentModificationRequest]);
+    if (scrollAreaRefChat.current) {
+      scrollAreaRefChat.current.scrollTo({ top: scrollAreaRefChat.current.scrollHeight, behavior: 'smooth' });
+    }
+  }, [chatHistory]);
+
+  // Debugging logs for button state - Keep this during development if issues persist
+  // useEffect(() => {
+  //   console.log('[GenerateProjectResultsDisplay EFFECT] Props actualizadas:', {
+  //     isModifyingProject,
+  //     isRedefiningModificationRequest,
+  //     currentModificationRequest,
+  //     chatHistoryLength: chatHistory.length,
+  //   });
+  // }, [isModifyingProject, isRedefiningModificationRequest, currentModificationRequest, chatHistory]);
 
 
   if (!result) {
@@ -120,7 +118,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <ScrollArea className="h-48 border rounded-md p-3 bg-muted/30"> {/* ref={scrollAreaRefChat} -> prop no usada */}
+          <ScrollArea className="h-48 border rounded-md p-3 bg-muted/30" ref={scrollAreaRefChat}>
             {(chatHistory || []).length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                     {t('generateProject.results.modificationInputPlaceholder')}
@@ -140,14 +138,14 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
                         ? 'bg-primary text-primary-foreground'
                         : msg.role === 'assistant'
                         ? 'bg-card text-card-foreground border'
-                        : 'bg-destructive/10 text-destructive-foreground border border-destructive/30 items-start'
+                        : 'bg-destructive/10 text-destructive-foreground border border-destructive/30 items-start' 
                     }`}
                   >
                     {msg.role === 'assistant' && (
                       <Bot className="h-5 w-5 self-start flex-shrink-0 text-accent" />
                     )}
                      {msg.role === 'system' && ( 
-                      <Bot className="h-5 w-5 self-start flex-shrink-0 text-destructive" />
+                      <AlertTriangleIcon className="h-5 w-5 self-start flex-shrink-0 text-destructive" />
                     )}
                     {msg.role === 'user' && (
                       <User className="h-5 w-5 self-start flex-shrink-0" />
@@ -164,7 +162,7 @@ const GenerateProjectResultsDisplay: React.FC<GenerateProjectResultsDisplayProps
                   </div>
                 </div>
               ))}
-              {isModifyingProject && (
+              {isModifyingProject && ( 
                 <div className="flex justify-start">
                     <div className="max-w-[85%] p-2.5 rounded-lg bg-card text-card-foreground border flex items-center shadow-sm">
                     <Loader2 className="h-5 w-5 animate-spin mr-2 text-accent" />
